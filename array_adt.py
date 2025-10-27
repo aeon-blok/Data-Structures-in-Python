@@ -2,6 +2,7 @@ from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast
 from abc import ABC, ABCMeta, abstractmethod
 
 # array adt
+
 """
 **Array**: collection of elements of type E in linear order
 
@@ -72,7 +73,7 @@ class FixedArray(iArray[T]):
     def __str__(self) -> str:
         """Info string for Array"""
         elements = [self._state[i] for i in range(self._counter)]
-        return f"Array Size: {self._counter}: With Elements: {elements}"
+        return f"Array Size: {self._counter}/{self._size}: With Elements: {elements}"
 
     def __repr__(self) -> str:
         """Shows the array with all the empty positions also"""
@@ -113,12 +114,21 @@ class FixedArray(iArray[T]):
             raise IndexError("Index out of bounds")
 
         # move all array elements right.
-        for i in range(self._counter, index, -1):   # start from the end
-            self._state[i] = self._state[i-1]   # move element right
-        self._state[index] = value  # insert value into the array at index (now there is a space)
+        for i in range(self._counter, index, -1):   # start from the end and go backwards through array. (stop at index element)
+            self._state[i] = self._state[i-1]   # copies element from left neighbour (e.g. elem_4 = elem_3) - shifts every element right 
+        self._state[index] = value  # insert value into the array at index (atm contains duplicate)
 
         self._counter += 1    # increment array counter
 
+    def append(self, value: T):
+        """O(1) -- inserts a value at the end of the array """
+
+        if self._counter >= self._size:
+            raise OverflowError("Array is Full Sir....")
+        
+        self._state[self._counter] = value  # store value at the end of currently stored items
+        self._counter += 1  # increment counter
+        
     def delete(self, index):
         """O(n) removes a value at the specified index, Shifts elements left"""
 
@@ -127,10 +137,10 @@ class FixedArray(iArray[T]):
 
         delete_value = self._state[index]   # returned at end for user info
 
-        # shift elements left -- Starts from the deleted index
+        # shift elements left -- Starts from the deleted index (Goes Backwards)
         for i in range(index, self._counter - 1):  # Stops before the index (the item we will remove)
-            self._state[i] = self._state[i + 1]  # Moves each element one position left
-        self._state[self._counter - 1] = None   # removes item from the array
+            self._state[i] = self._state[i + 1]  # copies element from right neighbour (elem4 = elem5) - shifts every element left
+        self._state[self._counter - 1] = None   # removes item from the end of the stored items 
 
         self._counter -= 1  # decrement array counter
 
@@ -149,11 +159,8 @@ class FixedArray(iArray[T]):
             if self._state[i] == value:
                 return i
         # loop completes without finding value -- signals value is not present in array.
-        return -1 
+        return None 
 
-    # TODO: Add Append - inserts an item at the end of the array.
-    # TODO: Why return -1 for null search
-    # TODO: Understand Insertion and Deletion logic better...
 
 
 # Main -- Client Facing Code
@@ -169,6 +176,7 @@ if __name__ == "__main__":
     array.insert(2, 30)
     array.insert(3, 40)
     array.insert(4, 50)
+    array.insert(5, 60)
 
     # test infostrings
     print(array)    # __str__
