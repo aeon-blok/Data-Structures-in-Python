@@ -441,3 +441,96 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
             results.append(transformation)
             current_node = current_node.prev if start_from_tail else current_node.next
         return results
+
+
+
+# Main --- Client Facing Code ---
+
+def main():
+
+    # -------------------------
+    # Test DoublyLinkedList
+    # -------------------------
+
+    dll = DoublyLinkedList[int]()
+
+    print("Empty list? ->", dll.is_empty())  # True
+    print("Length ->", dll.length())         # 0
+
+    # -------------------------
+    # Insertions
+    # -------------------------
+    dll.insert_head(10)
+    dll.insert_tail(20)
+    dll.insert_head(5)
+    dll.insert_tail(30)
+    dll.insert_tail(20)  # duplicate value
+    print("List after insertions:", list(dll))  # [5, 10, 20, 30, 20]
+    print("Length ->", len(dll))                 # 5
+    print("Contains 20? ->", 20 in dll)         # True
+    print("Contains 99? ->", dll.contains(99))  # False
+
+    # -------------------------
+    # Index-based access
+    # -------------------------
+    print("Index 2 ->", dll[2])  # 20
+    dll[2] = 25
+    print("Index 2 after update ->", dll[2])   # 25
+    print("Full list after update:", list(dll)) # [5, 10, 25, 30, 20]
+
+    # -------------------------
+    # Traverse with function
+    # -------------------------
+    squared = dll.traverse(lambda x: x**2)
+    print("Squared traversal ->", squared)   # [25, 100, 625, 900, 400]
+    reversed_traversal = dll.traverse(lambda x: x, start_from_tail=True)
+    print("Reversed traversal ->", reversed_traversal) # [20, 30, 25, 10, 5]
+
+    # -------------------------
+    # Search
+    # -------------------------
+    first_20 = dll.search_value(20, return_node=False)
+    print("First value 20 ->", first_20)  # 20
+    all_20 = dll.search_all_values(20, return_node=False)
+    print("All 20s ->", all_20)           # [20]
+    index_25 = dll.search_for_index_by_value(25)
+    print("Index of 25 ->", index_25)     # 2
+    node_at_3 = dll.search_index(3, return_node=True)
+    print("Node at index 3 ->", node_at_3) # Node: 30
+
+    # -------------------------
+    # Insert before / after
+    # -------------------------
+    dll.insert_after(node_at_3, 35)
+    dll.insert_before(node_at_3, 28)
+    print("List after insert_before/after ->", list(dll))  # [5, 10, 25, 28, 30, 35, 20]
+
+    # -------------------------
+    # Deletions
+    # -------------------------
+    dll.delete_head()    # removes 5
+    dll.delete_tail()    # removes 20
+    dll.delete_after(dll.search_index(1, True))  # removes 28 (after index 1)
+    dll.delete_before(dll.search_index(2, True)) # removes 25 (before index 2)
+    print("List after deletions ->", list(dll))  # [10, 30, 35]
+
+    # -------------------------
+    # Iteration and reversed iteration
+    # -------------------------
+    print("Iterating forwards:")
+    for val in dll:
+        print(val, end=" ")   # 10 30 35
+    print("\nIterating backwards:")
+    for val in reversed(dll):
+        print(val, end=" ")   # 35 30 10
+
+    # -------------------------
+    # Clear and validate
+    # -------------------------
+    dll.clear()
+    print("\nList after clear ->", list(dll))  # []
+    print("Empty? ->", dll.is_empty())         # True
+
+
+if __name__ == "__main__":
+    main()
