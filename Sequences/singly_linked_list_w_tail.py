@@ -33,7 +33,7 @@ class iLinkedList(ABC):
 
     @abstractmethod
     def delete_at(self, index: int):
-        """O(N) -- because you have to traverse the linked list (via .next) """
+        """O(N) -- because you have to traverse the linked list (via .next)"""
         pass
 
     @abstractmethod
@@ -75,19 +75,30 @@ class iNode(ABC):
 # Concrete Classes
 class Node(iNode):
     """Node Element in Linked List"""
+
     def __init__(self, data) -> None:
         self.data = data
-        self.next: Optional[iNode] = None    # initialized as none, stores a reference to the next node in the linked list
+        # initialized as none, stores a reference to the next node in the linked list
+        self._next: Optional[iNode] = None  
+
+    @property
+    def next(self):
+        return self._next
+    @next.setter
+    def next(self, value):
+        self._next = value
 
 
 class LinkedList(iLinkedList):
-    """Implements a Singly Linked List"""
+    """Implements a Singly Linked List with an additional tail node (for O(1) tail insertions)"""
+
     def __init__(self) -> None:
-        self.head: Optional[iNode] = None # first node in the linked list
+        self.head: Optional[iNode] = None  # first node in the linked list
+        self.tail: Optional[iNode] = None
         self._counter: int = 0  # tracks the number of nodes in the linked list
 
     def __iter__(self):
-        """Allows iteration over the Nodes in the linked list. (via for loops etc)"""        
+        """Allows iteration over the Nodes in the linked list. (via for loops etc)"""
         current_node = self.head
         while current_node:
             yield current_node.data
@@ -100,23 +111,29 @@ class LinkedList(iLinkedList):
     def insert_head(self, node_data):
         """This method inserts a new node at the start(head) of the linked list."""
         new_node = Node(node_data)  # create new node object with user data
-        new_node.next = self.head   # next -> points to current head (which becomes the next item in the list)
-        self.head = new_node    # the new node becomes the new head
+        new_node._next = self.head  # insert before head
+        self.head = new_node  # the new node becomes the new head
         self._counter += 1  # update the linked list elements tracker
+
+        # for empty list - head and tail point to the new node
+        if self.tail is None:
+            self.tail = new_node
 
     def insert_tail(self, node_data):
         """Inserts a new node at the end (tail) of the linked list."""
         new_node = Node(node_data)
-        # if the list is empty - insert at head (which is also the tail)
-        if self.head is None:
-            self.head = new_node
+
+        if self.tail:
+            self.tail.next = new_node  # tail now points to the new last node.
+            self.tail = new_node    # update last node with new node
+
+        # if empty list - both head and tail point to the same node
         else:
-            current_node = self.head    # start from the head
-            # travel through the linked list unti we get to the end (current_node.next = None)
-            while current_node.next:
-                current_node = current_node.next
-            current_node.next = new_node    # at the end - assign new node and data
-        self._counter += 1  # update the linked list size tracker
+            self.head = new_node
+            self.tail = new_node
+
+        # update the linked list size tracker
+        self._counter += 1  
 
     def insert_at(self, index, node_data):
         """Inserts a new node at a specified index position. Updates the rest of the list accordingly"""
@@ -128,18 +145,23 @@ class LinkedList(iLinkedList):
         if index == 0:
             self.insert_head(node_data)
             return
-
+        
         # STEP 1: initialize New Node & Initialize Head as the current node
-        new_node, current_node= Node(node_data), self.head
+        new_node, current_node = Node(node_data), self.head
+
+        # if index is last position - new node is the tail
+        if index == self._counter:
+            self.tail = new_node
+
         # STEP 2: identify the current node (stop at prior node)
         for i in range(index - 1):
-            current_node = current_node.next    # assign current node via next
+            current_node = current_node.next  # assign current node via next
         # STEP 3: Link the new node to the rest of the list (elements after new_node)
-        new_node.next = current_node.next
+        new_node._next = current_node.next
         # STEP 4: add newnode into the list after the current node (elements before new_node)
         current_node.next = new_node
         # STEP 5: update size tracker
-        self._counter += 1  
+        self._counter += 1
 
     def delete_head(self):
         """Deletes the Node at the head - and returns the data for inspection"""
@@ -149,6 +171,10 @@ class LinkedList(iLinkedList):
         removed_head = self.head
         self.head = self.head.next
         self._counter -= 1
+        # if list becomes empty after deletion - delete tail also.
+        if self.head is None:
+            self.tail = None
+        # return removed node data
         return removed_head.data
 
     def delete_at(self, index):
@@ -163,21 +189,23 @@ class LinkedList(iLinkedList):
 
         # if index is the head - use O(1) method for performance
         if index == 0:
-            self.delete_head()
-            return
+            return self.delete_head()
 
         # STEP 1: initialize node traversal
         current_node = self.head
         # STEP 2: travel to 1 before index
-        for _ in range(index -1):
+        for _ in range(index - 1):
             current_node = current_node.next
         # STEP 3: label the node target(index) for removal(dereferencing)
         removed = current_node.next
         # STEP 4: reroute linked list to bypass removed node
         current_node.next = removed.next
-        # STEP 5: update the size tracker
+        # STEP 5: If the removed item is the tail - current node becomes the tail.
+        if removed == self.tail:
+            self.tail = current_node
+        # STEP 6: update the size tracker
         self._counter -= 1
-        # STEP 6: return the data from the removed node
+        # STEP 7: return the data from the removed node
         return removed.data
 
     def search_by_index(self, index):
@@ -188,8 +216,10 @@ class LinkedList(iLinkedList):
         current_node = self.head
         # node at current index position
         for i in range(index):
-            current_node = current_node.next
-        return current_node.data
+            current_node = (
+                current_node.next
+            )  # pyright: ignore[reportOptionalMemberAccess]
+        return current_node.data  # pyright: ignore[reportOptionalMemberAccess]
 
     def search_for_index(self, node_data) -> int | None:
         """Return the index position of the first node that contains the value."""
@@ -201,7 +231,7 @@ class LinkedList(iLinkedList):
                 return index
             current_node = current_node.next
             index += 1
-        return None # if data not found return None
+        return None  # if data not found return None
 
     def contains(self, node_data) -> bool:
         """return True or False if a node contains the specified data."""
@@ -216,10 +246,12 @@ class LinkedList(iLinkedList):
         """executes a function on every node in the linked list"""
         current_node = self.head
         while current_node:
-            try: 
+            try:
                 function(current_node.data)
             except Exception as error:
-                print(f"There was an error while trying to apply function to the node: {current_node.data}: {error}")
+                print(
+                    f"There was an error while trying to apply function to the node: {current_node.data}: {error}"
+                )
             finally:
                 current_node = current_node.next
 
@@ -253,12 +285,12 @@ def main():
     print()
 
     # 2. Insert mixed types at head and tail
-    linklist.insert_head(100)            # int
-    linklist.insert_tail("hello")        # str
-    linklist.insert_head([1, 2, 3])      # list
-    linklist.insert_tail({"key": "val"}) # dict
-    linklist.insert_head(3.14)           # float
-    linklist.insert_tail("hello")        # duplicate str
+    linklist.insert_head(100)  # int
+    linklist.insert_tail("hello")  # str
+    linklist.insert_head([1, 2, 3])  # list
+    linklist.insert_tail({"key": "val"})  # dict
+    linklist.insert_head(3.14)  # float
+    linklist.insert_tail("hello")  # duplicate str
 
     print("2. After inserting mixed types including duplicates:")
     print(linklist)
@@ -266,9 +298,9 @@ def main():
     print()
 
     # 3. Insert at various indices
-    linklist.insert_at(0, "start")   # insert at head
+    linklist.insert_at(0, "start")  # insert at head
     linklist.insert_at(3, "middle")  # insert in middle
-    linklist.insert_at(linklist.length(), "end") # insert at tail
+    linklist.insert_at(linklist.length(), "end")  # insert at tail
 
     print("3. After insert_at operations:")
     print(linklist)
@@ -284,7 +316,9 @@ def main():
 
     # 5. Search for value (including duplicates)
     print("5. search_for_index examples:")
-    print("First 'hello':", linklist.search_for_index("hello"))  # should return first occurrence
+    print(
+        "First 'hello':", linklist.search_for_index("hello")
+    )  # should return first occurrence
     print("First 100:", linklist.search_for_index(100))
     print("Nonexistent:", linklist.search_for_index("absent"))
     print()
@@ -307,6 +341,7 @@ def main():
 
     # 8. Traversal with a function
     print("8. Traverse with function (uppercase strings only):")
+
     def uppercase_strings(item):
         if isinstance(item, str):
             print(item.upper())
