@@ -20,7 +20,7 @@ class iNode(ABC, Generic[T]):
 
 
 class Node(iNode[T]):
-    def __init__(self, data) -> None:
+    def __init__(self, data: T) -> None:
         self.data = data
         self.next: Optional[Node[T]] = None
 
@@ -182,7 +182,7 @@ class CircularLinkedList(iCircularLinkedList[T]):
 
     # ------------ Traverse ------------
     def traverse(self, function):
-        """ Traverse List and apply function. Store results in a list and return them"""
+        """ Traverse List and apply function. yield result as a generator for easy parsing with loops"""
         self._empty_list()
         current_node = self.head
         while current_node:

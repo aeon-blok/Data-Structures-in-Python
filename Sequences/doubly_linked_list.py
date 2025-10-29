@@ -40,7 +40,11 @@ class iDoublyLinkedList(ABC, Generic[T]):
 
     # ------------ search ------------
     @abstractmethod
-    def search_value(self, value: T, return_node: bool) -> 'Optional[Node[T] | T]' :
+    def search_value(self, value: T, return_node: bool, reverse: bool) -> 'Optional[Node[T] | T]' :
+        pass
+
+    @abstractmethod
+    def bidirectional_search_value(self, value: T, return_node: bool) -> 'Optional[Node[T] | T]' :
         pass
 
     @abstractmethod
@@ -385,9 +389,19 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
 
     # ------------ Searches ------------
 
-    def search_value(self, value, return_node=True):
+    def search_value(self, value, return_node, reverse=False):
+        """Finds the first value that matches a node -- O(N)"""
+        self._list_exists()
+        current_node = self.tail if reverse else self.head
+        while current_node:
+            if current_node.data == value:
+                return current_node if return_node else current_node.data
+            current_node = current_node.prev if reverse else current_node.next
+        return None
+
+    def bidirectional_search_value(self, value, return_node=True):
         """
-        Bidirectional Search: Average O(N/2), worst O(N) Return the first node containing the value, or None if not found.
+        Bidirectional Search: Average O(N/2), worst O(N) Return the first or last node containing the value, or None if not found.
         Bidirectional traversal improves latency for early exits, not throughput for full scans.
         """
         if self.head is None:
