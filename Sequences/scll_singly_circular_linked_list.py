@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator
+from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator, Generator
 from abc import ABC, ABCMeta, abstractmethod
 
 
@@ -6,6 +6,9 @@ from abc import ABC, ABCMeta, abstractmethod
 Circular Linked List: The Tail - points back to the head
 Most libraries implement CLLs with singly circular links; doubly circular is less common but more versatile.
 """
+
+# TODO: Convert __iter__ and search all into generators for use with iterators.... use break to break the while loop
+
 
 T = TypeVar('T')
 
@@ -50,7 +53,7 @@ class iCircularLinkedList(ABC, Generic[T]):
 
     # ------------ Traverse ------------
     @abstractmethod
-    def traverse(self, function: Callable[[T], Any]) -> list[T]:
+    def traverse(self, function: Callable[[T], Any]) -> Generator[Node[T] | T, None, None]:
         pass
 
     # ------------ search ------------
@@ -59,7 +62,7 @@ class iCircularLinkedList(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def search_all_values(self, value: T, return_node: bool) -> list[T]:
+    def search_all_values(self, value: T, return_node: bool) -> Generator[Node[T] | T, None, None]:
         pass
 
     @abstractmethod
@@ -123,27 +126,36 @@ class CircularLinkedList(iCircularLinkedList[T]):
         return self.contains(value)
 
     def __getitem__(self, index: int) -> "Optional[Node[T] | T]":
-        """returns the value of a node in the linked list. Overrides builtin"""
+        """returns the value of a node in the linked list. Overrides builtin -- array like indexing with a linked list but its O(N)"""
         item = self._search_index(index, return_node=False)
         return item
 
     def __setitem__(self, index: int, value: T) -> None:
-        """sets the value of a node in the linked list. Overrides builtin:"""
+        """sets the value of a node in the linked list. Overrides builtin: -- array like indexing with a linked list but its O(N)"""
         node = self._search_index(index, return_node=True)
         if node:
             node.data = value
 
     def __str__(self) -> str:
-        """All the contents of the list"""
-        results = []
+        """Displays all the content of the linked list as a string. """
+
+        seperator = " ->> "
+
         if self.head is None:
             return f"List is Empty"
-        current_node = self.head
-        for _ in range(self.size):
-            current_node = current_node.next
-            results.append(current_node.data)
-        nodes = ", ".join(results)
-        return nodes
+
+        def _simple_traversal():
+            """traverses the nodes and returns a string via generator"""
+            current_node = self.head
+            while current_node:
+                yield str(current_node.data)
+                current_node = current_node.next
+                if current_node == self.head:
+                    break
+
+        infostring = f"[head]{seperator.join(_simple_traversal())}[tail]"
+
+        return infostring
 
     def clear(self):
         """runs delete head repeatedly until there are no nodes left"""
@@ -171,14 +183,18 @@ class CircularLinkedList(iCircularLinkedList[T]):
     # ------------ Traverse ------------
     def traverse(self, function):
         """ Traverse List and apply function. Store results in a list and return them"""
-        results = []
         self._empty_list()
         current_node = self.head
-        for _ in range(self.size):
-            transformation = function(current_node.data)
-            results.append(transformation)
-            current_node = current_node.next
-        return results
+        while current_node:
+            try:
+                yield function(current_node.data)
+            except Exception as error:
+                print(f"There was an error while trying to apply function to the node: {current_node.data}: {error}")
+            finally:
+                current_node = current_node.next
+                if current_node == self.head:
+                    break
+            
 
     # ------------ search ------------
     def search_value(self, value, return_node):
@@ -192,15 +208,15 @@ class CircularLinkedList(iCircularLinkedList[T]):
         return None
 
     def search_all_values(self, value, return_node):
-        """Searches through all nodes, and collects values that match in a list"""
+        """Yield all nodes (or their data) that contain the given value."""        
         self._empty_list()
-        results = []
         current_node = self.head
-        for _ in range(self.size):
+        while current_node:
             if current_node.data == value:
-                results.append(current_node if return_node else current_node.data)
+                yield current_node if return_node else current_node.data
             current_node = current_node.next
-        return results
+            if current_node == self.head:
+                break
 
     def _search_index(self, index, return_node):
         """searches for a node by index"""
@@ -368,7 +384,7 @@ def main():
     cll.insert_tail(2)
     cll.insert_head(0)
     cll.insert_tail(3)
-    print(f"List after inserts: {list(cll)}")
+    print(f"List after inserts: {str(cll)}")
     print(f"Head: {cll.head.data}, Tail: {cll.tail.data}")
     print(f"Tail next (should point to head): {cll.tail.next.data}")
 
@@ -376,39 +392,50 @@ def main():
     cll.insert_at(99, 2)
     cll.insert_at(100, 0)  # head
     cll.insert_at(101, 100)  # tail
-    print(f"List after insert_at: {list(cll)}")
+    print(f"List after insert_at: {str(cll)}")
 
     print("\n=== Delete head, tail, at index ===")
     print(f"Deleted head: {cll.delete_head()}")
     print(f"Deleted tail: {cll.delete_tail()}")
     print(f"Deleted at index 2: {cll.delete_at(2)}")
-    print(f"List after deletions: {list(cll)}")
+    print(f"List after deletions: {str(cll)}")
 
     print("\n=== Search operations ===")
     cll.insert_tail(2)
     cll.insert_tail(3)
     cll.insert_tail(2)
-    print(f"List: {list(cll)}")
+    print(f"List: {str(cll)}")
     print(f"Contains 2: {cll.contains(2)}")
     print(f"Contains 99: {cll.contains(99)}")
     print(f"Index of 2: {cll.search_for_index_by_value(2)}")
     print(f"Search value (first 2) node: {cll.search_value(2, return_node=True)}")
     print(f"Search value (first 2) data: {cll.search_value(2, return_node=False)}")
-    print(f"All values 2: {cll.search_all_values(2, return_node=False)}")
-    print(f"All nodes 2: {cll.search_all_values(2, return_node=True)}")
+    
+    # Yield all data matching 2
+    print(str(cll))
+    print(f"Search for all Values in Linked List that match a value:")
+    for data in cll.search_all_values(3, return_node=False):
+        print(data)
+    # Yield all nodes matching 2
+    print(f"Search for all Values in Linked List that match a value and return the NODE:")
+    for node in cll.search_all_values(2, return_node=True):
+        print(node.data)
+
 
     print("\n=== Traverse ===")
-    print(f"Traverse *2: {cll.traverse(lambda x: x*2)}")
+    print(f"Traverse *2:")
+    print(f"List: {str(cll)}")
+    for item in cll.traverse(lambda x: x*2):
+        print(f"Transformed Value: {item}")
 
     print("\n=== Iteration ===")
-    for val in cll:
-        print(f"Iterated value: {val}")
+    for item in cll:
+        print(f"Iterated value: {item}")
 
     print("\n=== Clear list ===")
     cll.clear()
     print(f"After clear, is empty: {cll.is_empty()}")
     print(f"Length after clear: {cll.length()}")
-
 
 
 if __name__ == "__main__":

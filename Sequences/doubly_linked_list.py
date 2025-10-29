@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator
+from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator, Generator
 from abc import ABC, ABCMeta, abstractmethod
 
 
@@ -35,7 +35,7 @@ class iDoublyLinkedList(ABC, Generic[T]):
 
     # ------------ Traverse ------------
     @abstractmethod
-    def traverse(self, function: Callable, start_from_tail: bool) -> list[T]:
+    def traverse(self, function: Callable, start_from_tail: bool) -> 'Generator[Node[T] | T, None, None]':
         pass
 
     # ------------ search ------------
@@ -44,7 +44,7 @@ class iDoublyLinkedList(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def search_all_values(self, value: T, return_node: bool) -> Optional[list[T]]:
+    def search_all_values(self, value: T, return_node: bool) -> 'Generator[Node[T] | T, None, None]':
         pass
 
     @abstractmethod
@@ -151,12 +151,12 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
         return self.contains(value)
 
     def __getitem__(self, index: int) -> "Optional[Node[T] | T]":
-        """returns the value of a node in the linked list. Overrides builtin"""
+        """returns the value of a node in the linked list. Overrides builtin: array style index search O(n)"""
         item = self.search_index(index, return_node=False)
         return item
 
     def __setitem__(self, index: int, value: T) -> None:
-        """sets the value of a node in the linked list. Overrides builtin:"""
+        """sets the value of a node in the linked list. Overrides builtin: array style index search O(n)"""
         node = self.search_index(index, return_node=True)
         if node:
             node.data = value
@@ -176,8 +176,28 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
         if count != self.size:
             raise RuntimeError("List size does not match counted nodes!")
 
-    # ------------ Public Methods ------------
+    def __str__(self) -> str:
+        """Displays all the content of the linked list as a string."""
 
+        seperator = " ->> "
+
+        if self.head is None:
+            return f"List is Empty"
+
+        def _simple_traversal():
+            """traverses the nodes and returns a string via generator"""
+            current_node = self.head
+            while current_node:
+                yield str(current_node.data)
+                current_node = current_node.next
+                if current_node == self.head:
+                    break
+
+        infostring = f"[head]{seperator.join(_simple_traversal())}[tail]"
+
+        return infostring
+
+    # ------------ Public Methods ------------
     # ------------ General ------------
 
     def clear(self):
@@ -389,15 +409,11 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
 
     def search_all_values(self, value, return_node=True):
         """return all nodes (as a list) that contain a value or None if not found..."""
-        results = []
         current_node = self.head
-
         while current_node:
             if current_node.data == value:
-                results.append(current_node if return_node else current_node.data)
+                yield current_node if return_node else current_node.data
             current_node = current_node.next
-
-        return results
 
     def search_for_index_by_value(self, value):
         """Return the index of the first node with the value, or None if not found."""
@@ -434,14 +450,14 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
 
     def traverse(self, function, start_from_tail=False):
         """Apply a function to each element and return a new list of results. Can traverse forwards or backwards"""
-        results = []
         current_node = self.tail if start_from_tail else self.head
         while current_node:
-            transformation = function(current_node.data)
-            results.append(transformation)
-            current_node = current_node.prev if start_from_tail else current_node.next
-        return results
-
+            try:
+                yield function(current_node.data)
+            except Exception as error:
+                print(f"There was an error while trying to apply function to the node: {current_node.data}: {error}")
+            finally:
+                current_node = current_node.prev if start_from_tail else current_node.next
 
 
 # Main --- Client Facing Code ---
@@ -465,7 +481,8 @@ def main():
     dll.insert_head(5)
     dll.insert_tail(30)
     dll.insert_tail(20)  # duplicate value
-    print("List after insertions:", list(dll))  # [5, 10, 20, 30, 20]
+    print("List after insertions:", str(dll))  # [5, 10, 20, 30, 20]
+
     print("Length ->", len(dll))                 # 5
     print("Contains 20? ->", 20 in dll)         # True
     print("Contains 99? ->", dll.contains(99))  # False
@@ -476,23 +493,31 @@ def main():
     print("Index 2 ->", dll[2])  # 20
     dll[2] = 25
     print("Index 2 after update ->", dll[2])   # 25
-    print("Full list after update:", list(dll)) # [5, 10, 25, 30, 20]
+    print("Full list after update:", str(dll)) # [5, 10, 25, 30, 20]
 
     # -------------------------
     # Traverse with function
     # -------------------------
-    squared = dll.traverse(lambda x: x**2)
-    print("Squared traversal ->", squared)   # [25, 100, 625, 900, 400]
-    reversed_traversal = dll.traverse(lambda x: x, start_from_tail=True)
-    print("Reversed traversal ->", reversed_traversal) # [20, 30, 25, 10, 5]
+    for item in dll.traverse(lambda x: x**2):
+        print(f"Squared traversal -> {item}")  # [25, 100, 625, 900, 400]
+
+    for item in dll.traverse(lambda x: x**2, start_from_tail=True):
+        print(f"Squared traversal in reverse -> {item}") 
 
     # -------------------------
     # Search
     # -------------------------
     first_20 = dll.search_value(20, return_node=False)
     print("First value 20 ->", first_20)  # 20
-    all_20 = dll.search_all_values(20, return_node=False)
-    print("All 20s ->", all_20)           # [20]
+
+    print("Searching all List Nodes for value:")
+    for item in dll.search_all_values(20,return_node=False):
+        print(f"node value found: {item}")           
+
+    print("Searching all List Nodes for value & returning NODE:")
+    for item in dll.search_all_values(20, return_node=True):
+        print(f"{item}")
+
     index_25 = dll.search_for_index_by_value(25)
     print("Index of 25 ->", index_25)     # 2
     node_at_3 = dll.search_index(3, return_node=True)
@@ -503,7 +528,7 @@ def main():
     # -------------------------
     dll.insert_after(node_at_3, 35)
     dll.insert_before(node_at_3, 28)
-    print("List after insert_before/after ->", list(dll))  # [5, 10, 25, 28, 30, 35, 20]
+    print("List after insert_before/after ->", str(dll))  # [5, 10, 25, 28, 30, 35, 20]
 
     # -------------------------
     # Deletions
@@ -512,7 +537,7 @@ def main():
     dll.delete_tail()    # removes 20
     dll.delete_after(dll.search_index(1, True))  # removes 28 (after index 1)
     dll.delete_before(dll.search_index(2, True)) # removes 25 (before index 2)
-    print("List after deletions ->", list(dll))  # [10, 30, 35]
+    print("List after deletions ->", str(dll))  # [10, 30, 35]
 
     # -------------------------
     # Iteration and reversed iteration
@@ -520,7 +545,7 @@ def main():
     print("Iterating forwards:")
     for val in dll:
         print(val, end=" ")   # 10 30 35
-    print("\nIterating backwards:")
+    print("\nIterating backwards: (via reversed method)")
     for val in reversed(dll):
         print(val, end=" ")   # 35 30 10
 
@@ -528,7 +553,7 @@ def main():
     # Clear and validate
     # -------------------------
     dll.clear()
-    print("\nList after clear ->", list(dll))  # []
+    print("\nList after clear ->", str(dll))  # []
     print("Empty? ->", dll.is_empty())         # True
 
 

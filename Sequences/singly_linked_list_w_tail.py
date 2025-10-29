@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast
+from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator, Generator, Iterable
 from abc import ABC, ABCMeta, abstractmethod
 
 
@@ -12,9 +12,10 @@ Non-contiguous memory: nodes allocated individually.
 Sequential access: access by index requires traversal (O(n)).
 """
 
+T = TypeVar('T')
 
 # Interfaces
-class iLinkedList(ABC):
+class iLinkedList(ABC, Generic[T]):
 
     @abstractmethod
     def insert_head(self, node_data):
@@ -32,12 +33,12 @@ class iLinkedList(ABC):
         pass
 
     @abstractmethod
-    def delete_at(self, index: int):
+    def delete_at(self, index: int) -> Optional[T]:
         """O(N) -- because you have to traverse the linked list (via .next)"""
         pass
 
     @abstractmethod
-    def delete_head(self):
+    def delete_head(self) -> Optional[T]:
         """O(1) -- we just remove the head."""
         pass
 
@@ -54,7 +55,7 @@ class iLinkedList(ABC):
         pass
 
     @abstractmethod
-    def traverse(self, function: Callable) -> None:
+    def traverse(self, function: Callable) -> Generator["Node" | T, None, None]:
         pass
 
     @abstractmethod
@@ -79,7 +80,7 @@ class Node(iNode):
     def __init__(self, data) -> None:
         self.data = data
         # initialized as none, stores a reference to the next node in the linked list
-        self._next: Optional[iNode] = None  
+        self._next: Optional[Node] = None  
 
     @property
     def next(self):
@@ -88,13 +89,16 @@ class Node(iNode):
     def next(self, value):
         self._next = value
 
+    def __repr__(self) -> str:
+        return f"Node: {self.data}"
 
-class LinkedList(iLinkedList):
+
+class LinkedList(iLinkedList[T]):
     """Implements a Singly Linked List with an additional tail node (for O(1) tail insertions)"""
 
     def __init__(self) -> None:
-        self.head: Optional[iNode] = None  # first node in the linked list
-        self.tail: Optional[iNode] = None
+        self.head: Optional[Node] = None  # first node in the linked list
+        self.tail: Optional[Node] = None
         self._counter: int = 0  # tracks the number of nodes in the linked list
 
     def __iter__(self):
@@ -216,10 +220,8 @@ class LinkedList(iLinkedList):
         current_node = self.head
         # node at current index position
         for i in range(index):
-            current_node = (
-                current_node.next
-            )  # pyright: ignore[reportOptionalMemberAccess]
-        return current_node.data  # pyright: ignore[reportOptionalMemberAccess]
+            current_node = current_node.next
+        return current_node.data  
 
     def search_for_index(self, node_data) -> int | None:
         """Return the index position of the first node that contains the value."""
@@ -242,16 +244,14 @@ class LinkedList(iLinkedList):
             current_node = current_node.next
         return False
 
-    def traverse(self, function) -> None:
+    def traverse(self, function):
         """executes a function on every node in the linked list"""
         current_node = self.head
         while current_node:
             try:
-                function(current_node.data)
+                yield function(current_node.data)
             except Exception as error:
-                print(
-                    f"There was an error while trying to apply function to the node: {current_node.data}: {error}"
-                )
+                print(f"There was an error while trying to apply function to the node: {current_node.data}: {error}")
             finally:
                 current_node = current_node.next
 
@@ -260,15 +260,26 @@ class LinkedList(iLinkedList):
 
     def length(self) -> int:
         return self._counter
-
+    
     def __str__(self) -> str:
-        """Shows a list of all the node data"""
-        current_node = self.head
-        datalist = []
-        while current_node:
-            datalist.append(current_node.data)
-            current_node = current_node.next
-        infostring = f"The Current Linked List has: {self.length()} node elements. Contains the Following Data:\n{datalist}"
+        """Displays all the content of the linked list as a string."""
+        
+        seperator = " ->> "
+
+        if self.head is None:
+            return f"List is Empty"
+        
+        def _simple_traversal():
+            """traverses the nodes and returns a string via generator"""
+            current_node = self.head
+            while current_node:
+                yield str(current_node.data)
+                current_node = current_node.next
+                if current_node == self.head:
+                    break
+        
+        infostring = f"[head]{seperator.join(_simple_traversal())}[tail]"
+
         return infostring
 
 
@@ -276,7 +287,7 @@ class LinkedList(iLinkedList):
 def main():
     # ====== TESTING LINKED LIST ======
 
-    linklist = LinkedList()
+    linklist = LinkedList[Any]()
 
     print("1. Initial empty list")
     print(linklist)
