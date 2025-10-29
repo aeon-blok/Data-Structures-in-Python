@@ -17,11 +17,15 @@ from abc import ABC, ABCMeta, abstractmethod
 """Doubly Circular Linked List - where the tail reconnects to the head."""
 
 # TODO: Add delete by value
-# TODO: Add rotate left and rotate right
 # TODO: add Slice
+# TODO: Merging Linked lists (maintaining order)
+# TODO: Splitting linked lists
 # TODO: add Search all indices (returns multiple indices...)
 # TODO: Conditional Travere
 # TODO: Count how many times a value appears in the linked list...
+# TODO: full list reversal - and partial list reversal
+# TODO: remove every N node
+# TODO: Swap nodes in pairs....
 
 T = TypeVar('T')
 
@@ -253,7 +257,6 @@ class DoublyCircularList(iDoublyCircularList[T]):
                     break  
 
     # ------------ search ------------
-
     def search_value(self, value, return_node, reverse=False):
         """Finds the first value that matches a node -- O(N)"""
         self._list_exists()
@@ -327,6 +330,54 @@ class DoublyCircularList(iDoublyCircularList[T]):
             index += step
             current_node = current_node.prev if reverse else current_node.next
         return None
+
+    # ------------ rotate ------------
+
+    def single_rotate_left(self):
+        "move head and tail 1 position to the left(forwards)."
+        if self.size == 0:  # empty list
+            return
+
+        self.head = self.head.next
+        self.tail = self.tail.next
+
+    def rotate_left(self, rotations):
+        """We are moving the head and tail left(forwards) by a specific number of rotations"""
+        if self.size == 0:  # empty list
+            return
+
+        if rotations % self.size == 0:  # full cycle rotation - no changes needed
+            return
+
+        # the remainder (modulus) of rotations / self.size. ensures rotations never exceeds the length of the list
+        rotations %= self.size
+
+        for _ in range(rotations):
+            self.head = self.head.next
+            self.tail = self.tail.next
+
+    def single_rotate_right(self):
+        "move head and tail 1 position to the right (backwards)."
+        if self.size == 0:  # empty list
+            return
+
+        self.head = self.head.prev
+        self.tail = self.tail.prev
+
+    def rotate_right(self, rotations):
+        """We are moving the head and tail right(backwards) by a specific number of rotations"""
+        if self.size == 0:  # empty list
+            return
+
+        if rotations % self.size == 0:  # full cycle rotation - no changes needed
+            return
+
+        # the remainder (modulus) of rotations / self.size. ensures rotations never exceeds the length of the list
+        rotations %= self.size
+
+        for _ in range(rotations):
+            self.head = self.head.prev
+            self.tail = self.tail.prev
 
     # ------------ insert ------------
     def insert_head(self, value):
@@ -603,7 +654,26 @@ def main():
 
     # Delete tail
     print(dcl.delete_tail())    # 10
-    print(dcl)                  # [head]8 ->> 10 ->> 15 -
+    print(dcl)                  # [head]8 ->> 10 ->> 15 ->> 20[tail]
+    dcl.clear()
+
+    # Rotation test with integers
+    dcl.clear()
+    for val in [1, 2, 3, 4]:
+        dcl.insert_tail(val)
+    print("Original list:", dcl)
+
+    dcl.single_rotate_left()
+    print("After single_rotate_left:", dcl)
+
+    dcl.rotate_left(2)
+    print("After rotate_left(2):", dcl)
+
+    dcl.single_rotate_right()
+    print("After single_rotate_right:", dcl)
+
+    dcl.rotate_right(3)
+    print("After rotate_right(3):", dcl)
 
 
 if __name__ == "__main__":
