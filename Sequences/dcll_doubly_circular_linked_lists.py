@@ -14,18 +14,36 @@ from typing import (
 from abc import ABC, ABCMeta, abstractmethod
 
 
-"""Doubly Circular Linked List - where the tail reconnects to the head."""
+"""
+Doubly Circular Linked List - where the tail reconnects to the head.
+
+Whats the logic of a Doubly Circular Linked List?
+Every Node in the list points in 2 ways - forwards (->>) and backwards (<<-)
+Additionally: The Tail points forwards to the Head, connecting the entire list in a loop.
+
+"""
 
 # TODO: Add delete by value
 # TODO: add Slice
 # TODO: Merging Linked lists (maintaining order)
 # TODO: Splitting linked lists
 # TODO: add Search all indices (returns multiple indices...)
-# TODO: Conditional Travere
+# TODO: Conditional Traverse
 # TODO: Count how many times a value appears in the linked list...
-# TODO: full list reversal - and partial list reversal
 # TODO: remove every N node
+# TODO: implement __next__ for generators
+
+# TODO: Interview additions:
+# TODO: Find middle Node
+# TODO: remove duplicates (unsorted - use set), sorted (skip duplicates)
+# TODO: Find Nth Node from the end
+# TODO: reverse between n and m
+# TODO: Partition list
+# TODO: swap first and last
 # TODO: Swap nodes in pairs....
+# TODO: full list reversal - and partial list reversal
+# TODO: Palindrome check
+
 
 T = TypeVar('T')
 
@@ -145,7 +163,6 @@ class DoublyCircularList(iDoublyCircularList[T]):
         self.size = 0
 
     # ------------ Exceptions ------------
-
     def _list_exists(self):
         if self.head is None:
             raise IndexError("List is empty...")
@@ -212,6 +229,7 @@ class DoublyCircularList(iDoublyCircularList[T]):
 
         return infostring
 
+
     # ------------ Utility ------------
     def clear(self):
         """removes all items from the list."""
@@ -236,6 +254,7 @@ class DoublyCircularList(iDoublyCircularList[T]):
             right = right.prev
         return False
 
+
     # ------------ Traverse ------------
     def traverse(self, function):
         """Traverse List and apply function. yield result as a generator for easy parsing with loops"""
@@ -255,6 +274,7 @@ class DoublyCircularList(iDoublyCircularList[T]):
                 current_node = current_node.next
                 if current_node == self.head:
                     break  
+
 
     # ------------ search ------------
     def search_value(self, value, return_node, reverse=False):
@@ -331,8 +351,8 @@ class DoublyCircularList(iDoublyCircularList[T]):
             current_node = current_node.prev if reverse else current_node.next
         return None
 
-    # ------------ rotate ------------
 
+    # ------------ rotate ------------
     def single_rotate_left(self):
         "move head and tail 1 position to the left(forwards)."
         if self.size == 0:  # empty list
@@ -378,6 +398,7 @@ class DoublyCircularList(iDoublyCircularList[T]):
         for _ in range(rotations):
             self.head = self.head.prev
             self.tail = self.tail.prev
+
 
     # ------------ insert ------------
     def insert_head(self, value):
@@ -488,6 +509,7 @@ class DoublyCircularList(iDoublyCircularList[T]):
             ref_node.prev.next = new_node
             ref_node.prev = new_node
         self.size += 1
+
 
     # ------------ delete ------------
     def delete_head(self):
@@ -659,7 +681,7 @@ def main():
 
     # Rotation test with integers
     dcl.clear()
-    for val in [1, 2, 3, 4]:
+    for val in [1, 2, 3, 4,5,6,7,8]:
         dcl.insert_tail(val)
     print("Original list:", dcl)
 
