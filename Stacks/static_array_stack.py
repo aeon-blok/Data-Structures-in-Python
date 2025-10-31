@@ -128,7 +128,7 @@ class StaticArrayStack(StackADT[T]):
 
 
     # ----- Utility -----
-    def __str__(self):
+    def __str__(self) -> str:
         """a list of strings representing all the elements in the stack. Goes from Top to Bottom"""
         items = ', '.join(str(self.static_array[i]) for i in range(self.top-1, -1,-1))
         string_datatype = getattr(self.datatype, "__name__", str(self.datatype))
