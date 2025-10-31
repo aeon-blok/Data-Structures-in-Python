@@ -111,6 +111,7 @@ class DynamicArrayQueue(QueueADT[T]):
         self.size = 0  # tracks the number of elements in the list.
         self.front = 0  # index of the oldest (first) element
 
+
     # ----- Utility -----
     def _initialize_new_array(self, capacity):
         """chooses between using CTYPE or NUMPY style array - CTYPES are more flexible (can have object arrays...)"""
@@ -204,6 +205,7 @@ class DynamicArrayQueue(QueueADT[T]):
         self.data = new_array
         return self.data
 
+
     # ----- Canonical ADT Operations -----
     def enqueue(self, value):
         """Adds an Element to the rear of the Queue: Utilizes a Circular Buffer"""
@@ -264,6 +266,7 @@ class DynamicArrayQueue(QueueADT[T]):
         result = self.data[self.front]
         return result
 
+
     # ----- Meta Collection ADT Operations -----
     def is_empty(self):
         return self.size == 0
@@ -305,6 +308,7 @@ class DynamicArrayQueue(QueueADT[T]):
         for i in range(self.size):
             index = (self.front + i) % self.capacity
             yield self.data[index]
+
 
 
 # Main --- Client Facing Code ---
