@@ -132,7 +132,6 @@ class VectorArray(SequenceADT[T]):
         self.size = 0  # tracks the number of elements in the array
         self.array = self._initialize_new_array(self.capacity)  # creates a new ctypes/numpy array with a specified capacity
 
-
     # ----- Utility -----
     def _initialize_new_array(self, capacity):
         """chooses between using CTYPE or NUMPY style array - CTYPES are more flexible (can have object arrays...)"""
@@ -179,10 +178,10 @@ class VectorArray(SequenceADT[T]):
         index needs to be greater than 0 and smaller than the number of elements (size)
         """
         if is_insert:
-            if index < 0 or index > self.size:
+            if index < 0 or index > self.capacity:
                 raise IndexError("Error: Index is out of bounds.")
         else:
-            if index < 0 or index >= self.size:
+            if index < 0 or index >= self.capacity:
                 raise IndexError("Error: Index is out of bounds.")
 
     def _grow_array(self):
@@ -217,8 +216,15 @@ class VectorArray(SequenceADT[T]):
         """a list of strings representing all the elements in the array"""
         items = ", ".join(str(self.array[i]) for i in range(self.size))
         string_datatype = getattr(self.datatype, "__name__", str(self.datatype))
-        return f"Array Items: {items}: Capacity: {self.size}/{self.capacity} Type: {string_datatype}"
+        return f"[{items}], Capacity: {self.size}/{self.capacity}, Type: {string_datatype}"
 
+    def __getitem__(self, index):
+        """Built in overrid - adds indexing"""
+        return self.get(index)
+
+    def __setitem__(self, index, value):
+        """Built in override - adds indexing."""
+        self.set(index, value)
 
     # ----- Canonical ADT Operations -----
     def get(self, index):
@@ -272,7 +278,7 @@ class VectorArray(SequenceADT[T]):
 
         if self.is_empty():
             raise ValueError("Error: Array is Empty.")
-        
+
         self._index_boundary_check(index)
 
         # dynamically shrink array if capacity at 25% and greater than min capacity
@@ -318,7 +324,6 @@ class VectorArray(SequenceADT[T]):
             if self.array[i] == value:
                 return i
         return None
-
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self):
