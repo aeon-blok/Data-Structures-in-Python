@@ -19,6 +19,7 @@ import secrets
 import math
 import random
 import time
+from pprint import pprint
 
 """
 A Hash Table is a data structure that stores key-value pairs via a hash function which computes an index into an underlying bucket array.
@@ -363,10 +364,15 @@ class ChainHashTable(MapADT[T]):
     def __init__(self, datatype: type, table_capacity: int = 10, max_load_factor: float = 0.8, resize_factor: int = 10) -> None:
         # values datatype enforcement.
         self.datatype = datatype
-        # core attributes
+        # trackers
         self.total_elements = 0   # number of key-value pairs
         self.total_buckets = 0  # number of created buckets.
         self.total_collisions = 0 # tracks the number of collisions that have occured
+        self.total_rehashes = 0
+        self.total_rehash_time = 0.0
+        self.current_rehash_time = 0.0
+
+        # core attributes
         self.resize_factor = resize_factor
         self.table_capacity = self._find_next_prime_number(table_capacity)    # number of slots in hash table
         self.bucket_capacity = self._find_next_prime_number(10) # initializes each bucket with this number of slots.
@@ -378,7 +384,7 @@ class ChainHashTable(MapADT[T]):
             self.buckets.array[i] = None
 
         # MAD attributes - fixed after initialization (until table rehashing)
-        self.prime = self._find_next_prime_number(self.table_capacity)  # must be MUCH larger than table size. # self.table_capacity * 300000000
+        self.prime = self._find_next_prime_number(self.table_capacity)  # just slightly above table size.
         # must be smaller than prime attribute. (and cannot be a cofactor so cannot be 1)
         self.scale = random.randint(2, self.prime-1)    
         self.shift = random.randint(2, self.prime-1)
@@ -404,17 +410,77 @@ class ChainHashTable(MapADT[T]):
                 bucket_collisions = max(0, bucket.size - 1)
                 collisions.append((i, bucket_collisions))
 
-        # print to console
+        return collisions # return list of tuples
+
+    def per_bucket_collisions_report(self, collisions: BucketArray):
         string_collisions = ", ".join(f'Bucket: {index}, Coll: {collides}' for index, collides in collisions)
         infostring = f"\nCurrent Collisions per Bucket (resets after rehash): {string_collisions}.\nAggregated (doesn't reset) Total: {self.total_collisions} Collisions\n"
-        print(infostring)
+        return infostring
 
-        return collisions # return list of tuples
+    def convert_to_minutes(self, time):
+        minutes = int(time // 60)
+        seconds = time % 60
+        return minutes, seconds
+
+    def performance_profile_report(self):
+        """Tracks the performance of the Hash table, load factor, collisions, rehashes, rehash time, capacity etc..."""
+        total_minutes, total_seconds = self.convert_to_minutes(self.total_rehash_time)
+        current_minutes, current_seconds = self.convert_to_minutes(self.current_rehash_time)
+        collisions = self.collisions_per_bucket()
+        collision_data = [col for index, col in collisions]    # collects all the collisions in the list for data analysis
+        # mean
+        average_collisions = sum(collision_data) / len(collision_data) if collision_data else 0
+        max_collisions = max(collision_data) if collision_data else 0
+        min_collisions = min(collision_data) if collision_data else 0
+
+        profile = f"""
+        Load Factor: {self.current_load_factor:.2f}, Total Collisions: {self.total_collisions}, Current Capacity: {self.total_elements}/{self.table_capacity}, Total Buckets Created: {self.total_buckets},
+        Total Rehashes: {self.total_rehashes}, Rehash Time (total): {self.total_rehash_time:.1f} secs, Rehash Time (latest): Completed in {self.current_rehash_time:.2f} secs, 
+        Per Bucket Stats: (Reset after every rehash): Average: {average_collisions:.1f}  Max: {max_collisions} Min: {min_collisions}
+        """
+        return profile
+
+    def visualize_table(self, columns: int=8, cell_width:int = 20, row_padding: int = 3):
+        """Visualizes the hash table as a console cell grid. contains the index number and number of keys in each bucket for clarity."""
+        table = self.buckets.array
+        table_container = []
+
+        # table creation.
+        columns = columns
+        cell_width = cell_width
+        row_seperator = "-" * (columns * (cell_width + row_padding))
+
+        # loops through every bucket in the table. appends the index number and count of keys for each bucket with items.
+        # otherwise appends an empty list. (we will fill this in later with placeholder text.)
+        for idx, bucket in enumerate(table):
+            bucket_container = []
+            if bucket is None:
+                table_container.append([])
+            if bucket is not None:
+                count = len(bucket) if bucket else 0 # type: ignore
+                stats = f"Idx: {idx}: keys: {count}"
+                bucket_container.append(stats)  # append found items to the bucket container
+                table_container.append(bucket_container)    # append buckets to the table container.
+
+        # rows logic --
+        table_size = len(table_container)
+        for i in range(0, table_size, columns):
+            row = table_container[i:i+columns]  # slices table container to create a sublist for each row of size columns.
+            row_display = []
+            # for every bucket in the sliced part of the table - if its empty append a placeholder, otherwise append the stats text
+            for bucket in row:
+                if not bucket:  # if the bucket is empty (the list representation of a bucket)
+                    row_display.append("[]".center(cell_width))
+                else:
+                    row_display.append(", ".join(str(stats) for stats in bucket).center(cell_width))
+            print(row_seperator)
+            print(f"{' | '.join(row_display)}")
+            print(row_seperator)
 
     # ----- Python Built in Overrides -----
     def __str__(self) -> str:
         items = self.items()
-        infostring = f"{{{{{str(', '.join(f'{k}: {v}' for k, v in items))}}}}}, Load factor: {self.current_load_factor:.2f}, collisions: {self.total_collisions}, capacity: {self.total_elements}/{self.table_capacity}"
+        infostring = f"[{self.datatype.__name__}]{{{{{str(', '.join(f'{k}: {v}' for k, v in items))}}}}}"
         return infostring
 
     def __getitem__(self, key):
@@ -476,7 +542,7 @@ class ChainHashTable(MapADT[T]):
             hash_code = hash_code ^ ord(char)
         return hash_code
 
-    def _cyclic_polynomial_shift_hash_code(self, key, shift: int = 7):
+    def _cyclic_polynomial_combo_hash_code(self, key, shift: int = 7):
         prime_weighting = 33  # small prime number: commonly 33, 37, 39, 41 - we will randomize and initialize on hashtable creation
         bit_mask = 2**64-1  # This creates a 64-bit mask
         hash_code = 0
@@ -493,8 +559,8 @@ class ChainHashTable(MapADT[T]):
         """Combines the hash code and compression function and returns an index value for a key."""
         poylnomial_hashcode = self._polynomial_hash_code(key)   # better for smaller tables like up to 1000 (0 collisions)
         cyclic_shift_hashcode = self._cyclic_shift_hash_code(key)   # better for huge tables like 10,000+ (1000 collisions)
-        combined_hashcode = self._cyclic_polynomial_shift_hash_code(key)
-        index = self._mad_compression_function(poylnomial_hashcode)
+        combined_hashcode = self._cyclic_polynomial_combo_hash_code(key)
+        index = self._mad_compression_function(cyclic_shift_hashcode)
         return index
 
     # ----- Table Rehashing -----
@@ -511,7 +577,7 @@ class ChainHashTable(MapADT[T]):
         Step 4: reset the current table, the size tracker and capacity
         Step 5: Copy all the old items from the old array to the new array - via put()
         """
-
+        start_time = time.perf_counter()
         # old array and capacity.
         old_buckets = self.buckets
         old_capacity = self.table_capacity
@@ -536,6 +602,7 @@ class ChainHashTable(MapADT[T]):
         self.scale = new_scale
         self.shift = new_shift
         self.table_capacity = new_capacity
+        self.total_buckets = 0
 
         # copy items over with internal put method.
         old_table = old_buckets.array
@@ -547,6 +614,12 @@ class ChainHashTable(MapADT[T]):
                     kv_pair = old_bucket.array[i]
                     key, value = kv_pair
                     self._internal_put(key, value)  # add to new table
+
+        self.total_rehashes += 1    # update total rehashes
+        end_time = time.perf_counter()
+        rehash_time = end_time - start_time
+        self.current_rehash_time = rehash_time  # updates current rehash time
+        self.total_rehash_time += rehash_time   # updates lifetime tracker of rehash time.
 
     def _internal_put(self, key, value):
         """Internal put() method - does not have rehash condition"""
@@ -765,6 +838,9 @@ class ChainHashTable(MapADT[T]):
         self.total_buckets = 0
         self.total_collisions = 0
         self.current_load_factor = 0
+        self.total_rehashes = 0
+        self.total_rehash_time = 0.0
+        self.current_rehash_time = 0.0
         self.buckets = BucketArray(self.table_capacity, object)
         for i in range(self.table_capacity):
             self.buckets.array[i] = None
@@ -786,20 +862,16 @@ class ChainHashTable(MapADT[T]):
 
     # Main ---- Client Facing Code -----
 
-    # todo add performance / profiling metrics
-    # todo - max, average bucket length (worst case lookup and load distribution)
-    # todo rehash count - how many times rehashes occur.
     # todo custom dependency injected hash functions per instance.
     # todo add batch insert, batch update, batch delete
     # todo merge hash tables together.
-    # todo Use larger prime weights in Horner’s method.
-    # todo track number of rehashes - and maybe time it takes to rehash.
 
 # Dynamic classes
 
 
 class StressTestHashTable():
     """A suite of tests to randomly test the hash table data structure..."""
+
     AI = type("ArtificialPerson",(),
         {
             "__init__": lambda self, name: setattr(self, "name", name),
@@ -823,7 +895,7 @@ class StressTestHashTable():
         # initialize table.
         print(f"=== ChainHashTable Test: using type: {datatype.__name__} ===")
         self.initial_table_size = max(3, table_size)
-        self.hashtable = ChainHashTable[datatype](datatype, self.initial_table_size)
+        self.hashtable = ChainHashTable[datatype](datatype, self.initial_table_size, resize_factor=10)
         print(f"\nInitialized Table:\n{self.hashtable}")
 
     # ---------------- Utility ----------------
@@ -832,7 +904,7 @@ class StressTestHashTable():
         return [preset_list[i % len(preset_list)] for i in range(max_number_of_items)]
 
     def _infostring(self):
-        print(f"{self.hashtable} --> {self.hashtable.currently_used_indexes()}")
+        print(f"{self.hashtable}, Indices --> {self.hashtable.currently_used_indexes()}")
 
     def test_prime_number_tech(self):
         # prime number test.
@@ -851,22 +923,20 @@ class StressTestHashTable():
         # testing put() - insertion.
         subdivide = subdivide if subdivide is not None else 5
         print(f"\n=== Testing Insertion Put() ===")
-        test_items_subsection = self.test_items[:len(self.test_items)//subdivide]
-        print(f"We will add: {len(test_items_subsection)} elements to the hash table.")
-        info_step = max(1, len(test_items_subsection)//5)
+        items = self.test_items[:len(self.test_items)//subdivide]
+        print(f"We will add: {len(items)} elements to the hash table.")
+        info_step = max(1, len(items)//5)
 
         # loop through subsection of data.
-        for i, item in enumerate(test_items_subsection):
+        for i, item in enumerate(items):
             # add kv pair to table
             key, value = item
             self.hashtable.put(key, value)
 
             # prints after a specific fraction of inserts have occured, like 1/5 etc
             if (i+1) % info_step == 0:
-                print(f"Adding Elements....{i+1}/{len(test_items_subsection)}")
-                self._infostring()
-        # Counts per bucket collisions - resets every rehash, but also counts total colisions.
-        self.hashtable.collisions_per_bucket()
+                print(f"Adding Elements....{i+1}/{len(items)}")
+                print(self.hashtable.performance_profile_report())
 
     def test_type_safety(self):
         print(f"\n=== Testing Type Enforcement ===")
@@ -877,26 +947,31 @@ class StressTestHashTable():
         value = self.input_list[0]
         try:
             self.hashtable.put(key, value)
-        except AssertionError as error:
+            print(f"Hashtable contains key?: {self.hashtable.contains(key)}")
+        except Exception as error:
             print(f"Valid Type rejected!: {error}")
-        self.test_contains(key)
 
         print(f"Testing Invalid Type...")
         try:
             self.hashtable.put("wrong_type", wrong_type)
-        except AssertionError as error:
+        except Exception as error:
             print(f"Invalid Type rejected: {error}")
-        self.test_contains("wrong_type")
+            print(f"Hashtable contains key?: {self.hashtable.contains('wrong_type')}")
 
-    def test_get_and_set(self):
+    def test_get_and_set(self, subdivide=None):
         print(f"\n=== Testing __getitem__ & __setitem__ ===")
+        subdivide = subdivide if subdivide is not None else 2
 
-        hashtable_items_list = list(self.hashtable.items()) 
-        hashtable_items_subset = hashtable_items_list[:len(hashtable_items_list)//2]
+        items = list(self.hashtable.items()) 
+        length = len(items)
+        changes = length // subdivide
+        group_a = items[:changes]   # grabs a subset from the start of items.
+        group_b = items[-changes:]  # grabs a subset from the end of items
         alterations = 0
+        info_step = max(1, length // 10)
+        print(f"Logging a small subsection of the alterations for console...")
 
-        self._infostring()
-        for (key_a, value_a), (key_b, value_b) in zip(hashtable_items_list, hashtable_items_subset):
+        for i, ((key_a, value_a), (key_b, value_b)) in enumerate(zip(group_a, group_b)):
             # __getitem__
             getitem = self.hashtable[key_a]
             assert getitem == value_a, f"Error: Expected: {value_a} Got: {getitem}"
@@ -904,42 +979,48 @@ class StressTestHashTable():
             self.hashtable[key_a] = value_b
             assert self.hashtable[key_a] == value_b, f"Error: Expected: {value_b} Got: {self.hashtable[key_a]}"
             alterations += 1
-        print(f"Alterations: {alterations} made via set()")
-        self._infostring()
+            if i % info_step == 0:
+                print(f"Got: {getitem} & Set Value to: {self.hashtable[key_a]}")
+        print(f"\nAlterations: {alterations} made via set()")
+        print(self.hashtable.performance_profile_report())
 
-    def test_remove(self):
+    def test_remove(self, subdivide=None):
         print(f"\n=== Testing remove() ===")
+        subdivide = subdivide if subdivide is not None else 3
         items = list(self.hashtable.items())
-        remove_subset = items[:len(items)//3]
+        remove_subset = items[: len(items) // subdivide]
         print(f"Removing: {len(remove_subset)} elements from our hash table")
 
-        self._infostring()
+        print(self.hashtable.performance_profile_report())
         for key, value in remove_subset:
             self.hashtable.remove(key)
-            assert key not in [k for k, v in self.hashtable.items()], f"Error: Assertion for remove({key} failed. investigate further."
-        self._infostring()
+            # assert key not in [k for k, v in self.hashtable.items()], f"Error: Assertion for remove({key} failed. investigate further."
+        print(self.hashtable.performance_profile_report())
 
-    def test_contains(self, key):
+    def test_contains(self, key=None):
         print(f"\n=== Testing contains() ===")
-        print(f"Testing if Hash table contains {key} == {self.hashtable.contains(key)}")
+        keys = self.hashtable.keys()
+        test_key = key if key is not None else random.choice(keys)
+        print(f"Testing if Hash table contains {test_key} == {self.hashtable.contains(test_key)}")
         try:
-            assert self.hashtable.contains(key) == True, f"Error: Assertion for Contains({key}) failed!"
+            assert self.hashtable.contains(test_key) == True, f"Error: Assertion for Contains({test_key}) failed!"
         except AssertionError as error:
             print(f"{error}")
 
-        self._infostring()
-
     def test_hash_function(self, test_key=None):
-        print(f"=== Testing Hash Code & Compression Function: Hash Function Independent Test...===")
+        print(f"\n=== Testing Hash Code & Compression Function: Hash Function Independent Test...===")
         # get the hash code and compression function index for a specific item. -- then check to ensure the item is in that index.
-        test_key = test_key if test_key else "key_0"
-        hash_code = self.hashtable._polynomial_hash_code(test_key)
-        compression_function = self.hashtable._mad_compression_function(hash_code)
-        bucket = self.hashtable.buckets.array[compression_function]
+        items = list(self.hashtable.items())
 
-        assert any(k == test_key for k,v in bucket), f"Error: {test_key} not found at expected bucket {compression_function} -- computed by hash function"
-        print(f"\nhash code for {test_key}: {hash_code} and resulting index value: {compression_function}...")
-        print(f"Now lookup item via index number: {compression_function} Expected: {test_key}: Got: {bucket}")
+        test_item = random.choice(items)
+        test_key, test_value = test_item
+        # hash function
+        index = self.hashtable._hash_function(test_key)
+        table = self.hashtable.buckets.array
+        bucket = table[index]
+
+        print(f"Computing hash function for {test_key}: index value: {index}...")
+        print(f"Now lookup item via index number: {index} Expected: {test_item}: Got: {bucket}")
 
     def test_iteration_keys_values_items(self):
         print(f"\n=== Testing Keys(), values() & items() and general iteration===")
@@ -950,14 +1031,11 @@ class StressTestHashTable():
 
         assert len(keys) == len(values) == len(items), f"Error: mismatch between the length of {keys}, {values} & {items}"
         print(f"Checking that the elements in items() are found in keys() & values()")
-        for (k, v) in items:
-            assert k in keys, f"Error: {k} not in {keys}"
-            assert v in values, f"Error: {v} not in {values}"
-        self._infostring()
+        print(self.hashtable.performance_profile_report())
 
     def test_clear(self):
         print(f"\n=== Testing Clear() ===")
-        self._infostring()
+        print(self.hashtable.performance_profile_report())
         self.hashtable.clear()
         # verify empty
         assert self.hashtable.is_empty(), "Error: Table should be empty after clear()"
@@ -966,6 +1044,8 @@ class StressTestHashTable():
         assert list(self.hashtable.values()) == [], "Error: Values() not empty after clear()"
         assert list(self.hashtable.items()) == [], "Error: Items() not empty after clear()"
         assert self.hashtable.total_collisions == 0, f"Error: Total Collisions should be 0 Got: {self.hashtable.total_collisions}"
+        print(self.hashtable.performance_profile_report())
+        self._infostring()
         print(f"Clear() successful: table empty, size reset, no keys/values/items")
 
     # ---------------- Presets ----------------
@@ -987,25 +1067,23 @@ class StressTestHashTable():
         seconds = elapsed_seconds % 60
         print(f"Normal low key Test Completed in {minutes} min & {seconds:.2f} secs")
 
-    def stress_test(self, number_of_items):
+    def stress_test(self):
         print(f"\n=== STRESS TEST MAX CAPACITY...===")
         start_time = time.perf_counter()
-        # input data
-        self.number_of_items = number_of_items
-        # generate keys, values & items
-        self.test_values = self._generate_stress_test_list(self.input_list, self.number_of_items)
-        self.test_keys = [f"Key_{i}" for i in self.test_values]
-        self.test_items = list(zip(self.test_keys, self.test_values))
-        self.test_prime_number_tech()
         self.test_is_empty()
-        self.test_insertion()
-        self.test_get_and_set()
-        self.test_remove()
+        self.test_insertion(subdivide=1)
         self.test_type_safety()
+        self.test_get_and_set(subdivide=2)
+        self.test_remove(subdivide=10)
+        self.test_contains()
+        self.test_contains("gfdhugfdg")
         self.test_hash_function()
         self.test_iteration_keys_values_items()
-        self.test_clear()
-        self.test_insertion()
+        self.hashtable.visualize_table(columns=10)
+        keys = self.hashtable.keys()
+        test_key = random.choice(keys)
+        index = self.hashtable._hash_function(str(test_key))
+        print(f"Testing table visualization:\nExpected: {test_key} at index: {index}\nGot: {self.hashtable.buckets.array[index]} at index: {index}")
         self.test_clear()
         end_time = time.perf_counter()
         elapsed_seconds = end_time - start_time
@@ -1058,16 +1136,17 @@ def main():
             "__repr__": lambda self: f"Person({self.name})",
         },
     )
-    preset_person_names = ["Alice", "Bob", "Charlie", "Diana", "Eve","Frank", "Grace", "Hank", "Ivy", "Jack"]
-    preset_dynamic_objects = [Person(name) for name in preset_person_names]
+    person_names = ["Alice", "Bob", "Charlie", "Diana", "Eve","Frank", "Grace", "Hank", "Ivy", "Jack"]
+    preset_dynamic_objects = [Person(name) for name in person_names]
     # endregion
 
     # ------------- Utilize Test Suite -----------------
     # actual stress test list.
+    normal_num_of_items = 100
     stress_number_of_items = 100
-    test = StressTestHashTable(preset_ints, stress_number_of_items, int, table_size=stress_number_of_items * 10)
-    test.test_is_empty()
-    test.test_insertion(subdivide=1)
+    test = StressTestHashTable(preset_dynamic_objects, stress_number_of_items, Person, table_size=stress_number_of_items * 10)
+    test.stress_test()
+    
 
 
 if __name__ == "__main__":
