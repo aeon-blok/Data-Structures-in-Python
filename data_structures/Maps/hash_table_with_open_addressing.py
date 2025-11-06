@@ -350,9 +350,20 @@ class VectorArray(Generic[T]):
             yield cast(T, result)
 
 
-class ProbingHashTable(MapADT[T]):
-    """Hash Table Data Structure with Linear Probing & Tombstones (Open Addressing)"""
-    def __init__(self, datatype:type, capacity: int = 10, max_load_factor: float = 0.6, resize_factor: int = 2, probes_threshold: float = 0.15, tombstones_threshold: float = 0.15, average_probes_limit: float = 4, probing_technique: Literal["linear", "quadratic"] = "quadratic"):
+class OAHashTable(MapADT[T]):
+    """Hash Table Data Structure with Probing / double hashing & Tombstones (Open Addressing)"""
+
+    def __init__(
+        self,
+        datatype: type,
+        capacity: int = 10,
+        max_load_factor: float = 0.6,
+        resize_factor: int = 2,
+        probes_threshold: float = 0.15,
+        tombstones_threshold: float = 0.15,
+        average_probes_limit: float = 4,
+        probing_technique: Literal["linear", "quadratic", "double hashing"] = "double hashing",
+    ):
         self.min_capacity = max(4, self._find_next_prime_number(capacity))
         self.capacity = self._find_next_prime_number(capacity)
         self.enforce_type = datatype
@@ -527,35 +538,41 @@ class ProbingHashTable(MapADT[T]):
             print(" | ".join(row_display))
             print(row_seperator)
 
-
     # ----- Probing Function -----
-    def linear_probing_function(self, index):
+    def linear_probing_function(self, index) -> int:
+        """traverses through hashtable looking for empty slot"""
         return (index + 1) % self.capacity
 
-    def quadratic_probing_function(self, start_index, probe_count):
+    def quadratic_probing_function(self, start_index, probe_count) -> int:
         """quadratic probing function."""
         linear_term = 1  # linear term - stops quad from missing slots
         quadratic_term = 3  # quadratic term - provides spread to probes
 
         return (start_index + linear_term * probe_count + quadratic_term * (probe_count**2)) % self.capacity
 
-    def select_probing_function(self, index, start_index, probe_count) -> int:
-        """Selects between different probing functions (quadratic, linear, )"""
+    def double_hashing(self, key, probe_count) -> int:
+        """Double Hashing - uses second hash as a step size - better spread probing function"""
+        first_index = self._hash_function(key)
+        second_step_size_index = self._second_hash_function(key)
+        return (first_index + probe_count * second_step_size_index) % self.capacity
+
+    def select_probing_function(self, key, index, start_index, probe_count) -> int:
+        """Selects between different probing functions (quadratic, linear, double hashing)"""
         if self.probing_technique == "linear":
-            index = self.linear_probing_function(index)
-        if self.probing_technique == "quadratic":
-            index = self.quadratic_probing_function(start_index, probe_count)
+            new_index = self.linear_probing_function(index)
+        elif self.probing_technique == "quadratic":
+            new_index = self.quadratic_probing_function(start_index, probe_count)
+        elif self.probing_technique == "double hashing":
+            new_index = self.double_hashing(key, probe_count)
         else:
             raise ValueError(f"Error: {self.probing_technique}: Invalid Probing Technique entered. Please select from valid options.")
-        return index
-
+        return new_index
 
     # ----- Validation Checks & Errors -----
     def _enforce_type(self, value):
         """type enforcement - checks that the value matches the prescribed datatype."""
         if not isinstance(value, self.enforce_type):
             raise TypeError(f"Error: Invalid Type: Expected: {self.enforce_type.__name__} Got: {type(value)}")
-
 
     # ----- Python Built in Overrides -----
     def __str__(self) -> str:
@@ -604,6 +621,11 @@ class ProbingHashTable(MapADT[T]):
         index = divide % self.capacity  # finally mod by table capacity
         return index
 
+    def _second_hash_function(self, key):
+        """creates a simple second hash function for step size for double hashing"""
+        second_hash_code = self._cyclic_shift_hash_code(key)
+        return 1 + (second_hash_code % (self.capacity - 1))
+
     def _polynomial_hash_code(self, key):
         """polynomial hash code: uses Horners Method"""
         prime_weighting = 33    # small prime number: commonly 33, 37, 39, 41 - we will randomize and initialize on hashtable creation
@@ -628,6 +650,7 @@ class ProbingHashTable(MapADT[T]):
         """Combines the hash code and compression function and returns an index value for a key."""
         poylnomial_hashcode = self._polynomial_hash_code(key)   # better for smaller tables like up to 1000 (0 collisions)
         cyclic_shift_hashcode = self._cyclic_shift_hash_code(key)   # better for huge tables like 10,000+ (1000 collisions)
+
         index = self._mad_compression_function(cyclic_shift_hashcode)
         return index
 
@@ -721,7 +744,7 @@ class ProbingHashTable(MapADT[T]):
                 self.current_collisions += 1 
 
             # moves to the next index on the table - This is the core of linear probing.
-            index = self.select_probing_function(index, start_index, probe_count)
+            index = self.select_probing_function(key, index, start_index, probe_count)
 
             # /Exit Condition: if we get back to where we started with no empty slot - the table is full
             if index == start_index:
@@ -781,7 +804,7 @@ class ProbingHashTable(MapADT[T]):
                 self.current_collisions += 1 
 
             # moves to the next index on the table - This is the core of linear probing.
-            index = self.select_probing_function(index, start_index, probe_count)
+            index = self.select_probing_function(key, index, start_index, probe_count)
 
             # Error/Exit Condition: if we get back to where we started with no empty slot - the table is full
             if index == start_index:
@@ -818,7 +841,7 @@ class ProbingHashTable(MapADT[T]):
                     return v
 
             # moves to the next slot in the table.
-            index = self.select_probing_function(index, start_index, probe_count)
+            index = self.select_probing_function(key, index, start_index, probe_count)
 
             # Exit Condition: if we have traversed the whole table and nothing found, break while loop and return default.
             if index == start_index:
@@ -862,7 +885,7 @@ class ProbingHashTable(MapADT[T]):
                     return v
 
             # moves to the next index
-            index = self.select_probing_function(index, start_index, probe_count)
+            index = self.select_probing_function(key, index, start_index, probe_count)
 
             # Exit Condition: looped the whole way round....
             if index == start_index:
@@ -1055,11 +1078,11 @@ def main():
 
     input_data = preset_dynamic_objects
 
-    input_values = [*input_data * 2]
+    input_values = [*input_data * 60]
     random.shuffle(input_values)
 
     # --- Initialize Hash Table ---
-    hashtable = ProbingHashTable(Person, capacity=20, max_load_factor=0.6, probing_technique='quadratic')
+    hashtable = OAHashTable(Person, capacity=20, max_load_factor=0.6, probing_technique='double hashing')
     print("Created hash table:", hashtable)
 
     # testing put() logic

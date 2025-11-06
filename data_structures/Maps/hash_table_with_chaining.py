@@ -565,6 +565,8 @@ class ChainHashTable(MapADT[T]):
         k_mod = hash_code % table_capacity
         return k_mod
 
+    
+
     def _polynomial_hash_code(self, key):
         """polynomial hash code: uses Horners Method"""
         prime_weighting = 33    # small prime number: commonly 33, 37, 39, 41 - we will randomize and initialize on hashtable creation
