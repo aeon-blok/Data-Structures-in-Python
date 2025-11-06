@@ -350,7 +350,7 @@ class VectorArray(Generic[T]):
             yield cast(T, result)
 
 
-class HashTableLinearProbing(MapADT[T]):
+class ProbingHashTable(MapADT[T]):
     """Hash Table Data Structure with Linear Probing & Tombstones (Open Addressing)"""
     def __init__(self, datatype:type, capacity: int = 10, max_load_factor: float = 0.6, resize_factor: int = 2, probes_threshold: float = 0.15, tombstones_threshold: float = 0.15, average_probes_limit: float = 4, probing_technique: Literal["linear", "quadratic"] = "quadratic"):
         self.min_capacity = max(4, self._find_next_prime_number(capacity))
@@ -1059,7 +1059,7 @@ def main():
     random.shuffle(input_values)
 
     # --- Initialize Hash Table ---
-    hashtable = HashTableLinearProbing(Person, capacity=20, max_load_factor=0.6, probing_technique='quadratic')
+    hashtable = ProbingHashTable(Person, capacity=20, max_load_factor=0.6, probing_technique='quadratic')
     print("Created hash table:", hashtable)
 
     # testing put() logic
