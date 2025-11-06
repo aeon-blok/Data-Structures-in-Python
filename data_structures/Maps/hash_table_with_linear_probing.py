@@ -10,7 +10,9 @@ from typing import (
     Iterator,
     Generator,
     Tuple,
+    Literal,
 )
+
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
@@ -350,7 +352,7 @@ class VectorArray(Generic[T]):
 
 class HashTableLinearProbing(MapADT[T]):
     """Hash Table Data Structure with Linear Probing & Tombstones (Open Addressing)"""
-    def __init__(self, datatype:type, capacity: int = 10, max_load_factor: float = 0.6, resize_factor: int = 2, probes_threshold: float = 0.15, tombstones_threshold: float = 0.15, average_probes_limit: float = 4):
+    def __init__(self, datatype:type, capacity: int = 10, max_load_factor: float = 0.6, resize_factor: int = 2, probes_threshold: float = 0.15, tombstones_threshold: float = 0.15, average_probes_limit: float = 4, probing_technique: Literal["linear", "quadratic"] = "quadratic"):
         self.min_capacity = max(4, self._find_next_prime_number(capacity))
         self.capacity = self._find_next_prime_number(capacity)
         self.enforce_type = datatype
@@ -371,6 +373,9 @@ class HashTableLinearProbing(MapADT[T]):
         self.prime = self._find_next_prime_number(self.capacity)
         self.scale = random.randint(2, self.prime-1)  
         self.shift = random.randint(2, self.prime-1)
+
+        # Probing Technique
+        self.probing_technique = probing_technique
 
         # trackers
         self.current_collisions = 0
@@ -480,9 +485,9 @@ class HashTableLinearProbing(MapADT[T]):
 
         return stats if stats_only else infostring
 
-    def _display_table(self, columns: int = 20, cell_width: int = 8, row_padding: int = 3):
+    def _display_table(self, columns: int = 12, cell_width: int = 15, row_padding: int = 3):
         """Table visualization - with tombstone markers included!"""
-        
+
         table = self.table.array
         table_container = []
 
@@ -491,7 +496,7 @@ class HashTableLinearProbing(MapADT[T]):
         cell_width = cell_width
         row_seperator = "-" * (columns * (cell_width + row_padding))
 
-        # traverse every item in table 
+        # traverse every item in table
         # - if there is an item add the index number as text to the slot. - otherwise add the tombstone marker or []
         for idx, item in enumerate(table):
             if item == self.tombstone:
@@ -500,10 +505,10 @@ class HashTableLinearProbing(MapADT[T]):
                 table_container.append("")
             else:
                 table_container.append(f"i: {idx}")
+                # table_container.append("💬")
 
         # rows logic ---
         table_size = len(table_container)
-
 
         # title
         print(row_seperator)
@@ -515,7 +520,6 @@ class HashTableLinearProbing(MapADT[T]):
         print(stats.center(len(row_seperator)))
         print(row_seperator)
 
-
         # create rows
         for i in range(0, len(table_container), columns):
             row = table_container[i:i+columns]
@@ -523,6 +527,27 @@ class HashTableLinearProbing(MapADT[T]):
             print(" | ".join(row_display))
             print(row_seperator)
 
+
+    # ----- Probing Function -----
+    def linear_probing_function(self, index):
+        return (index + 1) % self.capacity
+
+    def quadratic_probing_function(self, start_index, probe_count):
+        """quadratic probing function."""
+        linear_term = 1  # linear term - stops quad from missing slots
+        quadratic_term = 3  # quadratic term - provides spread to probes
+
+        return (start_index + linear_term * probe_count + quadratic_term * (probe_count**2)) % self.capacity
+
+    def select_probing_function(self, index, start_index, probe_count) -> int:
+        """Selects between different probing functions (quadratic, linear, )"""
+        if self.probing_technique == "linear":
+            index = self.linear_probing_function(index)
+        if self.probing_technique == "quadratic":
+            index = self.quadratic_probing_function(start_index, probe_count)
+        else:
+            raise ValueError(f"Error: {self.probing_technique}: Invalid Probing Technique entered. Please select from valid options.")
+        return index
 
 
     # ----- Validation Checks & Errors -----
@@ -551,7 +576,6 @@ class HashTableLinearProbing(MapADT[T]):
 
     def __delitem__(self, key):
         return self.remove(key)
-
 
     # ----- Hash Function -----
     def _is_prime_number(self, number):
@@ -606,7 +630,6 @@ class HashTableLinearProbing(MapADT[T]):
         cyclic_shift_hashcode = self._cyclic_shift_hash_code(key)   # better for huge tables like 10,000+ (1000 collisions)
         index = self._mad_compression_function(cyclic_shift_hashcode)
         return index
-
 
     # ----- Table Rehashing -----
     def _calculate_load_factor(self) -> float:
@@ -698,8 +721,7 @@ class HashTableLinearProbing(MapADT[T]):
                 self.current_collisions += 1 
 
             # moves to the next index on the table - This is the core of linear probing.
-            current_index = (index + 1) % self.capacity 
-            index = current_index
+            index = self.select_probing_function(index, start_index, probe_count)
 
             # /Exit Condition: if we get back to where we started with no empty slot - the table is full
             if index == start_index:
@@ -717,7 +739,6 @@ class HashTableLinearProbing(MapADT[T]):
         # adds the current probes for this operation to an aggregrated total used to calculate average probes per operation
         self.total_probes += self.current_probes
         self.total_probe_operations += 1
-
 
     # ----- Canonical ADT Operations -----
     def put(self, key, value):
@@ -760,8 +781,7 @@ class HashTableLinearProbing(MapADT[T]):
                 self.current_collisions += 1 
 
             # moves to the next index on the table - This is the core of linear probing.
-            linear_probing = (index + 1) % self.capacity 
-            index = linear_probing
+            index = self.select_probing_function(index, start_index, probe_count)
 
             # Error/Exit Condition: if we get back to where we started with no empty slot - the table is full
             if index == start_index:
@@ -796,10 +816,10 @@ class HashTableLinearProbing(MapADT[T]):
                 k, v = slot
                 if k == key:
                     return v
-            # moves to the next slot in the table.
-            linear_probing = (index + 1) % self.capacity
 
-            index = linear_probing
+            # moves to the next slot in the table.
+            index = self.select_probing_function(index, start_index, probe_count)
+
             # Exit Condition: if we have traversed the whole table and nothing found, break while loop and return default.
             if index == start_index:
                 break
@@ -840,9 +860,10 @@ class HashTableLinearProbing(MapADT[T]):
                     self.current_tombstones += 1
                     self.current_load_factor = self._calculate_load_factor()
                     return v
+
             # moves to the next index
-            linear_probing = (index + 1) % self.capacity
-            index = linear_probing
+            index = self.select_probing_function(index, start_index, probe_count)
+
             # Exit Condition: looped the whole way round....
             if index == start_index:
                 break
@@ -882,7 +903,6 @@ class HashTableLinearProbing(MapADT[T]):
                 k, v = slot
                 found.append(slot)
         return found
-
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self):
@@ -945,7 +965,6 @@ class HashTableLinearProbing(MapADT[T]):
 # Main ---- Client Facing Code ------
 
 # todo add the ability to change dynamic array to static (or just freeze shrink array) (low priority)
-# todo stress test this data structure....
 
 
 def main():
@@ -1036,11 +1055,11 @@ def main():
 
     input_data = preset_dynamic_objects
 
-    input_values = [*input_data * 20]
+    input_values = [*input_data * 2]
     random.shuffle(input_values)
 
     # --- Initialize Hash Table ---
-    hashtable = HashTableLinearProbing(Person, capacity=20, max_load_factor=0.6)
+    hashtable = HashTableLinearProbing(Person, capacity=20, max_load_factor=0.6, probing_technique='quadratic')
     print("Created hash table:", hashtable)
 
     # testing put() logic
@@ -1088,16 +1107,16 @@ def main():
     # testing put() logic -- reinserting to test out tombstones.....
     new_items = list(hashtable.items())
     random.shuffle(new_items)
-    subset = random.sample(new_items, min(20, len(items) // 4))
+    subset = random.sample(new_items, min(80, len(items) // 4))
     for i, pair in enumerate(subset):
         k,v = pair
         hashtable.put(f"newkey_{k}_{i}", v)
         print(repr(hashtable))
+
     # test __len__
     print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
 
-
-
+    # display table
     hashtable._display_table()
 
 
@@ -1106,7 +1125,6 @@ def main():
     hashtable.clear()
     print(repr(hashtable))
     print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
-
 
 
 if __name__ == "__main__":
