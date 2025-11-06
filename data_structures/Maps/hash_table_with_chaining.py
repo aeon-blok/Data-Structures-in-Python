@@ -60,12 +60,12 @@ class MapADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def keys(self) -> Optional['BucketArray']:
+    def keys(self) -> Optional['VectorArray']:
         """Return a set of all the keys in the hash table"""
         pass
 
     @abstractmethod
-    def values(self) -> Optional["BucketArray"]:
+    def values(self) -> Optional["VectorArray"]:
         """Return a set of all the values in the hash table"""
         pass
 
@@ -109,7 +109,7 @@ NUMPY_DATATYPES = {
 }
 
 
-class BucketArray(Generic[T]):
+class VectorArray(Generic[T]):
     """Dynamic Array — automatically resizes as elements are added."""
 
     def __init__(self, capacity: int, datatype: type, datatype_map: dict = CTYPES_DATATYPES) -> None:
@@ -361,7 +361,7 @@ class ChainHashTable(MapADT[T]):
     Uses Experimental ** exponential resizing for the table rehashing -
     has controls for max load factor and resize factor.
     """
-    def __init__(self, datatype: type, table_capacity: int = 10, max_load_factor: float = 0.8, resize_factor: int = 10) -> None:
+    def __init__(self, datatype: type, table_capacity: int = 10, max_load_factor: float = 0.6, resize_factor: int = 2) -> None:
         # values datatype enforcement.
         self.datatype = datatype
         # trackers
@@ -376,7 +376,7 @@ class ChainHashTable(MapADT[T]):
         self.resize_factor = resize_factor
         self.table_capacity = self._find_next_prime_number(table_capacity)    # number of slots in hash table
         self.bucket_capacity = self._find_next_prime_number(10) # initializes each bucket with this number of slots.
-        self.buckets = BucketArray(self.table_capacity, object)  # this is the array object - with all the attributes and methods.
+        self.buckets = VectorArray(self.table_capacity, object)  # this is the array object - with all the attributes and methods.
         self.current_load_factor = self._calculate_load_factor()  # log attribute - displays current load factor
         self.max_load_factor = max_load_factor # prevents the table from exceeding this capacity
         # initialize each bucket as None.
@@ -388,21 +388,12 @@ class ChainHashTable(MapADT[T]):
         # must be smaller than prime attribute. (and cannot be a cofactor so cannot be 1)
         self.scale = random.randint(2, self.prime-1)    
         self.shift = random.randint(2, self.prime-1)
-        # add to a packed tuple for convenience
-        self.mad_modifiers = (self.prime, self.scale, self.shift)
 
     # ----- Utility -----
-    def currently_used_indexes(self):
-        indexes = BucketArray(self.bucket_capacity, int)
-        table = self.buckets.array
-        for i, bucket in enumerate(table):  # access the underlying array
-            if bucket is not None and bucket.size > 0:
-                indexes.append(i)
-        return indexes
 
     def collisions_per_bucket(self):
         """Returns the current number of collisions that have occured per bucket as a tuple. WARNING: this resets everytime the table rehashes."""
-        collisions = BucketArray(self.table_capacity, tuple)
+        collisions = VectorArray(self.table_capacity, tuple)
         table = self.buckets.array
         # iterate over table and append index and the bucket collisions to a tuple.
         for i, bucket in enumerate(table):
@@ -412,36 +403,73 @@ class ChainHashTable(MapADT[T]):
 
         return collisions # return list of tuples
 
-    def per_bucket_collisions_report(self, collisions: BucketArray):
-        string_collisions = ", ".join(f'Bucket: {index}, Coll: {collides}' for index, collides in collisions)
-        infostring = f"\nCurrent Collisions per Bucket (resets after rehash): {string_collisions}.\nAggregated (doesn't reset) Total: {self.total_collisions} Collisions\n"
-        return infostring
-
-    def convert_to_minutes(self, time):
-        minutes = int(time // 60)
-        seconds = time % 60
-        return minutes, seconds
-
     def performance_profile_report(self):
         """Tracks the performance of the Hash table, load factor, collisions, rehashes, rehash time, capacity etc..."""
-        total_minutes, total_seconds = self.convert_to_minutes(self.total_rehash_time)
-        current_minutes, current_seconds = self.convert_to_minutes(self.current_rehash_time)
+        # ANSI color codes for fun.
+        BLUE = "\033[1;36m"
+        RED = "\033[31m"
+        GREEN = "\033[32m"
+        YELLOW = "\033[33m"
+        RESET = "\033[0m"
+
+        def color(input, color):
+            string = f"{RESET}{color}{input}{RESET}"
+            return string
+
+        # profile stats
+        # load factor - with color that changes to warn end user.
+        load_factor_number = color(f"{self.current_load_factor:.2f}", GREEN) if self.current_load_factor < 0.65 else color(f"{self.current_load_factor:.2f}", RED)
+        load_factor_string = f"Load Factor: {load_factor_number}"
+
+        # total collisions - with color change
+        collision_threshold: float = 0.13  # percentage boundary (13%)
+        collisions_number = color(f"{self.total_collisions}", GREEN) if self.total_collisions / self.table_capacity < collision_threshold else color(f"{self.total_collisions}", RED)
+        total_coll_string = f"Total Collisions: {collisions_number}"
+        stats_string = f"{load_factor_string}, {total_coll_string}, Current Capacity: {self.total_elements}/{self.table_capacity}, Total Buckets Created: {self.total_buckets}"
+
+        # rehashes
+        rehashes_string = f"Total Rehashes: {self.total_rehashes}, Rehash Time (total): {self.total_rehash_time:.1f} secs, Rehash Time (latest): Completed in {self.current_rehash_time:.2f} secs"
+
+        # per bucket stats
         collisions = self.collisions_per_bucket()
         collision_data = [col for index, col in collisions]    # collects all the collisions in the list for data analysis
-        # mean
         average_collisions = sum(collision_data) / len(collision_data) if collision_data else 0
         max_collisions = max(collision_data) if collision_data else 0
         min_collisions = min(collision_data) if collision_data else 0
+        per_bucket_stats_string = f"Per Bucket Stats: (Reset after every rehash): Average: {average_collisions:.1f}  Max: {max_collisions} Min: {min_collisions}"
 
+        # final profile string to print.
         profile = f"""
-        Load Factor: {self.current_load_factor:.2f}, Total Collisions: {self.total_collisions}, Current Capacity: {self.total_elements}/{self.table_capacity}, Total Buckets Created: {self.total_buckets},
-        Total Rehashes: {self.total_rehashes}, Rehash Time (total): {self.total_rehash_time:.1f} secs, Rehash Time (latest): Completed in {self.current_rehash_time:.2f} secs, 
-        Per Bucket Stats: (Reset after every rehash): Average: {average_collisions:.1f}  Max: {max_collisions} Min: {min_collisions}
+        {stats_string},
+        {rehashes_string}, 
+        {per_bucket_stats_string}
         """
+
         return profile
 
-    def visualize_table(self, columns: int=8, cell_width:int = 20, row_padding: int = 3):
+    def visualize_table(self, columns: int=16, cell_width:int = 11, row_padding: int = 3):
         """Visualizes the hash table as a console cell grid. contains the index number and number of keys in each bucket for clarity."""
+        # ANSI color codes for fun.
+        BLUE = "\033[1;36m"
+        RED = "\033[31m"
+        GREEN = "\033[32m"
+        YELLOW = "\033[33m"
+        RESET = "\033[0m"
+        INVERT = "\033[7m"
+
+        def color(input, color):
+            string = f"{RESET}{color}{input}{RESET}"
+            return string
+
+        # profile stats
+        # load factor - with color that changes to warn end user.
+        load_factor_number = color(f"{self.current_load_factor:.2f}", GREEN) if self.current_load_factor < 0.65 else color(f"{self.current_load_factor:.2f}", RED)
+        load_factor_string = f"Load Factor: {load_factor_number}"
+        # total collisions - with color change
+        collision_threshold: float = 0.13  # percentage boundary (13%)
+        collisions_number = color(f"{self.total_collisions}", GREEN) if self.total_collisions / self.table_capacity < collision_threshold else color(f"{self.total_collisions}", RED)
+        total_coll_string = f"Total Collisions: {collisions_number}"
+        
         table = self.buckets.array
         table_container = []
 
@@ -458,12 +486,27 @@ class ChainHashTable(MapADT[T]):
                 table_container.append([])
             if bucket is not None:
                 count = len(bucket) if bucket else 0 # type: ignore
-                stats = f"Idx: {idx}: keys: {count}"
+                stats = f"i:{idx} k:{count}"
                 bucket_container.append(stats)  # append found items to the bucket container
                 table_container.append(bucket_container)    # append buckets to the table container.
 
         # rows logic --
         table_size = len(table_container)
+
+        # title
+        print(row_seperator)
+        hashtable_type_string = (f"{RESET}{BLUE}(Type: [{self.datatype.__name__}]){RESET}")
+        rehash_stats = f"Total Rehashes: {self.total_rehashes}, Rehash Time (total): {self.total_rehash_time:.1f} secs, Rehash Time (latest): Completed in {self.current_rehash_time:.2f} secs,"
+        stats = f"{load_factor_string}, {total_coll_string}, Current Capacity: {self.total_elements}/{self.table_capacity}, Total Buckets Created: {self.total_buckets}"
+        title = f"{RESET}{YELLOW}Hash Table Visualization{RESET} {hashtable_type_string}"
+        print(title.center(len(row_seperator)))
+        print(row_seperator)
+        print(stats.center(len(row_seperator)))
+        print(rehash_stats.center(len(row_seperator)))
+        print(row_seperator)
+
+        # create rows and populate
+        print(row_seperator)
         for i in range(0, table_size, columns):
             row = table_container[i:i+columns]  # slices table container to create a sublist for each row of size columns.
             row_display = []
@@ -472,8 +515,7 @@ class ChainHashTable(MapADT[T]):
                 if not bucket:  # if the bucket is empty (the list representation of a bucket)
                     row_display.append("[]".center(cell_width))
                 else:
-                    row_display.append(", ".join(str(stats) for stats in bucket).center(cell_width))
-            print(row_seperator)
+                    row_display.append(", ".join(str(f"{stats}") for stats in bucket).center(cell_width))
             print(f"{' | '.join(row_display)}")
             print(row_seperator)
 
@@ -490,6 +532,7 @@ class ChainHashTable(MapADT[T]):
         return self.put(key, value)
 
     # ----- Hash Function -----
+
     def _is_prime_number(self, number):
         """Boolean Check if number is a prime."""
         if number < 2:
@@ -560,7 +603,7 @@ class ChainHashTable(MapADT[T]):
         poylnomial_hashcode = self._polynomial_hash_code(key)   # better for smaller tables like up to 1000 (0 collisions)
         cyclic_shift_hashcode = self._cyclic_shift_hash_code(key)   # better for huge tables like 10,000+ (1000 collisions)
         combined_hashcode = self._cyclic_polynomial_combo_hash_code(key)
-        index = self._mad_compression_function(cyclic_shift_hashcode)
+        index = self._mad_compression_function(poylnomial_hashcode)
         return index
 
     # ----- Table Rehashing -----
@@ -590,7 +633,7 @@ class ChainHashTable(MapADT[T]):
         new_shift = random.randint(2, new_prime - 1)
 
         # create new array and capacity
-        new_buckets = BucketArray(new_capacity, object)
+        new_buckets = VectorArray(new_capacity, object)
         for i in range(new_capacity):
             new_buckets.array[i] = None
 
@@ -632,7 +675,7 @@ class ChainHashTable(MapADT[T]):
 
         # if bucket doesnt exist - create a collision bucket array. add key value pair in the first slot.
         if target_bucket is None:
-            new_bucket = BucketArray(self.bucket_capacity, tuple)
+            new_bucket = VectorArray(self.bucket_capacity, tuple)
             new_bucket.append(kv_pair)   # add key value pair to the end if the array (which should be the beginning)
             table[index] = new_bucket  # store newly created bucket in the table array.
             self.total_elements += 1
@@ -686,7 +729,7 @@ class ChainHashTable(MapADT[T]):
 
         # if bucket doesnt exist - create a new bucket array. add key value pair in the first slot.
         if target_bucket is None:
-            new_bucket = BucketArray(self.bucket_capacity, tuple)
+            new_bucket = VectorArray(self.bucket_capacity, tuple)
             new_bucket.append(kv_pair)   # add key value pair to the end if the array (which should be the beginning)
             table[index] = new_bucket  # store newly created bucket in the table array.
             self.total_elements += 1
@@ -756,7 +799,7 @@ class ChainHashTable(MapADT[T]):
 
     def keys(self):
         """Return a array of all the keys in the hash table"""
-        found_keys = BucketArray(self.bucket_capacity, str)
+        found_keys = VectorArray(self.bucket_capacity, str)
         table = self.buckets.array
 
         # iterate through table O(N*K)
@@ -773,7 +816,7 @@ class ChainHashTable(MapADT[T]):
 
     def values(self):
         """Return a array of all the values of the hash table"""
-        found_values = BucketArray(self.total_elements, object)
+        found_values = VectorArray(self.total_elements, object)
         table = self.buckets.array
 
         # iterate through table O(N*K)
@@ -790,7 +833,7 @@ class ChainHashTable(MapADT[T]):
 
     def items(self):
         """Returns a array of tuples of all the key value pairs in the hash table"""
-        found_items = BucketArray(self.total_elements, tuple)
+        found_items = VectorArray(self.total_elements, tuple)
         table = self.buckets.array
 
         # iterate through table O(N*K)
@@ -841,7 +884,7 @@ class ChainHashTable(MapADT[T]):
         self.total_rehashes = 0
         self.total_rehash_time = 0.0
         self.current_rehash_time = 0.0
-        self.buckets = BucketArray(self.table_capacity, object)
+        self.buckets = VectorArray(self.table_capacity, object)
         for i in range(self.table_capacity):
             self.buckets.array[i] = None
 
@@ -865,8 +908,6 @@ class ChainHashTable(MapADT[T]):
     # todo custom dependency injected hash functions per instance.
     # todo add batch insert, batch update, batch delete
     # todo merge hash tables together.
-
-# Dynamic classes
 
 
 class StressTestHashTable():
@@ -895,7 +936,7 @@ class StressTestHashTable():
         # initialize table.
         print(f"=== ChainHashTable Test: using type: {datatype.__name__} ===")
         self.initial_table_size = max(3, table_size)
-        self.hashtable = ChainHashTable[datatype](datatype, self.initial_table_size, resize_factor=10)
+        self.hashtable = ChainHashTable[datatype](datatype, self.initial_table_size)
         print(f"\nInitialized Table:\n{self.hashtable}")
 
     # ---------------- Utility ----------------
@@ -904,7 +945,7 @@ class StressTestHashTable():
         return [preset_list[i % len(preset_list)] for i in range(max_number_of_items)]
 
     def _infostring(self):
-        print(f"{self.hashtable}, Indices --> {self.hashtable.currently_used_indexes()}")
+        print(f"{self.hashtable}")
 
     def test_prime_number_tech(self):
         # prime number test.
@@ -1079,7 +1120,7 @@ class StressTestHashTable():
         self.test_contains("gfdhugfdg")
         self.test_hash_function()
         self.test_iteration_keys_values_items()
-        self.hashtable.visualize_table(columns=10)
+        self.hashtable.visualize_table()
         keys = self.hashtable.keys()
         test_key = random.choice(keys)
         index = self.hashtable._hash_function(str(test_key))
@@ -1144,9 +1185,11 @@ def main():
     # actual stress test list.
     normal_num_of_items = 100
     stress_number_of_items = 100
-    test = StressTestHashTable(preset_dynamic_objects, stress_number_of_items, Person, table_size=stress_number_of_items * 10)
+    test = StressTestHashTable(preset_dynamic_objects, stress_number_of_items, Person, table_size=stress_number_of_items // 6)
     test.stress_test()
+
     
+    # items_list = [preset_list[i % len(preset_list)] for i in range(max_number_of_items)]
 
 
 if __name__ == "__main__":
