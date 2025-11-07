@@ -362,7 +362,7 @@ class OAHashTable(MapADT[T]):
         probes_threshold: float = 0.15,
         tombstones_threshold: float = 0.15,
         average_probes_limit: float = 4,
-        probing_technique: Literal["linear", "quadratic", "double hashing"] = "double hashing",
+        probing_technique: Literal["linear", "quadratic", "double hashing", "pertubation"] = "double hashing",
     ):
         self.min_capacity = max(4, self._find_next_prime_number(capacity))
         self.capacity = self._find_next_prime_number(capacity)
@@ -550,11 +550,17 @@ class OAHashTable(MapADT[T]):
 
         return (start_index + linear_term * probe_count + quadratic_term * (probe_count**2)) % self.capacity
 
-    def double_hashing(self, key, probe_count) -> int:
+    def double_hashing(self, key, start_index, probe_count) -> int:
         """Double Hashing - uses second hash as a step size - better spread probing function"""
-        first_index = self._hash_function(key)
         second_step_size_index = self._second_hash_function(key)
-        return (first_index + probe_count * second_step_size_index) % self.capacity
+        return (start_index + probe_count * second_step_size_index) % self.capacity
+
+    def pertubation_probing(self, index) -> int:
+        """modifies the original hashcode via bitshifting and uses it as a step size for probing."""
+        perturb = index
+        new_index = (index * 5 + 1 + perturb) % self.capacity
+        perturb >>= 5  # bitshift
+        return new_index
 
     def select_probing_function(self, key, index, start_index, probe_count) -> int:
         """Selects between different probing functions (quadratic, linear, double hashing)"""
@@ -563,7 +569,9 @@ class OAHashTable(MapADT[T]):
         elif self.probing_technique == "quadratic":
             new_index = self.quadratic_probing_function(start_index, probe_count)
         elif self.probing_technique == "double hashing":
-            new_index = self.double_hashing(key, probe_count)
+            new_index = self.double_hashing(key, start_index, probe_count)
+        elif self.probing_technique == "pertubation":
+            new_index = self.pertubation_probing(index)
         else:
             raise ValueError(f"Error: {self.probing_technique}: Invalid Probing Technique entered. Please select from valid options.")
         return new_index
@@ -1003,6 +1011,7 @@ def main():
             "__repr__": lambda self: f"NotAPerson({self.name})",
         },
     )
+
     wrong_type = AI("bob")
 
     # 1. Integers
@@ -1078,11 +1087,11 @@ def main():
 
     input_data = preset_dynamic_objects
 
-    input_values = [*input_data * 60]
+    input_values = [*input_data * 10]
     random.shuffle(input_values)
 
     # --- Initialize Hash Table ---
-    hashtable = OAHashTable(Person, capacity=20, max_load_factor=0.6, probing_technique='double hashing')
+    hashtable = OAHashTable(Person, capacity=20, max_load_factor=0.6, probing_technique='pertubation')
     print("Created hash table:", hashtable)
 
     # testing put() logic
