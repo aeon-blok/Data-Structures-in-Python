@@ -428,7 +428,6 @@ class OAHashTable(MapADT[T]):
         self._average_probe_length = value
 
     # ----- Utility -----
-
     def _create_stats(self, stats_only: bool=False, no_color: bool=True):
         """Creates formatted stats output for use with __str__ or other custom functions..."""
         DIM = "\033[2m"  # dim/faint
