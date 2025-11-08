@@ -1,3 +1,4 @@
+# region standard imports
 from typing import (
     Generic,
     TypeVar,
@@ -9,18 +10,24 @@ from typing import (
     cast,
     Iterator,
     Generator,
+    Iterable
 )
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
 import ctypes
+# endregion
+
+# region custom imports
+from utils.constants import T
+
+# endregion
 
 
 # array adt
 
 """
-**Dynamic Array**: collection of elements of type E in linear order
-A contiguous block of memory that resizes automatically when it runs out of space.
+Sequence ADT: collection of elements of type E in linear order
 
 Properties / Constraints:
 - Elements Stored in linear order
@@ -29,10 +36,6 @@ Properties / Constraints:
 - All Elements must be the same type
 - Elements stored in Contiguous Memory - In Python: you get contiguous references, not necessarily contiguous objects.
 """
-
-
-# Generic Type
-T = TypeVar("T")
 
 
 # interface
@@ -47,12 +50,12 @@ class SequenceADT(ABC, Generic[T]):
 
     @abstractmethod
     def set(self, index, value: T):
-        """Replace element at index i with x"""
+        """Replace element at index i with value"""
         pass
 
     @abstractmethod
     def insert(self, index, value: T):
-        """Insert x at index i, shift elements right"""
+        """Insert value at index i, shift elements right"""
         pass
 
     @abstractmethod
@@ -62,40 +65,20 @@ class SequenceADT(ABC, Generic[T]):
 
     @abstractmethod
     def append(self, value: T):
-        """Add x at end N-1"""
+        """Add value at end N-1"""
         pass
 
     @abstractmethod
     def prepend(self, value: T):
-        """Insert x at index 0"""
+        """Insert value at index 0"""
         pass
 
     @abstractmethod
     def index_of(self, value: T) -> Optional[int]:
-        """Return index of first x (if exists)"""
+        """Return index number of first value (if exists)"""
         pass
 
-    # ----- Meta Collection ADT Operations -----
-    @abstractmethod
-    def __len__(self) -> int:
-        """Return number of elements - formally defined as size()"""
-        pass
-
-    @abstractmethod
-    def is_empty(self) -> bool:
-        """returns true if sequence is empty"""
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        """removes all items from the sequence"""
-        pass
-
-    @abstractmethod
-    def __contains__(self, value: T) -> bool:
-        """True if x exists in sequence"""
-        pass
-
+    # ----- Optional ADT Operations -----
     @abstractmethod
     def __iter__(self) -> Generator[T, None, None]:
         """Iterates over all the elements in the sequence - used in loops and ranges etc"""

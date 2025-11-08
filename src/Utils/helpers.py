@@ -1,5 +1,5 @@
 
-
+# ! Key rule: ds and adts can import utils, but utils should never import from ds or adts.
 # todo create helper function - that takes an input text from file. and counts all the words in the text. then takes the words (keys) and appends them to a list via a counter object. useful for generating random data for testing
 
 

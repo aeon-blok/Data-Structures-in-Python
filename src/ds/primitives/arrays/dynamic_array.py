@@ -1,3 +1,5 @@
+# region standard imports
+
 from typing import (
     Generic,
     TypeVar,
@@ -14,12 +16,23 @@ from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
 import ctypes
+# endregion
 
 
-# array adt
+
+# region custom imports
+from utils.constants import T, CTYPES_DATATYPES, NUMPY_DATATYPES
+from adts.collection_adt import CollectionADT
+from adts.sequence_adt import SequenceADT
+
+# endregion
+
+
 
 """
-**Dynamic Array**: collection of elements of type E in linear order
+Dynamic Array: 
+
+collection of elements of type E in linear order
 A contiguous block of memory that resizes automatically when it runs out of space.
 
 Properties / Constraints:
@@ -31,93 +44,8 @@ Properties / Constraints:
 """
 
 
-# Generic Type
-T = TypeVar("T")
 
-
-# interface
-class SequenceADT(ABC, Generic[T]):
-    """Sequence ADT: models an ordered, finite collection of elements, each accessible by an integer position (index)."""
-
-    # ----- Canonical ADT Operations -----
-    @abstractmethod
-    def get(self, index) -> T:
-        """Return element at index i"""
-        pass
-
-    @abstractmethod
-    def set(self, index, value: T):
-        """Replace element at index i with x"""
-        pass
-
-    @abstractmethod
-    def insert(self, index, value: T):
-        """Insert x at index i, shift elements right"""
-        pass
-
-    @abstractmethod
-    def delete(self, index: int) -> T:
-        """Remove element at index i, shift elements left"""
-        pass
-
-    @abstractmethod
-    def append(self, value: T):
-        """Add x at end N-1"""
-        pass
-
-    @abstractmethod
-    def prepend(self, value: T):
-        """Insert x at index 0"""
-        pass
-
-    @abstractmethod
-    def index_of(self, value: T) -> Optional[int]:
-        """Return index of first x (if exists)"""
-        pass
-
-    # ----- Meta Collection ADT Operations -----
-    @abstractmethod
-    def __len__(self) -> int:
-        """Return number of elements - formally defined as size()"""
-        pass
-
-    @abstractmethod
-    def is_empty(self) -> bool:
-        """returns true if sequence is empty"""
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        """removes all items from the sequence"""
-        pass
-
-    @abstractmethod
-    def __contains__(self, value: T) -> bool:
-        """True if x exists in sequence"""
-        pass
-
-    @abstractmethod
-    def __iter__(self) -> Generator[T, None, None]:
-        """Iterates over all the elements in the sequence - used in loops and ranges etc"""
-        pass
-
-
-CTYPES_DATATYPES = {
-    int: ctypes.c_int,
-    float: ctypes.c_double,
-    bool: ctypes.c_bool,
-    str: ctypes.py_object,  # arbitrary Python object (strings)
-    object: ctypes.py_object,  # any Python object
-}
-
-NUMPY_DATATYPES = {
-    int: numpy.int32,
-    float: numpy.float64,
-    bool: numpy.bool_,
-}
-
-
-class VectorArray(SequenceADT[T]):
+class VectorArray(SequenceADT[T], CollectionADT[T]):
     """Dynamic Array — automatically resizes as elements are added."""
     def __init__(self, capacity: int, datatype: type, datatype_map: dict = CTYPES_DATATYPES) -> None:
 
@@ -131,6 +59,7 @@ class VectorArray(SequenceADT[T]):
         self.capacity = capacity  # sets the total amount of spaces for the array
         self.size = 0  # tracks the number of elements in the array
         self.array = self._initialize_new_array(self.capacity)  # creates a new ctypes/numpy array with a specified capacity
+
 
     # ----- Utility -----
     def _initialize_new_array(self, capacity):
@@ -225,6 +154,7 @@ class VectorArray(SequenceADT[T]):
     def __setitem__(self, index, value):
         """Built in override - adds indexing."""
         self.set(index, value)
+
 
     # ----- Canonical ADT Operations -----
     def get(self, index):
@@ -325,6 +255,7 @@ class VectorArray(SequenceADT[T]):
                 return i
         return None
 
+
     # ----- Meta Collection ADT Operations -----
     def __len__(self):
         """Return number of elements"""
@@ -352,6 +283,8 @@ class VectorArray(SequenceADT[T]):
         for i in range(self.size):
             result = self.array[i]
             yield cast(T, result)
+
+
 
 
 # Main -- Client Facing Code
