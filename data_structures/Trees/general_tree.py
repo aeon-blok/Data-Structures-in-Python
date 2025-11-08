@@ -11,6 +11,7 @@ from typing import (
     Generator,
     Tuple,
     Literal,
+    Iterable,
 )
 
 from abc import ABC, ABCMeta, abstractmethod
@@ -154,30 +155,93 @@ class TreeADT(ABC, Generic[T]):
 class GeneralTree(TreeADT[T]):
     def __init__(
             self, 
-            iteration_type: Literal['pre order', 'post order', 'level order']='pre order'
+            iteration_type: Literal['pre order', 'post order', 'level order']='pre order',
             ) -> None:
         self._root: Optional[iNode[T]] = None
-        self.current_size = 0
         self.iteration_type = iteration_type
 
-    # ----- Canonical ADT Operations -----
-
     # ----- Utilities -----
-    def _count_subchildren(self, node) -> int:
-        """recursively counts all the target node children..."""
-        node = node
-        descendants = 1  # count itself.
-        for child in node.children:
-            descendants += self._count_subchildren(child)
-        return descendants
 
-    def _dereference_subchildren(self, node):
-        """recursively dereferences the node - so it will be garbage collected."""
-        for child in node.children:
-            self._dereference_subchildren(child)
-        # have to do it after so it deletes the subchildren first.
-        node.parent = None
-        node.children = []
+    def view(self):
+        """
+        Traverses the Tree via stack
+        adds connector symbols in front of each node value, depending on whether it is the last child "└─" or one of many "├─",
+        every node adds either " " if parent is last child (no vertical bar needed) or "| " if parent is not last child (vertical bar continues)
+        the node & its display symbols are appended to a list for the final string output.
+        """
+        if self.root is None:
+            return f"< 🌳 empty tree>"
+
+        hierarchy = []
+        tree = [(self.root, "", True)]  # node, prefix, is_last
+
+        while tree:
+            # we traverse depth-first, which naturally fits a hierarchical print.
+            node, prefix, is_last = tree.pop()
+
+            # root (depth = 0), we print 🌲
+            if node is self.root:
+                indicator = "🌲:"
+            # decides what connector symbol appears before the node value when printing the tree.
+            else: 
+                indicator = "" if prefix == "" else ("└─" if is_last else "├─")
+
+            # add to final string output
+            hierarchy.append(f"{prefix}{indicator}{node.value}") 
+
+            # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
+            new_prefix = prefix + ("   " if is_last else "│  ")
+
+            # Iterates over the node’s children in reverse. (left to right) --- enumerate gives index i for calculating new prefix.
+            for i, child in enumerate(reversed(node.children)):
+                last_child = (i==0)
+                # Update ancestor flags: current node's is_last boolean affects all its children
+                tree.append((child, new_prefix, last_child))    
+
+        return "\n".join(hierarchy)
+
+    def flattened_view(self):
+        # utilizes __iter__ which has 3 different traversal algos
+        node_values = [node for node in self]    
+        return f"[{', '.join(node_values)}]"
+
+    def bfs_view(self):
+        """
+        each level should have its own list. so we will have a MD list. then loop through these to sort by levels
+        use bfs to traverse tree.
+        """
+
+        tree  = [self.root]
+        results = []
+        infostrings = []
+
+        while tree:
+            level = []
+            level_size = len(tree)
+            for _ in range(level_size):
+                node = tree.pop(0)
+                level.append(node.value)
+                tree.extend(node.children)
+
+            results.append(level)
+
+        for i, level_list in enumerate(results):
+            level_string = f"Level: {i}: {', '.join(level_list)}"
+            infostrings.append(level_string)
+
+        joined_info = '\n'.join(infostrings)
+        final = f"Tree: (BFS) 🌳: Total Nodes: {len(self)}\n{joined_info}"
+        return final
+
+    def __str__(self) -> str:
+        hierarchy = self.view()
+        return hierarchy
+
+    def __repr__(self) -> str:
+        class_name = f"<{self.__class__.__qualname__} object at {hex(id(self))}>, Tree Size: {len(self)} Nodes"
+        return class_name
+
+    # ----- Canonical ADT Operations -----
 
     # ----- Accessors -----
     @property
@@ -233,38 +297,40 @@ class GeneralTree(TreeADT[T]):
     def createTree(self, value):
         """creates a new tree with a root node"""
         self._root = Node(value)
-        self.current_size += 1
         return self.root
 
     def addChild(self, parent_node, value):
         """adds a child node to the specified node."""
         child = Node(value)
-        child.parent = parent_node
-        self.current_size += 1
+        child.parent = parent_node  # link to parent.
+        parent_node._children.append(child) # link  parent to child.
         return child
 
     def remove(self, node):
-        """removes a specified node and all its descendants"""
+        """
+        removes a specified node and all its descendants
+        """
+
         if node is None:  # existence check
             return
 
+        # 1. Store Node & Subtree -- Capture subtree size before modifying anything
         deleted_node = node  # store node to return later
 
-        # counts the total number of children and subchildren from this node onwards...
-        descendants = self._count_subchildren(node)
+        # 2. Unlink from parent BEFORE deleting parent pointers
+        parent = node.parent
+        if parent is not None:
+            parent.children.remove(node)
 
-        # if the node has a parent remove from the parent.
-        if node.parent:
-            node.parent.children.remove(node)
-        # otherwise the node is the root - delete root.
-        else:
-            self._root = None
+        # 3. Iteratively dereference Node & subtree using stack
+        subtree = [node]    # note its the actual node input not a variable.
+        while subtree:
+            node = subtree.pop()
+            subtree.extend(node.children)
+            node.children = []  # empties list of children
+            # dereferences parent node so it no longer points to the node. (becomes a leaf node)
+            node.parent = None
 
-        # recursively dereferences the subtree
-        self._dereference_subchildren(node)
-
-        # update size tracker to remove all children.
-        self.current_size -= descendants
         return deleted_node
 
     def replace(self, node, value):
@@ -330,14 +396,34 @@ class GeneralTree(TreeADT[T]):
 
     # ----- Meta Collection ADT Operations -----
     def is_empty(self):
-        return self.current_size == 0
+        return self.root is None
 
     def __len__(self):
         """returns total number of nodes in the tree"""
-        return self.current_size
+        if self.root is None:
+            return 0
+
+        tree = [self.root]
+        total_nodes = 0
+
+        while tree:
+            node = tree.pop()
+            total_nodes += 1
+            tree.extend(node.children)
+
+        return total_nodes
 
     def clear(self):
-        pass
+        """The tree is completely emptied and all children nodes are dereferenced."""
+        tree = [self.root]
+        while tree:
+            node = tree.pop()
+            tree.extend(node.children)  # add children to the processing line.
+            # dereference node
+            node.children = []
+            node.parent = None
+
+        self.root = None
 
     def __contains__(self, value):
         """checks to see if any nodes in the tree contain the value."""
@@ -413,7 +499,7 @@ class iNode(ABC, Generic[T]):
         pass
     @property
     @abstractmethod
-    def children(self) -> Optional[list["iNode[T]"]]:
+    def children(self) -> Iterable["iNode[T]"]:
         """return a list of all the children nodes"""
         pass
 
@@ -454,8 +540,7 @@ class Node(iNode, Generic[T]):
     def __init__(self, value: T) -> None:
         self._value = value
         self._parent: Optional[iNode] = None
-        self._children: Optional[list[iNode]] = []
-        self.size = 1   # counts itself initially
+        self._children: Iterable[iNode] = []
 
     @property
     def value(self):
@@ -478,8 +563,8 @@ class Node(iNode, Generic[T]):
     def children(self, value):
         self._children = value
 
-    # ----- Utilities -----
 
+    # ----- Utilities -----
     def visualize(self):
         pass
 
@@ -493,10 +578,10 @@ class Node(iNode, Generic[T]):
             subtree.extend(reversed(node.children))
 
         return str(results)
-    
+
     def __repr__(self) -> str:
         """ Object description """
-        class_name = f"<{self.__class__.__qualname__} object at {hex(id(self))}>, Node Data: {self.value}, Total Subtree Nodes: {self.size}"
+        class_name = f"<{self.__class__.__qualname__} object at {hex(id(self))}>, Node Data: {self.value}, Direct Children: {self.num_children()}"
         return class_name
 
     # ----- Mutators -----
@@ -504,26 +589,26 @@ class Node(iNode, Generic[T]):
         """insert a child under this node"""
         new_node = Node(value)
         new_node.parent = self
-        new_node.children = []
-        self.children.append(new_node)
-
-
-        # traverse ancestors to root and update size trackers.
-        current = self
-        while current:
-            current.size += 1
-            current = current.parent    # traverse logic
-
+        self._children.append(new_node)
         return new_node
 
     def remove_child(self, node):
-        """removes a specific child node"""
+        """
+        removes a specific child node
+        Step 1: Store node for return
+        Step 2: unlink child - remove from children list
+        Step 3: traverse child node subtree - and dereference all nodes
+        Step 4: return node.
+        """
         if node not in self.children:  # existence check
             raise ValueError(f"Error: Node {node} is not a child of this node.")
-        
+
         deleted_node = node
 
-        subtree = [node]
+        subtree = [node]    # reference subtree in a list(stack)
+
+        # removes node from children list.
+        self._children.remove(node)
 
         # dereference children.
         # By the end of this loop, the entire subtree is disconnected and ready for garbage collection.
@@ -533,59 +618,70 @@ class Node(iNode, Generic[T]):
             # dereference nodes - both children and parent
             current_node.children = []
             current_node.parent = None
-            current_node.size = 0
-
-        # removes node from children list.
-        self._children.remove(node)
-
-        # decrement size trackers for all ancestor nodes  -- Traverses up all ancestors to the root.
-        current_node = self
-        while current_node:
-            # Subtracts the size of the removed subtree from each ancestor’s size.
-            current_node.size -= node.size  
-            current_node = current_node.parent 
 
         return deleted_node
 
     # ----- Accessors -----
     def num_children(self):
         """returns the total number of children of a specified node -- ONLY counts direct children."""
-        return len(self.children)
-        
+        return len(self._children)
+
     def is_root(self):
         """returns true if the node is the root of a tree"""
-        return self.parent is None
+        return self._parent is None
 
     def is_leaf(self):
         """returns True if the node is a leaf node (no children)"""
-        return len(self.children) == 0
+        return len(self._children) == 0
 
     def is_internal(self):
         """returns True if the node has children nodes."""
-        return len(self.children) > 0
+        return len(self._children) > 0
 
 
 # Main ---- Client Facing Code
 def main():
 
     # -------------- Testing Node Solo Functionality -----------------
-    node_a = Node("string testiy test")
+    node_a = Node("NODE ROOT")
     print(repr(node_a))
     print(node_a)
-    child = node_a.add_child("new String to test")
+    child_a = node_a.add_child("new String to test")
     child_b = node_a.add_child("woatttt are you saying mate?")
-    child_c = child_b.add_child("ill fuck you up....")
+    child_bb = child_b.add_child("ill fuck you up....")
     print(node_a)
     print(f"Number of direct children for node_a: {node_a.num_children()}")
-    removed = node_a.remove_child(child)
+    removed = node_a.remove_child(child_a)
     print(node_a)
     print(f"Testing is_root: {child_b.is_root()}")
     print(f"Testing is_leaf: {child_b.is_leaf()}")
     print(f"Testing is_internal: {node_a.is_internal()}")
-    print(repr(node_a))
-
+    print(repr(node_a)) 
 
     # -------------- Testing Tree Functionality -----------------
+    tree = GeneralTree(iteration_type="pre order")
+    print(repr(tree))
+    print(f"Testing is_empty: {tree.is_empty()}")
+    root = tree.createTree("ROOT")
+    print(f"Adding Child to Tree:")
+    child_a = tree.addChild(root, "a child of summer")
+    child_b = tree.addChild(child_a, "a child of winter")
+    child_c = tree.addChild(child_a, "a child of spring")
+    child_d = tree.addChild(root, "a child of autumn")
+    child_dd = tree.addChild(child_d, "fall colors")
+    child_de = tree.addChild(child_dd, "fall wind")
+    child_e = tree.addChild(root, "E")
+    print(f"Testing is_empty: {tree.is_empty()}")
+    print(tree)
+    print(tree.bfs_view())
+    tree.remove(child_de)
+    tree.remove(child_c)
+    print(tree)
+
+    # test iteration via different traversal algos
+    # test depth & hegiht
+    # test size
+    # test num children, parent, child
 
 
 if __name__ == "__main__":
