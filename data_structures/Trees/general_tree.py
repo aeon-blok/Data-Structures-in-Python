@@ -161,7 +161,6 @@ class GeneralTree(TreeADT[T]):
         self.iteration_type = iteration_type
 
     # ----- Utilities -----
-
     def view(self):
         """
         Traverses the Tree via stack
@@ -187,7 +186,7 @@ class GeneralTree(TreeADT[T]):
                 indicator = "" if prefix == "" else ("└─" if is_last else "├─")
 
             # add to final string output
-            hierarchy.append(f"{prefix}{indicator}{node.value}") 
+            hierarchy.append(f"{prefix}{indicator}{str(node.value)}") 
 
             # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
             new_prefix = prefix + ("   " if is_last else "│  ")
@@ -198,7 +197,9 @@ class GeneralTree(TreeADT[T]):
                 # Update ancestor flags: current node's is_last boolean affects all its children
                 tree.append((child, new_prefix, last_child))    
 
-        return "\n".join(hierarchy)
+        node_structure = "\n".join(hierarchy)
+
+        return f"\nTree Total Nodes: {len(self)}\n{node_structure}\n"
 
     def flattened_view(self):
         # utilizes __iter__ which has 3 different traversal algos
@@ -220,7 +221,7 @@ class GeneralTree(TreeADT[T]):
             level_size = len(tree)
             for _ in range(level_size):
                 node = tree.pop(0)
-                level.append(node.value)
+                level.append(str(node.value))
                 tree.extend(node.children)
 
             results.append(level)
@@ -230,7 +231,7 @@ class GeneralTree(TreeADT[T]):
             infostrings.append(level_string)
 
         joined_info = '\n'.join(infostrings)
-        final = f"Tree: (BFS) 🌳: Total Nodes: {len(self)}\n{joined_info}"
+        final = f"Tree: (BFS) 🌳: Total Nodes: {len(self)}\n{joined_info}\n"
         return final
 
     def __str__(self) -> str:
@@ -241,8 +242,8 @@ class GeneralTree(TreeADT[T]):
         class_name = f"<{self.__class__.__qualname__} object at {hex(id(self))}>, Tree Size: {len(self)} Nodes"
         return class_name
 
-    # ----- Canonical ADT Operations -----
 
+    # ----- Canonical ADT Operations -----
     # ----- Accessors -----
     @property
     def root(self):
@@ -254,7 +255,7 @@ class GeneralTree(TreeADT[T]):
         return node.parent
 
     def child(self, node):
-        """returns a list of all child nodes of a specified node"""
+        """returns a list of all children nodes of a specified node"""
         return node.children
 
     def num_children(self, node):
@@ -275,7 +276,7 @@ class GeneralTree(TreeADT[T]):
 
     def size(self):
         """returns total number of nodes in the tree"""
-        return self.current_size
+        return len(self)
 
     def depth(self, node):
         """returns Number of edges from the ROOT to the specified node -- Algorithm: traverse up parents until root."""
@@ -334,7 +335,7 @@ class GeneralTree(TreeADT[T]):
         return deleted_node
 
     def replace(self, node, value):
-        """replaces a value in a specified node"""
+        """replaces a value in a specified node. Does NOT replace the subtree. Structure remains the same."""
         replace_node = node
         replace_node.value = value
         return replace_node
@@ -540,7 +541,7 @@ class Node(iNode, Generic[T]):
     def __init__(self, value: T) -> None:
         self._value = value
         self._parent: Optional[iNode] = None
-        self._children: Iterable[iNode] = []
+        self._children: List[iNode] = []
 
     @property
     def value(self):
@@ -640,6 +641,11 @@ class Node(iNode, Generic[T]):
 
 
 # Main ---- Client Facing Code
+
+# todo Add type enforcement to tree.
+# todo remove collections from adt (part of refactor)
+# todo create a size counter for tree. will mean O(1) for __len__ instead of O(N) - however delete will be O(H)
+
 def main():
 
     # -------------- Testing Node Solo Functionality -----------------
@@ -659,7 +665,7 @@ def main():
     print(repr(node_a)) 
 
     # -------------- Testing Tree Functionality -----------------
-    tree = GeneralTree(iteration_type="pre order")
+    tree = GeneralTree[str](iteration_type="pre order")
     print(repr(tree))
     print(f"Testing is_empty: {tree.is_empty()}")
     root = tree.createTree("ROOT")
@@ -670,18 +676,45 @@ def main():
     child_d = tree.addChild(root, "a child of autumn")
     child_dd = tree.addChild(child_d, "fall colors")
     child_de = tree.addChild(child_dd, "fall wind")
-    child_e = tree.addChild(root, "E")
+    child_e = tree.addChild(root, "ttettttst")
     print(f"Testing is_empty: {tree.is_empty()}")
     print(tree)
     print(tree.bfs_view())
+    print(f"removing Children from Tree:")
     tree.remove(child_de)
     tree.remove(child_c)
     print(tree)
+    print(f"Re-Adding Children to Tree:")
+    child_de = tree.addChild(child_dd, "fall wind")
+    child_c = tree.addChild(child_a, "a child of spring")
+    print(tree)
+
+    # height
+    print(f"Max Edges to the furthest Leaf Node: (Height) From:[{child_a.value}] {tree.height(child_a)}")
+
+    # depth
+    print(f"Edges from root to this node: (Depth) From[{child_c.value}]: {tree.depth(child_c)}")
+
+    # parent node
+    parent_of = tree.parent(child_c)
+    print(f"Find the parent of the of the following Node:[{child_c.value}] Parent: {parent_of.value}")
+
+    # children nodes
+    child_of = tree.child(child_a)
+    print(f"Find the children of the of the following Node:[{child_a.value}] Children: {[node.value for node in child_of]}")
+
+    # test num children
+    print(f"Testing num_children on node: [{child_d.value}] - Number of Children: {tree.num_children(child_a)}")
 
     # test iteration via different traversal algos
-    # test depth & hegiht
-    # test size
-    # test num children, parent, child
+    dfs = tree.preorder()
+    dfs_reverse = tree.postorder()
+    bfs = tree.level_order()
+    print(f"\nTesting Depth First Search Traversal:\n[{', '.join(dfs)}]")
+    print(f"\nTesting Postorder Depth First Search Traversal:\n[{', '.join(dfs_reverse)}]")
+    print(f"\nTesting Breadth First Search Traversal:\n[{', '.join(bfs)}]")
+
+    print(f"\n{tree.flattened_view()}")
 
 
 if __name__ == "__main__":
