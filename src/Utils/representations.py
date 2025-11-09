@@ -1,6 +1,6 @@
 # where we add console visualizations for the different data structure types - usually use these in __str__ or __repr__ or a utility function.
 
-# arrays
+# region arrays
 def str_array(array_obj):
     """a list of strings representing all the elements in the array"""
     items = ", ".join(str(array_obj.array[i]) for i in range(array_obj.size))
@@ -24,9 +24,26 @@ def repr_view(view_obj):
     class_address = f"<{view_obj.__class__.__qualname__} object at {hex(id(view_obj))}>"
     items = ", ".join(str(view_obj[i]) for i in range(view_obj._length))
     return f"{class_address}, Type: {view_obj.datatype.__name__}, Total Elements: {view_obj._length}"
+# endregion
+
+# region linked lists
+
+def str_node(self):
+    pass
+
+def repr_node(self):
+    pass
 
 
-# linked lists
+
+
+
+
+
+
+
+
+# endregion
 
 
 # stacks

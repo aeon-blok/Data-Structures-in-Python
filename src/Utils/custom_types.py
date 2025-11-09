@@ -30,5 +30,6 @@ T = TypeVar("T")  # generic type
 K = TypeVar("K")  # Keys usually must be hashable.
 V = TypeVar("V")  # Values can be anything.
 
+
 Predicate = Callable[[T], bool] # represents a function that returns a boolean 
 HashFunction = Callable[[K], int]   # takes a key, and returns an int

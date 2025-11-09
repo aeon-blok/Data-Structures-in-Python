@@ -53,9 +53,10 @@ Properties / Constraints:
 # ? Safe and Unsafe modes: Safe = Type Safety, Unsafe = No rules.
 # ? reversed iteration
 # ? step iteration
-# ? batch operations, (get, set, insert, append, replace etc)
-# ? remove from array if (true, false)
-# ? add views - not the same as python slices (list copies)
+# ! batch operations, (get, set, insert, append, replace etc)
+# ? immutable / read only views.
+# ? read only array.... maybe....
+# ? traverse method for array.
 
 
 class VectorView(Generic[T]):
@@ -300,10 +301,126 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
 # Main -- Client Facing Code
 
+
+def run_array_tests(
+    datatype: type, 
+    test_values: list, 
+    datatype_map: dict = CTYPES_DATATYPES,
+    ):
+    print(f"=== Testing {datatype.__name__} array===")
+
+    AI = type(
+        "ArtificialPerson",
+        (),
+        {
+            "__init__": lambda self, name: setattr(self, "name", name),
+            "__str__": lambda self: f"NotAPerson({self.name})",
+            "__repr__": lambda self: f"NotAPerson({self.name})",
+        },
+    )
+
+    artificial = [AI(f"NotAPerson{i}") for i in range(6)]
+
+    # create array with minimum capacity 6 or length of test data
+    min_capacity = max(6, len(test_values))
+    arr = VectorArray[datatype](min_capacity, datatype, datatype_map, is_static=False)
+
+    print(f"Initial array: {arr}")
+
+
+    # --- Core operations ---
+    # append()
+    for val in test_values:
+        arr.append(val)
+    print(f"After appends: {arr}")
+
+    # prepened()
+    arr.prepend(test_values[0])
+    print(f"After prepend {test_values[0]}: {arr}")
+
+    if len(test_values) > 2:
+        # insert()
+        arr.insert(2, test_values[1])
+        print(f"Insert {test_values[1]} at index 2: {arr}")
+
+        # set()
+        arr.set(2, test_values[2])
+        print(f"Set index 2 to {test_values[2]}: {arr}")
+
+        # get()
+        val = arr.get(2)
+        print(f"Get index 2: expected {test_values[2]}, got {val}")
+
+        # index_of()
+        idx = arr.index_of(test_values[2])
+        print(f"Index of {test_values[2]}: expected 2, got {idx}")
+
+        # delete()
+        deleted = arr.delete(2)
+        print(f"Deleted index 2 (value {deleted}): {arr}")
+
+    # --- Type enforcement ---
+    try:
+        arr.append(artificial[1])  # deliberately wrong
+    except TypeError as e:
+        print(f"Caught expected type error: {e}")
+
+    # --- Index errors ---
+    try:
+        arr.get(999)
+    except IndexError as e:
+        print(f"Caught expected index error: {e}")
+
+    # --- Empty array delete ---
+    arr.clear()
+    try:
+        arr.delete(0)
+    except (IndexError, ValueError) as e:
+        print(f"Caught expected error on deleting from empty array: {e}")
+
+    # --- Dynamic growth test ---
+    print("\nDynamic Growth Test")
+    print(f"{arr}")
+    for i in range(len(test_values) * 2):  # trigger growth
+        arr.append(test_values[i % len(test_values)])
+    print(f"{arr}")
+
+    # --- Dynamic shrink test ---
+    print("\nDynamic Shrink Test")
+    print(f"{arr}")
+    while len(arr) > 2:  # deleting to trigger shrink
+        removed = arr.delete(0)
+    print(f"{arr}")
+
+    print("\nre-adding items")
+    print(f"{arr}")
+    for i in range(len(test_values) * 2):  # trigger growth
+        arr.append(test_values[i % len(test_values)])
+    print(f"{arr}")
+
+    # --- Iteration test ---
+    print("\nIteration test:")
+    half_array = len(arr) // 6
+    subset = random.sample(list(arr), half_array)
+    print(subset)
+    for item in subset:
+        print(f"Iterated item: {item}")
+    print(f"\n{repr(arr)}\n")
+
+    # testing View:
+    new_view = arr[:6]
+    print(new_view)
+    print(repr(new_view))
+    for item in new_view:
+        print(f"Iterated item in View: {item}")
+
+
+
 def main():
     # test data initialization
     print("=== VectorArray Full Test ===")
 
+    # Input Data
     # Dynamic classes
     Person = type(
         "Person",
@@ -337,100 +454,7 @@ def main():
     tuples = [(i,i+1) for i in range(6)]
     dicts = [{"key": i} for i in range(6)]
 
-    def run_array_tests(datatype: type, test_values: list, datatype_map: dict = CTYPES_DATATYPES):
-        print(f"=== Testing {datatype.__name__} array===")
-
-        # create array with minimum capacity 6 or length of test data
-        min_capacity = max(6, len(test_values))
-        arr = VectorArray[datatype](min_capacity, datatype, datatype_map, is_static=False)
-
-        print(f"Initial array: {arr}")
-
-        # --- Core operations ---
-        # append()
-        for val in test_values:
-            arr.append(val)
-        print(f"After appends: {arr}")
-
-        # prepened()
-        arr.prepend(test_values[0])
-        print(f"After prepend {test_values[0]}: {arr}")
-
-        if len(test_values) > 2:
-            # insert()
-            arr.insert(2, test_values[1])
-            print(f"Insert {test_values[1]} at index 2: {arr}")
-
-            # set()
-            arr.set(2, test_values[2])
-            print(f"Set index 2 to {test_values[2]}: {arr}")
-
-            # get()
-            val = arr.get(2)
-            print(f"Get index 2: expected {test_values[2]}, got {val}")
-
-            # index_of()
-            idx = arr.index_of(test_values[2])
-            print(f"Index of {test_values[2]}: expected 2, got {idx}")
-
-            # delete()
-            deleted = arr.delete(2)
-            print(f"Deleted index 2 (value {deleted}): {arr}")
-
-        # --- Type enforcement ---
-        try:
-            arr.append(artificial[1])  # deliberately wrong
-        except TypeError as e:
-            print(f"Caught expected type error: {e}")
-
-        # --- Index errors ---
-        try:
-            arr.get(999)
-        except IndexError as e:
-            print(f"Caught expected index error: {e}")
-
-        # --- Empty array delete ---
-        arr.clear()
-        try:
-            arr.delete(0)
-        except (IndexError, ValueError) as e:
-            print(f"Caught expected error on deleting from empty array: {e}")
-
-        # --- Dynamic growth test ---
-        print("\nDynamic Growth Test")
-        print(f"{arr}")
-        for i in range(len(test_values)*2):  # trigger growth
-            arr.append(test_values[i % len(test_values)])
-        print(f"{arr}")
-
-        # --- Dynamic shrink test ---
-        print("\nDynamic Shrink Test")
-        print(f"{arr}")
-        while len(arr) > 2:  # deleting to trigger shrink
-            removed = arr.delete(0)
-        print(f"{arr}")
-
-        print("\nre-adding items")
-        print(f"{arr}")
-        for i in range(len(test_values)*2):  # trigger growth
-            arr.append(test_values[i % len(test_values)])
-        print(f"{arr}")
-
-        # --- Iteration test ---
-        print("\nIteration test:")
-        half_array = len(arr) // 6
-        subset = random.sample(list(arr), half_array)
-        print(subset)
-        for item in subset:
-            print(f"Iterated item: {item}")
-        print(f"\n{repr(arr)}\n")
-
-        # testing View:
-        new_view = arr[:6]
-        print(new_view)
-        print(repr(new_view))
-        for item in new_view:
-            print(f"Iterated item in View: {item}")
+    
 
 
     # print(f"\ntesting CTYPES Array")
