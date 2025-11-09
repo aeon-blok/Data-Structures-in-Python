@@ -16,17 +16,22 @@ from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
 import ctypes
+import random
+from collections.abc import Sequence
 # endregion
-
 
 
 # region custom imports
-from utils.constants import T, CTYPES_DATATYPES, NUMPY_DATATYPES
+from utils.array_constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
+from utils.array_utils import initialize_new_array, grow_array, shrink_array, shift_elements_left, shift_elements_right, index_boundary_check
+from utils.custom_types import T
+from utils.validation_utils import enforce_type
+from utils.representations import str_array, repr_array, str_view, repr_view
 from adts.collection_adt import CollectionADT
 from adts.sequence_adt import SequenceADT
 
-# endregion
 
+# endregion
 
 
 """
@@ -44,129 +49,134 @@ Properties / Constraints:
 """
 
 
+# ? potential features to add.
+# ? Safe and Unsafe modes: Safe = Type Safety, Unsafe = No rules.
+# ? reversed iteration
+# ? step iteration
+# ? batch operations, (get, set, insert, append, replace etc)
+# ? remove from array if (true, false)
+# ? add views - not the same as python slices (list copies)
+
+
+class VectorView(Generic[T]):
+    """Internal class to represent a view of a Vector. Similar to a python slice, but without copying the values (expensive) -- view is O(1), python slice is O(N)"""
+    def __init__(self, datatype: type, array: Any, start: int = 0, length: Optional[int] = None, stride: int = 1) -> None:
+        self._view = array  # the original data array, shared with the view.
+        self._start = start # start of the view.
+        self._length = length if length is not None else len(array) - start  # length of view
+        self._stride = stride   # step value
+        self._datatype = datatype
+    
+    @property
+    def datatype(self):
+        return self._datatype
+
+    def __len__(self):
+        return self._length
+
+    def __getitem__(self, index: int | slice) -> T | "VectorView[T]":
+        """retrieves an item from the view."""
+        if isinstance(index, slice):
+            # inbuilt method for slice (.indices()) - Converts None to actual numbers. Converts negative indices to positive. Makes sure slicing stays within bounds of _length.
+            start, stop, step = index.indices(self._length) 
+            view_start_index = self._start + start * self._stride
+            view_length = (stop - start + (step - 1)) // step
+            view_stride = self._stride * step
+
+            return VectorView(self._datatype, self._view, view_start_index, view_length, view_stride)
+
+        # idx < 0: convert negative index to positive.
+        if index < 0:
+            index += self._length
+
+        # Bounds check: make sure idx is within the view.
+        index_boundary_check(index, self._length, is_insert=True)
+
+        # access index
+        return self._view[self._start + index * self._stride]
+
+    def __setitem__(self, index: int, value: Any):
+        """replaces a value of the view."""
+        # idx < 0: convert negative index to positive.
+        if index < 0:
+            index += self._length
+
+        enforce_type(value, self._datatype)
+
+        # Bounds check: make sure idx is within the view.
+        index_boundary_check(index, self._length, is_insert=True)
+        self._view[self._start + index * self._stride] = value
+
+    def __iter__(self) -> Generator[Any , None, None]:
+        """iterates through view elements"""
+        for i in range(self._length):
+            yield self._view[self._start + i * self._stride]
+
+    def __str__(self) -> str:
+        return str_view(self)
+
+    def __repr__(self) -> str:
+        return repr_view(self)
+
 
 class VectorArray(SequenceADT[T], CollectionADT[T]):
     """Dynamic Array — automatically resizes as elements are added."""
-    def __init__(self, capacity: int, datatype: type, datatype_map: dict = CTYPES_DATATYPES) -> None:
+    def __init__(self, capacity: int, datatype: type, datatype_map: dict = CTYPES_DATATYPES, is_static: bool = False) -> None:
 
         # datatype
         self.datatype = datatype
         self.datatype_map = datatype_map
-        self.type = None
 
         # Core Array Properties
-        self.min_capacity = max(4, capacity)  # sets a minimum size for the array
-        self.capacity = capacity  # sets the total amount of spaces for the array
-        self.size = 0  # tracks the number of elements in the array
-        self.array = self._initialize_new_array(self.capacity)  # creates a new ctypes/numpy array with a specified capacity
-
+        self.min_capacity = max(4, capacity)  # min size for array
+        self.capacity = capacity  # sets total amount of spaces for the array
+        self.size = 0  # tracks number of elements in the array
+        # creates a new ctypes/numpy array with a specified capacity
+        self.array = initialize_new_array(self.datatype, self.capacity, self.datatype_map)
+        self._is_static = is_static
 
     # ----- Utility -----
-    def _initialize_new_array(self, capacity):
-        """chooses between using CTYPE or NUMPY style array - CTYPES are more flexible (can have object arrays...)"""
-        if self.datatype_map == CTYPES_DATATYPES:
-            new_array = self._init_ctypes_array(capacity)
-            return new_array
-        elif self.datatype_map == NUMPY_DATATYPES:
-            new_array = self._init_numpy_array(capacity)
-            return new_array
-        else:
-            raise ValueError(f"Datatype Map Unknown... Map: {self.datatype_map}")
 
-    def _init_ctypes_array(self, capacity):
-        """Creates a CTYPES array - much faster than standard python list. but is fixed in size and restricted in datatypes it can use..."""
-        # setting ctypes datatype -- needed for the array. (object is a general all purpose datatype)
-        if self.datatype not in self.datatype_map:
-            self.type = ctypes.py_object    # general all purpose python object
-        else:
-            self.type = CTYPES_DATATYPES[self.datatype]  # maps type of array to ctype
-        # creates a class object - an array of specified number of a specified type
-        dynamic_array_cls = self.type * capacity
-        # initializes array with preallocated memory block
-        new_ctypes_array = dynamic_array_cls()
-        return new_ctypes_array
-
-    def _init_numpy_array(self, capacity):
-        """Creates a Numpy array - much faster than standard python list, but fixed in size, and much more restricted in the datatypes it can use..."""
-        if self.datatype not in NUMPY_DATATYPES:
-            self.type = object  # general all purpose python object.
-            new_numpy_array = numpy.empty(capacity, dtype=self.type)
-        else:
-            self.type = NUMPY_DATATYPES[self.datatype]
-            new_numpy_array = numpy.empty(capacity, dtype=self.type)
-        return new_numpy_array
-
-    def _enforce_type(self, value):
-        """type enforcement - checks that the value matches the prescribed datatype."""
-        if not isinstance(value, self.datatype):
-            raise TypeError(f"Error: Invalid Type: Expected: {self.datatype.__name__} Got: {type(value)}")
-
-    def _index_boundary_check(self, index, is_insert: bool = False):
-        """
-        Checks that the index is a valid number for the array. 
-        index needs to be greater than 0 and smaller than the number of elements (size)
-        """
-        if is_insert:
-            if index < 0 or index > self.capacity:
-                raise IndexError("Error: Index is out of bounds.")
-        else:
-            if index < 0 or index >= self.capacity:
-                raise IndexError("Error: Index is out of bounds.")
-
-    def _grow_array(self):
-        """
-        Step 1: Store existing array data and capacity.
-        Step 2: Initialize new array with * 2 capacity
-        Step 3: Copy old items to new array
-        Step 4: Update the capacity to reflect the new extended capacity.
-        Step 5: return the array for use in the program.
-        """
-        old_array = self.array
-        old_capacity = self.capacity
-        new_capacity = self.capacity * 2
-        new_array = self._initialize_new_array(new_capacity)
-        for i in range(self.size):
-            new_array[i] = old_array[i]
-        self.capacity = new_capacity
-        return new_array
-
-    def _shrink_array(self):
-        """Shrink array in half"""
-        old_array = self.array
-        old_capacity = self.capacity
-        new_capacity = max(self.min_capacity, self.capacity // 2)
-        new_array = self._initialize_new_array(new_capacity)
-        for i in range(self.size):
-            new_array[i] = old_array[i]
-        self.capacity = new_capacity
-        return new_array
+    @property
+    def is_static(self):
+        return self._is_static
 
     def __str__(self) -> str:
         """a list of strings representing all the elements in the array"""
-        items = ", ".join(str(self.array[i]) for i in range(self.size))
-        string_datatype = getattr(self.datatype, "__name__", str(self.datatype))
-        return f"[{items}], Capacity: {self.size}/{self.capacity}, Type: {string_datatype}"
+        return str_array(self)
 
-    def __getitem__(self, index):
-        """Built in overrid - adds indexing"""
+    def __repr__(self) -> str:
+        """ returns memory address and info"""
+        return repr_array(self)
+
+    def __getitem__(self, index: int | slice) -> T | VectorView:
+        """Built in override - adds indexing, & slicing but for views instead of copies (like python slice)"""
+        # convert python slice parameters to view logic and return a view obj instance.
+        if isinstance(index, slice):
+            view = self.array
+            slice_start = index.start or 0
+            view_length = (index.stop - (index.start or 0)) if index.stop is not None else None
+            slice_step = index.step or 1
+            return VectorView(self.datatype, view, slice_start, view_length, slice_step)
         return self.get(index)
 
     def __setitem__(self, index, value):
         """Built in override - adds indexing."""
         self.set(index, value)
 
+    # todo Add traverse method here - calls function on every item in the array. (raise an error if the function is not a function (type enforcement))
 
     # ----- Canonical ADT Operations -----
     def get(self, index):
         """Return element at index i"""
-        self._index_boundary_check(index)
+        index_boundary_check(index, self.capacity)
         result = self.array[index]
         return cast(T, result)
 
     def set(self, index, value):
         """Replace element at index i with x"""
-        self._enforce_type(value)
-        self._index_boundary_check(index)
+        enforce_type(value, self.datatype)
+        index_boundary_check(index, self.capacity)
         self.array[index] = value
 
     def insert(self, index, value):
@@ -178,11 +188,14 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         Step 4: Increment Array Size Tracker
         """
 
-        self._enforce_type(value)
-        self._index_boundary_check(index, is_insert=True)
+        enforce_type(value, self.datatype)
+        index_boundary_check(index, self.capacity,is_insert=True)
+
         # dynamically resize the array if capacity full.
-        if self.size == self.capacity:
-            self.array = self._grow_array()
+        if self.size == self.capacity and self._is_static == False:
+            self.array = grow_array(self)
+        elif self.size == self.capacity and self._is_static == True:
+            raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
         # if index value is the end of the array - utilize O(1) append
         if index == self.size:
@@ -190,9 +203,8 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
             return
 
         # move all array elements right.
-        for i in range(self.size, index, -1): 
-            self.array[i] = self.array[i-1]   # (e.g. elem_4 = elem_3)
-        self.array[index] = value 
+        shift_elements_right(self, index, value)
+
         self.size += 1  # update size tracker
 
     def delete(self, index):
@@ -209,43 +221,45 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         if self.is_empty():
             raise ValueError("Error: Array is Empty.")
 
-        self._index_boundary_check(index)
+        index_boundary_check(index, self.capacity)
 
         # dynamically shrink array if capacity at 25% and greater than min capacity
-        if self.size == self.capacity // 4 and self.capacity > self.min_capacity:
-            self.array = self._shrink_array()
+        if self.size == self.capacity // SHRINK_CAPACITY_RATIO and self.capacity > self.min_capacity and self._is_static == False:
+            self.array = shrink_array(self)
 
         deleted_value = self.array[index]   # store index for return
-        # shift elements left -- Starts from the deleted index (Goes Backwards)
-        for i in range(index, self.size - 1):  
-            self.array[i] = self.array[i + 1]  # (elem4 = elem5)
-        if self.type is object or self.type is ctypes.py_object:
-            self.array[self.size - 1] = None   # removes item from the end of the stored items 
+
+        shift_elements_left(self, index)
         self.size -= 1  # decrement size tracker
+
         return deleted_value
 
     def append(self, value):
         """Add x at end -- O(1)"""
-        self._enforce_type(value)
+
+        enforce_type(value, self.datatype)
 
         # dynamically resize the array if capacity full.
-        if self.size == self.capacity:
-            self.array = self._grow_array()
+        if self.size == self.capacity and self._is_static == False:
+            self.array = grow_array(self)
+        elif self.size == self.capacity and self._is_static == True:
+            raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
         self.array[self.size] = value
         self.size += 1
 
     def prepend(self, value):
         """Insert x at index 0 -- O(N) - Same logic as insert, shift elems right"""
-        self._enforce_type(value)
+
+        enforce_type(value, self.datatype)
+
         # dynamically resize the array if capacity full.
-        if self.size == self.capacity:
-            self.array = self._grow_array() 
+        if self.size == self.capacity and self._is_static == False:
+            self.array = grow_array(self)
+        elif self.size == self.capacity and self._is_static == True:
+            raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
-        for i in range(self.size, 0, -1):
-            self.array[i] = self.array[i-1]
-
-        self.array[0] = value
+        shift_elements_right(self, 0, value)
         self.size += 1
 
     def index_of(self, value):
@@ -254,7 +268,6 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
             if self.array[i] == value:
                 return i
         return None
-
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self):
@@ -267,7 +280,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
     def clear(self):
         """removes all items and reinitializes a new array with the original capacity, resets the size tracker also"""
-        self.array = self._initialize_new_array(self.min_capacity)
+        self.array = initialize_new_array(self.datatype, self.min_capacity, self.datatype_map)
         self.capacity = self.min_capacity
         self.size = 0
 
@@ -283,8 +296,6 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         for i in range(self.size):
             result = self.array[i]
             yield cast(T, result)
-
-
 
 
 # Main -- Client Facing Code
@@ -331,7 +342,7 @@ def main():
 
         # create array with minimum capacity 6 or length of test data
         min_capacity = max(6, len(test_values))
-        arr = VectorArray[datatype](min_capacity, datatype, datatype_map)
+        arr = VectorArray[datatype](min_capacity, datatype, datatype_map, is_static=False)
 
         print(f"Initial array: {arr}")
 
@@ -399,10 +410,28 @@ def main():
             removed = arr.delete(0)
         print(f"{arr}")
 
+        print("\nre-adding items")
+        print(f"{arr}")
+        for i in range(len(test_values)*2):  # trigger growth
+            arr.append(test_values[i % len(test_values)])
+        print(f"{arr}")
+
         # --- Iteration test ---
         print("\nIteration test:")
-        for item in arr:
+        half_array = len(arr) // 6
+        subset = random.sample(list(arr), half_array)
+        print(subset)
+        for item in subset:
             print(f"Iterated item: {item}")
+        print(f"\n{repr(arr)}\n")
+
+        # testing View:
+        new_view = arr[:6]
+        print(new_view)
+        print(repr(new_view))
+        for item in new_view:
+            print(f"Iterated item in View: {item}")
+
 
     # print(f"\ntesting CTYPES Array")
     # run_array_tests(int, ints, CTYPES_DATATYPES)
