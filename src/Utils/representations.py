@@ -28,8 +28,8 @@ def repr_view(view_obj):
 
 # region linked lists
 
-def str_sll_node(sll_node_obj):
-    node_element = f"{sll_node_obj.element}"
+def str_ll_node(ll_node_obj):
+    node_element = f"{ll_node_obj.element}"
     return f"{node_element}"
 
 def repr_sll_node(sll_node_obj):
@@ -40,20 +40,30 @@ def repr_sll_node(sll_node_obj):
     owner = f"List Owner: {repr(sll_node_obj.list_owner)}"
     return f"{class_address}, {node_element}, {next_pointer}, {linked}, {owner}"
 
+def repr_dll_node(dll_node_obj):
+    class_address = (
+        f"<{dll_node_obj.__class__.__qualname__} object at {hex(id(dll_node_obj))}>"
+    )
+    prev_pointer = f"Prev: {str(dll_node_obj.prev)}"
+    next_pointer = f"Next: {str(dll_node_obj.next)}"
+    node_element = f"Node: {dll_node_obj.element}"
+    linked = f"in list?: {dll_node_obj.is_linked}"
+    owner = f"Owner: {repr(dll_node_obj.list_owner)}"
+    return f"{class_address}, {node_element}, {prev_pointer}, {next_pointer}, {linked}, {owner}"
 
-def str_sll(sll_obj, sep: str = " ->> "):
+def str_ll(ll_obj, sep: str = " ->> "):
     """Displays all the content of the linked list as a string."""
     seperator = sep
-    datatype = sll_obj.datatype.__name__
-    total_nodes = sll_obj.total_nodes
-    class_name = sll_obj.__class__.__qualname__
+    datatype = ll_obj.datatype.__name__
+    total_nodes = ll_obj.total_nodes
+    class_name = ll_obj.__class__.__qualname__
 
-    if sll_obj._head is None:
+    if ll_obj._head is None:
         return f"[{class_name}][{datatype}][{total_nodes}]"
 
     def _simple_traversal():
         """traverses the nodes and returns a string via generator"""
-        current_node = sll_obj._head
+        current_node = ll_obj._head
         while current_node:
             yield str(current_node._element)
             current_node = current_node.next
@@ -61,11 +71,11 @@ def str_sll(sll_obj, sep: str = " ->> "):
     infostring = f"[{class_name}][{datatype}][{total_nodes}]: (H) {seperator.join(_simple_traversal())} (T)"
     return infostring
 
-
-def repr_sll(sll_obj):
-    class_address = f"<{sll_obj.__class__.__qualname__} object at {hex(id(sll_obj))}>"
-    datatype = sll_obj.datatype.__name__
-    total_nodes = sll_obj.total_nodes
+def repr_ll(ll_obj):
+    """Displays the memory address and other useful info"""
+    class_address = f"<{ll_obj.__class__.__qualname__} object at {hex(id(ll_obj))}>"
+    datatype = ll_obj.datatype.__name__
+    total_nodes = ll_obj.total_nodes
     return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
 
 

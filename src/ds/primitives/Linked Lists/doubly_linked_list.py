@@ -1,272 +1,318 @@
-from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator, Generator
+from typing import (
+    Generic,
+    TypeVar,
+    List,
+    Dict,
+    Optional,
+    Callable,
+    Any,
+    cast,
+    Iterator,
+    Generator,
+    Iterable,
+    Type,
+)
 from abc import ABC, ABCMeta, abstractmethod
 
+
+# region custom imports
+from utils.helpers import RandomClass
+from utils.custom_types import T
+from utils.validation_utils import enforce_type
+from utils.representations import str_ll_node, repr_dll_node, repr_sll_node, str_ll, repr_ll
+from utils.linked_list_utils import (
+    validate_node,
+    assert_list_not_empty,
+    find_node_before_reference,
+    assert_reference_node_exists,
+    check_node_after_exists,
+    check_node_before_exists
+)
+from adts.collection_adt import CollectionADT
+from adts.linked_list_adt import LinkedListADT, iNode
+
+
+# endregion
 
 """
 A Doubly Linked List (DLL) has both a previous and a next pointer.
 Can move forwards or backwards in the list. 
 """
 
-T = TypeVar('T')
-
-# interfaces
-class iDoublyLinkedList(ABC, Generic[T]):
-
-    # ------------ Utility ------------
-    @abstractmethod
-    def __iter__(self) -> Iterator[T]:
-        pass
-
-    @abstractmethod
-    def clear(self):
-        pass
-
-    @abstractmethod
-    def length(self) -> int:
-        pass
-
-    @abstractmethod
-    def is_empty(self) -> bool:
-        pass
-
-    @abstractmethod
-    def contains(self, value) -> bool:
-        pass
-
-    # ------------ Traverse ------------
-    @abstractmethod
-    def traverse(self, function: Callable, start_from_tail: bool) -> 'Generator[Node[T] | T, None, None]':
-        pass
-
-    # ------------ search ------------
-    @abstractmethod
-    def search_value(self, value: T, return_node: bool, reverse: bool) -> 'Optional[Node[T] | T]' :
-        pass
-
-    @abstractmethod
-    def bidirectional_search_value(self, value: T, return_node: bool) -> 'Optional[Node[T] | T]' :
-        pass
-
-    @abstractmethod
-    def search_all_values(self, value: T, return_node: bool) -> 'Generator[Node[T] | T, None, None]':
-        pass
-
-    @abstractmethod
-    def search_index(self, index: int, return_node: bool) -> "Optional[Node[T] | T]":
-        pass
-
-    @abstractmethod
-    def search_for_index_by_value(self, value: T) -> Optional[int]:
-        pass
-
-    # ------------ insert ------------
-    @abstractmethod
-    def insert_head(self, value: T):
-        pass
-
-    @abstractmethod
-    def insert_tail(self, value: T):
-        pass
-
-    @abstractmethod
-    def insert_after(self, node: 'Node[T]', value: T):
-        pass
-
-    @abstractmethod
-    def insert_before(self, node: 'Node[T]', value: T):
-        pass
-
-    # ------------ delete ------------
-    @abstractmethod
-    def delete_head(self) -> T:
-        pass
-
-    @abstractmethod
-    def delete_tail(self) -> T:
-        pass
-
-    @abstractmethod
-    def delete_after(self, node: 'Node[T]') -> T:
-        pass
-
-    @abstractmethod
-    def delete_before(self, node: 'Node[T]') -> T:
-        pass
-
-
-# Node
-class iNode(ABC, Generic[T]):
-
-    @abstractmethod
-    def __repr__(self) -> str:
-        pass
-
 
 class Node(iNode[T]):
-    def __init__(self, data: T) -> None:
-        self.data: T = data
-        self.prev: Optional[Node[T]] = None
-        self.next: Optional[Node[T]] = None
+    def __init__(self, element: T, is_linked: bool = False, list_owner=None) -> None:
+        self._element = element
+        self._prev: Optional[Node[T]] = None
+        self._next: Optional[Node[T]] = None
+        self._is_linked = is_linked
+        self._list_owner = list_owner
 
+    @property
+    def prev(self):
+        return self._prev
+    @prev.setter
+    def prev(self, value):
+        self._prev = value
+    @property
+    def next(self):
+        return self._next
+    @next.setter
+    def next(self, value):
+        self._next = value
+    @property
+    def element(self):
+        return self._element
+    @element.setter
+    def element(self, value):
+        self._element = value
+    @property
+    def is_linked(self):
+        return self._is_linked
+    @is_linked.setter
+    def is_linked(self, value):
+        self._is_linked = value
+    @property
+    def list_owner(self):
+        return self._list_owner
+    @list_owner.setter
+    def list_owner(self, value):
+        self._list_owner = value
+    
+    # ------------ Utilities ------------
     def __repr__(self) -> str:
-        return f"Node: {self.data}"
+        return repr_dll_node(self)
+
+    def __str__(self) -> str:
+        return str_ll_node(self)
 
 
 # Double Linked List
-class DoublyLinkedList(iDoublyLinkedList[T]):
-    def __init__(self) -> None:
-        self.head: Optional[Node[T]] = None
-        self.tail: Optional[Node[T]] = None
-        self.size: int = 0
+class DoublyLinkedList(LinkedListADT[T], Generic[T]):
+    def __init__(self, datatype: type) -> None:
+        self._head: Optional[Node[T]] = None
+        self._tail: Optional[Node[T]] = None
+        self._total_nodes: int = 0
+        self._datatype = datatype
+
+    @property
+    def head(self):
+        assert_list_not_empty(self)
+        return self._head
+    @property
+    def tail(self):
+        assert_list_not_empty(self)
+        return self._tail
+    @property
+    def datatype(self):
+        return self._datatype
+    @property
+    def total_nodes(self):
+        return self._total_nodes
 
     # ------------ Utilities ------------
-    def _node_exists(self, node: Optional[Node[T]]):
-        if node is None:
-            raise ValueError("Node cannot be None, please give a valid Node.")
-
-    def _list_exists(self):
-        if not self.head:
-            raise IndexError("List is Empty...")
-
-    def _index_boundary_check(self, index: int):
-        if index < 0 or index >= self.size:
-            raise IndexError("Index out of range...")
-
-    def __iter__(self):
-        """Builtin: List can now be iterated over in loops etc..."""
-        current_node = self.head
-        while current_node:
-            yield current_node.data
-            current_node = current_node.next
-
     def __reversed__(self):
         """Python Built in - reverses iteration"""
-        current_node = self.tail
+        current_node = self._tail
         while current_node:
-            yield current_node.data
+            yield current_node._element
             current_node = current_node.prev
 
-    def __len__(self) -> int:
-        """Override Python Built in to ensure the nodes list is returned"""
-        return self.size
+    def __getitem__(self, key: iNode[T]) -> T:
+        """returns the node in the linked list. Overrides builtin: array style index search"""
+        # if the key is a node - just return the element. (o(1))
+        if isinstance(key, iNode):
+            return key.element
+        # otherwise we have to adaptive search (o(n/2))
+        elif isinstance(key, int):
+            item = self.search_index(key)
+            return item.element
+        else:
+            raise TypeError(f"Error: Invalid Key Provided. Please use a Node or an Index Number.")
 
-    def __contains__(self, value):
-        """Overrides python built in to ensure - custom logic for evaluating the whole list by value is implemented"""
-        return self.contains(value)
-
-    def __getitem__(self, index: int) -> "Optional[Node[T] | T]":
-        """returns the value of a node in the linked list. Overrides builtin: array style index search O(n)"""
-        item = self.search_index(index, return_node=False)
-        return item
-
-    def __setitem__(self, index: int, value: T) -> None:
+    def __setitem__(self, key: iNode[T], value: T) -> None:
         """sets the value of a node in the linked list. Overrides builtin: array style index search O(n)"""
-        node = self.search_index(index, return_node=True)
-        if node:
-            node.data = value
-
-    def validate_list(self) -> None:
-        """Helper Method - Validates that all the links in the list are still connected to each other, and that the size of the list is accurate."""
-        self._list_exists()
-
-        current_node = self.head
-        count = 0
-
-        while current_node:
-            if current_node.next and current_node.next.prev != current_node:
-                raise RuntimeError("Broken link in Doubly Linked List Detected!")
-            count +=1
-            current_node = current_node.next
-        if count != self.size:
-            raise RuntimeError("List size does not match counted nodes!")
+        if isinstance(key, iNode):
+            key.element = value
+        elif isinstance(key, int):
+            item = self.search_index(key)
+            item.element = value
+        else:
+            raise TypeError(f"Error: Invalid Key Provided. Please use a Node or an Index Number.")
 
     def __str__(self) -> str:
         """Displays all the content of the linked list as a string."""
+        return str_ll(self, " <-> ")
 
-        seperator = " ->> "
+    def __repr__(self) -> str:
+        """For Devs"""
+        return repr_ll(self)
 
-        if self.head is None:
-            return f"List is Empty"
+    # ----- Meta Collection ADT Operations -----
+    def __iter__(self) -> Generator[T, None, None]:
+        """Builtin: List can now be iterated over in loops etc..."""
+        current_node = self._head
+        while current_node:
+            yield current_node._element
+            current_node = current_node._next
 
-        def _simple_traversal():
-            """traverses the nodes and returns a string via generator"""
-            current_node = self.head
-            while current_node:
-                yield str(current_node.data)
-                current_node = current_node.next
-                if current_node == self.head:
-                    break
+    def __len__(self) -> int:
+        """Override Python Built in to ensure the nodes list is returned"""
+        return self._total_nodes
 
-        infostring = f"[head]{seperator.join(_simple_traversal())}[tail]"
+    def __contains__(self, value) -> bool:
+        """return True or False if a node contains the specified data."""
+        current_node = self._head
+        while current_node:
+            if current_node._element == value:
+                return True
+            current_node = current_node._next
+        return False
 
-        return infostring
-
-    # ------------ Public Methods ------------
-    # ------------ General ------------
-
-    def clear(self):
+    def clear(self) -> None:
         """Deletes all items from the linked list"""
         while not self.is_empty():
             self.delete_head()
 
-    def length(self):
-        """returns the Number of nodes in the linked list"""
-        return self.size
-
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """Boolean Check if the list is empty"""
-        return self.head is None
+        return self._head is None
 
-    def contains(self, value):
-        """return True or False if a node contains the specified data."""
-        current_node = self.head
+    # ----- Canonical ADT Operations -----
+    # ----- Accessor Operations -----
+    def search_value(self, element: T, reverse: bool=False) -> Optional["iNode[T]"]:
+        """Finds the first value that matches a node -- O(N)"""
+        assert_list_not_empty(self)
+        enforce_type(element, self.datatype)
+
+        current_node = self._tail if reverse else self._head
         while current_node:
-            if current_node.data == value:
-                return True
+            if current_node._element == element:
+                return current_node 
+            current_node = current_node._prev if reverse else current_node._next
+        return None
+
+    def bidirectional_search_value(self, element: T) -> Optional["iNode[T]"]:
+        """
+        Bidirectional Search: Average O(N/2), worst O(N) Return the first or last node containing the value, or None if not found.
+        Bidirectional traversal improves latency for early exits, not throughput for full scans.
+        """
+        # empty list Case:
+        if self._head is None:
+            return None
+
+        # initialize starter nodes
+        left = self._head
+        right = self._tail
+
+        # Existence check and crossover check
+        while (left and right) and (left != right._next):
+            if left._element == element:
+                return left
+            if right._element == element:
+                return right
+            # move to next step
+            left = left._next
+            right = right._prev
+        return None  # No value found
+
+    def search_all_values(self, element: T) -> Generator["iNode[T]", None, None]:
+        """iterate and yield all nodes that contain a value or None if not found..."""
+        current_node = self._head
+        while current_node:
+            if current_node.element == element:
+                yield current_node
             current_node = current_node.next
-        return False
 
-    # ------------ Insertions ------------
+    def search_for_index_by_value(self, element: T) -> Optional[int]:
+        """Return the index of the first node with the value, or None if not found."""
+        current_node = self._head
+        index = 0
+        while current_node:
+            if current_node._element == element:
+                return index
+            index += 1
+            current_node = current_node.next
+        return None
 
-    def insert_head(self, value):
-        """add a new node at the very beginning of the list — making it the new head."""
-        new_node = Node(value)
-        # Old head is now after new node. (if list is empty = None)
-        new_node.next = self.head 
+    def search_index(self, index: int) -> Optional["iNode[T]"]:
+        """Average O(N/2) -- Adaptive Index Search: Searches for a specific index in the linked list and returns the node for further manipulation"""
 
-        # update old head prev pointer: (points to the current head - new node)
-        if self.head:
-            self.head.prev = new_node  
-        # Empty list (head and tail are the same Node)
+        if index < 0 or index >= self._total_nodes:
+            raise IndexError("Error: Index out of range...")
+
+        assert_list_not_empty(self)
+
+        # if the index is less than half of the list size - start from the head
+        if index < self._total_nodes // 2:
+            current_node = self._head
+            for _ in range(index):
+                current_node = current_node.next
+
+        # otherwise start from the tail:
         else:
-            self.tail = new_node
-        # Assign New node to the head
-        self.head = new_node
-        # increment size tracker
-        self.size += 1
+            current_node = self._tail
+            for _ in range(self._total_nodes - 1, index, -1):
+                current_node = current_node.prev
 
-    def insert_tail(self, value):
+        return current_node
+
+    # ----- Mutator Operations -----
+    def insert_head(self, element):
+        """add a new node at the very beginning of the list — making it the new head."""
+        enforce_type(element, self.datatype)
+
+        new_node = Node(element, is_linked =True, list_owner=self)
+        new_node.prev = None
+        # point to old head (if list is empty = None)
+        new_node.next = self._head
+
+        if self._head:
+            # update old head prev pointer: (points to the current head - new node)
+            self._head.prev = new_node  
+        else:
+            # Empty list Case: (head and tail are the same Node)
+            self._tail = new_node
+        # Assign New node to the head
+        self._head = new_node
+
+        self._total_nodes += 1 # increment size tracker
+
+        return new_node
+
+    def insert_tail(self, element):
         """insert a node at the end of the list - the tail."""
-        new_node = Node(value)
+
+        enforce_type(element, self.datatype)
+        new_node = Node(element, is_linked =True, list_owner=self)
 
         # new tail prev should point to old tail.
-        new_node.prev = self.tail
+        new_node.prev = self._tail
+        new_node.next = None
 
-        # is there an exsiting tail. (if so should point to new tail)
-        if self.tail:
-            self.tail.next = new_node
-        # if list is empty - head and tail are the same so insert at head and tail
+        # Tail Exists Case: is there an exsiting tail. (if so should point to new tail)
+        if self._tail:
+            self._tail._next = new_node
+        # Empty List Case: if list is empty - head and tail are same so insert at head and tail
         else:
-            self.head = new_node
-        # insert new node at tail
-        self.tail = new_node
-        # increment size tracker
-        self.size += 1
+            self._head = new_node
 
-    def insert_after(self, node, value):
+        # insert new node at tail
+        self._tail = new_node
+
+        # increment size tracker
+        self._total_nodes += 1
+
+        return new_node
+
+    def insert_after(self, node, element):
         """Inserts a new node after a specific node -- O(1)"""
-        self._node_exists(node) # existence check
-        new_node = Node(value)  # create node
+
+        assert_list_not_empty(self)
+        validate_node(self, node, iNode)
+        enforce_type(element, self.datatype)
+
+        new_node = Node(element, is_linked =True, list_owner=self)
         # Step 1: link the new node to the previous node
         new_node.prev = node
         # Step 2: link the new node to the future node
@@ -274,301 +320,306 @@ class DoublyLinkedList(iDoublyLinkedList[T]):
         # Step 3: link the future node to the new node
         if node.next:
             node.next.prev = new_node
-        # if the future node doesnt exist. - assign to tail(end)
         else:
-            self.tail = new_node
+            # if the future node doesnt exist. - assign to tail(last node)
+            self._tail = new_node
         # Step 4: link the previous node to the new node
         node.next = new_node
-        self.size += 1  # increment size tracker
 
-    def insert_before(self, node, value):
+        self._total_nodes += 1  # increment size tracker
+        return new_node
+
+    def insert_before(self, node, element):
         """Inserts a new node before a specific node -- O(1)"""
-        self._node_exists(node)  # existence check
-        new_node = Node(value)  # create node
+
+        assert_list_not_empty(self)
+        validate_node(self, node, iNode)
+        enforce_type(element, self.datatype)
+        new_node = Node(element, is_linked =True, list_owner=self)
+
         # Step 1: link the new node to the future node
-        new_node.next = node
+        new_node._next = node
         # Step 2: link the new node to the previous node
-        new_node.prev = node.prev
+        new_node._prev = node.prev
         # Step 3: link the previous node to the new node
         if node.prev:
             node.prev.next = new_node
         # if there is no previous node - assign to the head(start)
         else:
-            self.head = new_node
+            self._head = new_node
+
         # Step 4: link the future node to the new node
         node.prev = new_node
-        self.size += 1  # increment size tracker
 
-    # ------------ Deletions ------------
+        self._total_nodes += 1  # increment size tracker
+        return new_node
+
+    def replace(self, node, element):
+        """replace value of a specific node. returns the old value."""
+        assert_list_not_empty(self)
+        validate_node(self,node,iNode)
+        enforce_type(element, self.datatype)
+        old_value = node.element
+        node.element = element
+        return old_value
+
+    def delete(self, node):
+        """Delete a node via reference -- O(1)"""
+        # Empty List Case:
+        assert_list_not_empty(self)
+        validate_node(self, node, iNode)
+
+        # initialize nodes
+        old_node = node
+        old_value = node.element
+        previous_node = old_node.prev
+        future_node = old_node.next
+
+        # 1 member list Case: (head is tail)
+        if old_node == self._head and old_node == self.tail:
+            return self.delete_head()
+        elif old_node == self._head:
+            # is head Case: the ref node is the head.
+            return self.delete_head()
+        elif old_node == self._tail:
+            # is tail Case: (the ref node is the tail)
+            return self.delete_tail() 
+        else:
+            # middle node Case: (ref node is in the middle of the list)
+            previous_node.next = future_node
+            future_node.prev = previous_node
+            old_node.next = None
+            old_node.prev = None
+            old_node.is_linked = False
+            old_node.list_owner = None
+
+        self._total_nodes -= 1
+
+        return old_value
+
+        pass
 
     def delete_head(self):
         """Deletes Node at the Head Position"""
-        self._list_exists() # existence check for head
-        removed_node = self.head.data
-        old_head = self.head
-        # if there is only 1 node:
-        if self.head == self.tail:
-            self.head = self.tail = None
-        # Otherwise - move head forward 1 node and delete its previous link
+
+        assert_list_not_empty(self)
+        old_head = self._head
+        old_value = self._head.element
+
+        # 1 Member List Case: if there is only 1 node:
+        if self._head == self._tail:
+            self._head.is_linked = False
+            self._head.list_owner = None
+            self._head.prev, self._head.next = None, None
+            self._head = self._tail = None
         else:
-            self.head = old_head.next
-            self.head.prev = None
+            # Main Case: - move head forward 1 node and delete its previous link
+            self._head = old_head.next
+            self._head.prev = None
             # dereferencing old head
+            old_head.is_linked = False
+            old_head.list_owner = None
             old_head.prev, old_head.next = None, None
-        self.size -= 1  # update size tracker
-        return removed_node
+
+        self._total_nodes -= 1  # update size tracker
+        return old_value
 
     def delete_tail(self):
         """Deletes the Node at the Tail Position"""
-        self._list_exists() # existence check
-        old_tail = self.tail    # for dereferencing
-        removed_value = self.tail.data
-        # if there is only 1 node (head & tail)
-        if self.head == self.tail:
-            self.head = self.tail = None
-        # if the tail exists, dereference and set future node to none
+
+        assert_list_not_empty(self)
+        old_tail = self._tail    # for dereferencing
+        old_value = self._tail.element
+
+        # 1 member list Case: if there is only 1 node (head & tail)
+        if self._head == self._tail:
+            self._head = self._tail = None
         else:
-            self.tail = old_tail.prev
-            self.tail.next = None   # tail future node must always be None
-            # fully detach the old tail from the list
-            old_tail.prev, old_tail.next = None, None
-        self.size -= 1  # decrement size counter
-        return removed_value
+            # Tail exists Case: dereference and set future node to none
+            self._tail = old_tail.prev
+            self._tail.next = None   # tail future node must always be None
+
+        # fully detach the old tail from the list
+        old_tail.prev, old_tail.next = None, None
+        old_tail.is_linked = False
+        old_tail.list_owner = None
+
+        self._total_nodes -= 1  # decrement size counter
+        return old_value
 
     def delete_after(self, node):
         """Deletes Node that comes after a specified Node"""
 
-        self._list_exists() # existence check
-
-        # checks if there is a node after the specified node
-        if not node.next:
-            raise IndexError("No node exists after the specified node...")
+        assert_list_not_empty(self)
+        validate_node(self, node, iNode)
+        check_node_after_exists(node)
 
         # Step 1: Set Target for deletion
-        target_node = node.next
-        deleted_node_data = node.next.data
-        # Step 2: Update Node to point to future node (the node after the deleted node)
-        node.next = target_node.next
-        # Step 3: if there is a future node (after deleted node): link that to Node
-        if target_node.next:
-            target_node.next.prev = node
-        # Step 3B: otherwise - the deleted node was the Tail - so update Node to become the tail
-        else:
-            self.tail = node
-        # Step 4: dereference deleted node
-        target_node.next, target_node.prev = None, None
+        old_node = node.next
+        old_value = node.next.element
+        future_node = old_node.next
 
-        self.size -= 1  # decrement size tracker
-        return deleted_node_data
+        # Step 2: Update Node to point to future node (the node after the deleted node)
+        node.next = future_node
+        # Step 3: Middle Node Case: if there is a future node (after deleted node): link back to ref node
+        if future_node:
+            future_node.prev = node
+        # Step 3B: is tail Case: update Node to become the tail
+        else:
+            self._tail = node
+        # Step 4: dereference deleted node
+        old_node.next, old_node.prev = None, None
+        old_node.is_linked = False
+        old_node.list_owner = None
+
+        self._total_nodes -= 1  # decrement size tracker
+        return old_value
 
     def delete_before(self, node):
         """Deletes Node that comes before a specified Node"""
 
-        self._list_exists() # existence check
+        assert_list_not_empty(self)
+        validate_node(self,node,iNode)
+        check_node_before_exists(node)
 
-        if not node.prev:
-            raise IndexError("No Node exists before the specified node...")
-
-        # Step 1: set Target for deletion
-        target_node = node.prev
-        target_node_data = target_node.data
+        # Step 1: initialize nodes
+        old_node = node.prev
+        old_value = old_node.element
+        previous_node = old_node.prev
 
         # Step 2: if there is a node before the target, assign its future node to ref node, and reassign ref node's previous node to the 1 before the target
-        if target_node.prev:
-            target_node.prev.next = node
-            node.prev = target_node.prev
-        # otherwise target node is the head - change to node
+        if previous_node:
+            previous_node.next = node
+            node.prev = previous_node
+        # is head Case: otherwise target node is the head - change to node
         else:
-            self.head = node
+            self._head = node
             node.prev = None    # dereferences any prior links
 
         # Dereference Deleted Node
-        target_node.prev, target_node.next = None, None
-        self.size -= 1
-        return target_node_data
+        old_node.is_linked = False
+        old_node.list_owner = None
+        old_node.prev, old_node.next = None, None
 
-    # ------------ Searches ------------
-
-    def search_value(self, value, return_node, reverse=False):
-        """Finds the first value that matches a node -- O(N)"""
-        self._list_exists()
-        current_node = self.tail if reverse else self.head
-        while current_node:
-            if current_node.data == value:
-                return current_node if return_node else current_node.data
-            current_node = current_node.prev if reverse else current_node.next
-        return None
-
-    def bidirectional_search_value(self, value, return_node=True):
-        """
-        Bidirectional Search: Average O(N/2), worst O(N) Return the first or last node containing the value, or None if not found.
-        Bidirectional traversal improves latency for early exits, not throughput for full scans.
-        """
-        if self.head is None:
-            return None
-        # initialize starter nodes
-        left = self.head
-        right = self.tail
-        # Existence check and crossover check
-        while (left and right) and (left != right.next):
-            if left.data == value:
-                return left if return_node else left.data
-            if right.data == value:
-                return right if return_node else right.data
-            # move to next step
-            left = left.next
-            right = right.prev
-
-        return None # No value found
-
-    def search_all_values(self, value, return_node=True):
-        """return all nodes (as a list) that contain a value or None if not found..."""
-        current_node = self.head
-        while current_node:
-            if current_node.data == value:
-                yield current_node if return_node else current_node.data
-            current_node = current_node.next
-
-    def search_for_index_by_value(self, value):
-        """Return the index of the first node with the value, or None if not found."""
-        current_node = self.head
-        index = 0
-        while current_node:
-            if current_node.data == value:
-                return index
-            index += 1
-            current_node = current_node.next
-        return None
-
-    def search_index(self, index, return_node=True):
-        """ Average O(N/2) -- Adaptive Index Search: Searches for a specific index in the linked list and returns the node or data for further manipulation"""
-        self._index_boundary_check(index)
-        self._list_exists()
-
-        # if the index is less than half of the list size - start from the head
-        if index < self.size // 2:
-            current_node = self.head
-            if not current_node:
-                raise IndexError("List is Empty...")
-            # loop through to index point
-            for _ in range(index):
-                current_node = current_node.next
-        # otherwise start from the tail:
-        else:
-            current_node = self.tail
-            for _ in range(self.size -1, index, -1):
-                current_node = current_node.prev
-        return current_node if return_node else current_node.data
-
-    # ------------ Searches ------------
-
-    def traverse(self, function, start_from_tail=False):
-        """Apply a function to each element and return a new list of results. Can traverse forwards or backwards"""
-        current_node = self.tail if start_from_tail else self.head
-        while current_node:
-            try:
-                yield function(current_node.data)
-            except Exception as error:
-                print(f"There was an error while trying to apply function to the node: {current_node.data}: {error}")
-            finally:
-                current_node = current_node.prev if start_from_tail else current_node.next
+        self._total_nodes -= 1
+        return old_value
 
 
 # Main --- Client Facing Code ---
 
 def main():
-
     # -------------------------
     # Test DoublyLinkedList
     # -------------------------
+    dll = DoublyLinkedList(str)
+    print(dll)
+    print(repr(dll))
+    print(f"\nTesting is_empty? {dll.is_empty()}")
 
-    dll = DoublyLinkedList[int]()
+    print(f"\nTestng Insertions:")
+    print(f"Testing Insert Head")
+    head = dll.insert_head("0")
+    print(dll)
+    node_a = dll.insert_head("1")
+    print(dll)
+    node_b = dll.insert_tail("2")
+    print(dll)
+    node_c = dll.insert_after(node_b, "3")
+    print(dll)
+    node_d = dll.insert_after(head, "4")    
+    print(dll)
+    node_e = dll.insert_after(node_b, "5")
+    print(dll)
+    node_f = dll.insert_before(node_c, "6")
+    print(dll)
+    node_g = dll.insert_before(node_a, "7")
+    print(dll)
+    node_h = dll.insert_before(node_d, "8")    
+    print(dll)
+    node_ab = dll.insert_tail("9")
+    node_ac = dll.insert_tail("10")
+    node_ad = dll.insert_after(node_ab, "11")
+    node_ae = dll.insert_head("12")
+    node_af = dll.insert_before(node_ac, "13")
+    print(repr(node_ae))
+    print(dll)
+    node_h_delete_value = dll.delete(node_h)
+    print(f"Deleted Node: {node_h_delete_value}")
+    print(dll)
+    node_a_delete_value = dll.delete(node_a)
+    print(f"Deleted Node: {node_a_delete_value}")
+    print(dll)
+    node_c_delete_value = dll.delete(node_c)
+    print(f"Deleted Node: {node_c_delete_value}")
+    print(dll)
+    head_value_delete = dll.delete_head()
+    print(f"Deleted Head: {head_value_delete}")
+    print(dll)
+    tail_value_delete = dll.delete_tail()
+    print(f"Deleted Tail: {tail_value_delete}")
+    print(dll)
+    node_e_delete_value = dll.delete_after(node_b)
+    print(f"Deleted Node: {node_e_delete_value}")
+    print(dll)
+    node_b_delete_value = dll.delete_after(node_d)
+    print(f"Deleted Node: {node_b_delete_value}")
+    print(dll)
+    node_ad_delete_value = dll.delete_before(node_af)
+    print(f"Deleted Node: {node_ad_delete_value}")
+    print(dll)
+    node_d_delete_value = dll.delete_before(node_f)
+    print(f"Deleted Node: {node_d_delete_value}")
+    print(dll)
+    node_ab_delete_value = dll.delete_before(node_af)
+    print(f"Deleted Node: {node_ab_delete_value}")
+    print(dll)
+    for i, item in enumerate(dll):
+        print(f"Iterated over: {i}: {item}")
+    node_ba = dll.insert_tail("10")
+    node_bb = dll.insert_tail("10")
+    node_bc = dll.insert_tail("10")
+    a, b, c = list(dll.search_all_values("10"))
+    print(repr(a))
+    print(b)
+    print(c)
+    print(dll)
+    search_a = dll.search_value("10")
+    print(repr(search_a))
+    search_c = dll.search_value("10", reverse=True)
+    print(repr(search_c))
 
-    print("Empty list? ->", dll.is_empty())  # True
-    print("Length ->", dll.length())         # 0
+    index_search_0 = dll.search_for_index_by_value("0")
+    print(f"Search for value: '0' return an index number: {index_search_0}")
+    print(dll)
 
-    # -------------------------
-    # Insertions
-    # -------------------------
-    dll.insert_head(10)
-    dll.insert_tail(20)
-    dll.insert_head(5)
-    dll.insert_tail(30)
-    dll.insert_tail(20)  # duplicate value
-    print("List after insertions:", str(dll))  # [5, 10, 20, 30, 20]
+    retrieve_index_2 = dll.search_index(2)
+    print(repr(retrieve_index_2))
+    print(dll)
 
-    print("Length ->", len(dll))                 # 5
-    print("Contains 20? ->", 20 in dll)         # True
-    print("Contains 99? ->", dll.contains(99))  # False
+    get_node_at_value_10 = dll.bidirectional_search_value("10")
+    print(repr(get_node_at_value_10))
+    print(dll)
 
-    # -------------------------
-    # Index-based access
-    # -------------------------
-    print("Index 2 ->", dll[2])  # 20
-    dll[2] = 25
-    print("Index 2 after update ->", dll[2])   # 25
-    print("Full list after update:", str(dll)) # [5, 10, 25, 30, 20]
 
-    # -------------------------
-    # Traverse with function
-    # -------------------------
-    for item in dll.traverse(lambda x: x**2):
-        print(f"Squared traversal -> {item}")  # [25, 100, 625, 900, 400]
+    print(f"List is: {len(dll)} Nodes in Size.")
+    print(f"Is 10 in Linked list? {'10' in dll}")
+    print(f"Is 200 in Linked list? {'200' in dll}")
 
-    for item in dll.traverse(lambda x: x**2, start_from_tail=True):
-        print(f"Squared traversal in reverse -> {item}") 
+    print(f"Get item at index 2: {dll[1]}")
+    print(dll)
+    dll[1] = "25"
+    print(f"Set item at index 2: {dll[1]}")
+    print(dll)
 
-    # -------------------------
-    # Search
-    # -------------------------
-    first_20 = dll.search_value(20, return_node=False)
-    print("First value 20 ->", first_20)  # 20
+    print(f"Get item via Node reference: {dll[node_g]}")
+    dll[node_g] = "1250"
+    print(f"Set item via Node reference: {dll[node_g]}")
+    print(dll)
 
-    print("Searching all List Nodes for value:")
-    for item in dll.search_all_values(20,return_node=False):
-        print(f"node value found: {item}")           
-
-    print("Searching all List Nodes for value & returning NODE:")
-    for item in dll.search_all_values(20, return_node=True):
-        print(f"{item}")
-
-    index_25 = dll.search_for_index_by_value(25)
-    print("Index of 25 ->", index_25)     # 2
-    node_at_3 = dll.search_index(3, return_node=True)
-    print("Node at index 3 ->", node_at_3) # Node: 30
-
-    # -------------------------
-    # Insert before / after
-    # -------------------------
-    dll.insert_after(node_at_3, 35)
-    dll.insert_before(node_at_3, 28)
-    print("List after insert_before/after ->", str(dll))  # [5, 10, 25, 28, 30, 35, 20]
-
-    # -------------------------
-    # Deletions
-    # -------------------------
-    dll.delete_head()    # removes 5
-    dll.delete_tail()    # removes 20
-    dll.delete_after(dll.search_index(1, True))  # removes 28 (after index 1)
-    dll.delete_before(dll.search_index(2, True)) # removes 25 (before index 2)
-    print("List after deletions ->", str(dll))  # [10, 30, 35]
-
-    # -------------------------
-    # Iteration and reversed iteration
-    # -------------------------
-    print("Iterating forwards:")
-    for val in dll:
-        print(val, end=" ")   # 10 30 35
-    print("\nIterating backwards: (via reversed method)")
-    for val in reversed(dll):
-        print(val, end=" ")   # 35 30 10
-
-    # -------------------------
-    # Clear and validate
-    # -------------------------
+    print(f"\nTesting is_empty? {dll.is_empty()}")
     dll.clear()
-    print("\nList after clear ->", str(dll))  # []
-    print("Empty? ->", dll.is_empty())         # True
+    print(dll)
+    print(f"Testing is_empty? {dll.is_empty()}")
 
 
 if __name__ == "__main__":

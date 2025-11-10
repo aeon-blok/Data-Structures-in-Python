@@ -42,12 +42,14 @@ class LinkedListADT(ABC, Generic[T]):
     def __iter__(self) -> Generator[T, None, None]:
         """traverses all the nodes and returns the values. lazy loading via generator & yield"""
         pass
-
+    
+    @property
     @abstractmethod
     def head(self) -> Optional["iNode[T]"]:
         """returns the first node of the linked list for use as a reference."""
         pass
-
+    
+    @property
     @abstractmethod
     def tail(self) -> Optional["iNode[T]"]:
         """returns the last node of the linked list for use as a reference"""

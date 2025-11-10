@@ -5,8 +5,8 @@ from abc import ABC, ABCMeta, abstractmethod
 from utils.helpers import RandomClass
 from utils.custom_types import T
 from utils.validation_utils import enforce_type
-from utils.representations import str_sll_node, repr_sll_node, str_sll, repr_sll
-from utils.linked_list_utils import validate_node, empty_list_exception
+from utils.representations import str_ll_node, repr_sll_node, str_ll, repr_ll
+from utils.linked_list_utils import validate_node, assert_list_not_empty, find_node_before_reference, assert_reference_node_exists
 from adts.collection_adt import CollectionADT
 from adts.linked_list_adt import LinkedListADT, iNode
 
@@ -63,7 +63,7 @@ class Node(iNode[T]):
 
     # ----- Utility Operations -----
     def __str__(self):
-        return str_sll_node(self)
+        return str_ll_node(self)
 
     def __repr__(self):
         return repr_sll_node(self)
@@ -84,27 +84,28 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     @property
     def total_nodes(self):
         return self._total_nodes
+    @property
+    def head(self):
+        """returns the head node if it exists for use as a reference."""
+        assert_list_not_empty(self)
+        return self._head
+    @property
+    def tail(self):
+        """returns the tail node if it exists for use as a reference"""
+        assert_list_not_empty(self)
+        return self._tail
 
     # ----- Utility Operations -----
 
     def __str__(self) -> str:
         """Displays all the content of the linked list as a string."""
-        return str_sll(self, " ->> ")
+        return str_ll(self, " ->> ")
 
     def __repr__(self) -> str:
-        return repr_sll(self)
+        return repr_ll(self)
 
     # ----- Canonical ADT Operations -----
     # ----- Accessor Operations -----
-    def head(self):
-        """returns the head node if it exists for use as a reference."""
-        empty_list_exception(self)
-        return self._head
-
-    def tail(self):
-        """returns the tail node if it exists for use as a reference"""
-        empty_list_exception(self)
-        return self._tail
 
     def __iter__(self) -> Generator[T, None, None]:
         """Allows iteration over the Nodes in the linked list. (via for loops etc)"""
@@ -187,7 +188,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         Case 2: Insert After Middle
         Case 3: Node Not Found
         """
-        empty_list_exception(self)
+        assert_list_not_empty(self)
         validate_node(self, node, iNode)
         enforce_type(element, self._datatype)
 
@@ -216,7 +217,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """
 
         # Handle Empty List Case:
-        empty_list_exception(self)
+        assert_list_not_empty(self)
 
         # validate
         validate_node(self, node, iNode)
@@ -232,27 +233,18 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             self._head = new_node
         else:
             # Handle Insert Before Middle Case: traverse linked list and add to chain. -- O(n)
-            current_node = self._head
-            is_node_found = False
-            while current_node:
-                if current_node.next == ref_node:
-                    # insert new node into chain
-                    current_node.next = new_node
-                    new_node.next = ref_node
-                    is_node_found = True
-                    break
-                current_node = current_node.next  # traverse linked list
-
-            # Handle Node not Found Case:
-            if not is_node_found:
-                raise ValueError(f"Error: Node reference: {node.element} Not found in the linked list.")
+            current_node = find_node_before_reference(self, ref_node)
+            assert_reference_node_exists(current_node, ref_node)
+            # insert new node into chain
+            current_node.next = new_node
+            new_node.next = ref_node
 
         self._total_nodes += 1
         return new_node
 
     def replace(self, node, element):
         """replaces the element(value) at a specific node reference. - returns the old (replaced) value!"""
-
+        assert_list_not_empty(self)
         enforce_type(element, self._datatype)
         validate_node(self, node, iNode)
 
@@ -264,6 +256,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def delete(self, node):
         """removes a specific Node via node reference O(N) - Use a doubly linked list for O(1)."""
 
+        assert_list_not_empty(self)
         validate_node(self, node, iNode)
 
         old_node = node
@@ -277,13 +270,10 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             return self.delete_tail()
         else:
             # traverse to node reference
-            current_node = self._head
-            while current_node and current_node.next != old_node:
-                current_node = current_node.next
+            current_node = find_node_before_reference(self, old_node)
 
             # Case: ref node is tail:
-            if current_node is None:
-                raise ValueError(f"Error: Node {old_node}: was not found in the list.")
+            assert_reference_node_exists(current_node, old_node)
 
             # update pointers to unlink ref node
             current_node.next = node.next
@@ -302,7 +292,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         Case 2: 1 Member List (Head is Tail) - delete last member and make list empty
         Case 3: replace current head with its neighbour
         """
-        empty_list_exception(self)
+        assert_list_not_empty(self)
         old_head = self._head
         old_head_element = self._head.element
 
@@ -323,7 +313,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def delete_tail(self) -> T:
         """Delete the tail node - in singly linked list this is O(N)"""
-        empty_list_exception(self)
+        assert_list_not_empty(self)
 
         old_tail = self._tail
         old_value = self._tail.element
@@ -340,7 +330,6 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             current_node.next = None    # dereference old tail
             # replace tail
             self._tail = current_node
-
 
         self._total_nodes -= 1
         # update Node tracking parameters (no longer belongs to a list or is linked.)
@@ -371,18 +360,11 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         return False
 
 
-
 # Main -- Client Facing Code ---
 
-def sll_test_harness():
-    pass
-
-
 def main():
-
-    # ====== Input Data ======
-
-    # ====== TESTING LINKED LIST ======
+    # ====== Input Data ====== 
+    # ====== TESTING LINKED LIST ====== 
 
     sll = LinkedList(str)
     print(repr(sll))
@@ -479,12 +461,12 @@ def main():
     print(f"{sll.__contains__('RANDOM')}")
 
     print(f"\nAccessing Head")
-    current_head = sll.head()
+    current_head = sll.head
     print(f"The current head is: {current_head}")
     print(sll)
 
     print(f"\nAccessing Tail")
-    current_tail = sll.tail()
+    current_tail = sll.tail
     print(f"The current tail is: {current_tail}")
     print(sll)
 
