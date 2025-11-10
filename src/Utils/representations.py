@@ -28,19 +28,45 @@ def repr_view(view_obj):
 
 # region linked lists
 
-def str_node(self):
-    pass
+def str_sll_node(sll_node_obj):
+    node_element = f"{sll_node_obj.element}"
+    return f"{node_element}"
 
-def repr_node(self):
-    pass
+def repr_sll_node(sll_node_obj):
+    class_address = f"<{sll_node_obj.__class__.__qualname__} object at {hex(id(sll_node_obj))}>"
+    next_pointer = f"Next Pointer: {str(sll_node_obj.next)}"
+    node_element = f"Node: {sll_node_obj.element}"
+    linked = f"Node in a list?: {sll_node_obj.is_linked}"
+    owner = f"List Owner: {repr(sll_node_obj.list_owner)}"
+    return f"{class_address}, {node_element}, {next_pointer}, {linked}, {owner}"
 
 
+def str_sll(sll_obj, sep: str = " ->> "):
+    """Displays all the content of the linked list as a string."""
+    seperator = sep
+    datatype = sll_obj.datatype.__name__
+    total_nodes = sll_obj.total_nodes
+    class_name = sll_obj.__class__.__qualname__
+
+    if sll_obj._head is None:
+        return f"[{class_name}][{datatype}][{total_nodes}]"
+
+    def _simple_traversal():
+        """traverses the nodes and returns a string via generator"""
+        current_node = sll_obj._head
+        while current_node:
+            yield str(current_node._element)
+            current_node = current_node.next
+
+    infostring = f"[{class_name}][{datatype}][{total_nodes}]: (H) {seperator.join(_simple_traversal())} (T)"
+    return infostring
 
 
-
-
-
-
+def repr_sll(sll_obj):
+    class_address = f"<{sll_obj.__class__.__qualname__} object at {hex(id(sll_obj))}>"
+    datatype = sll_obj.datatype.__name__
+    total_nodes = sll_obj.total_nodes
+    return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
 
 
 # endregion
