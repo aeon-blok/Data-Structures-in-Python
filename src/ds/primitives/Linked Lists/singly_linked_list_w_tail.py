@@ -106,12 +106,35 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         empty_list_exception(self)
         return self._tail
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[T, None, None]:
         """Allows iteration over the Nodes in the linked list. (via for loops etc)"""
         current_node = self._head
         while current_node:
             yield current_node._element
             current_node = current_node.next
+
+    def search_by_index(self, index: int) -> Optional[iNode[T]]:
+        """Finds the Node at a specific index"""
+        if index < 0 or index >= self._total_nodes:
+            raise IndexError("Index Out of Bounds")
+
+        current_node = self._head
+        # node at current index position
+        for i in range(index):
+            current_node = current_node.next
+        return current_node
+
+    def search_for_index(self, element: T) -> Optional[int]:
+        """Return the index position of the first node that contains the value."""
+        # initialize
+        current_node = self._head
+        index = 0
+        while current_node:
+            if current_node.element == element:
+                return index
+            current_node = current_node.next
+            index += 1
+        return None # if data not found return None
 
     # ----- Mutator Operations -----
     def insert_head(self, element):
@@ -328,7 +351,6 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         return old_value
 
     # ----- Meta Collection ADT Operations -----
-
     def clear(self):
         while not self.is_empty():
             self.delete_head()
@@ -349,8 +371,8 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         return False
 
 
-# Main -- Client Facing Code ---
 
+# Main -- Client Facing Code ---
 
 def sll_test_harness():
     pass
