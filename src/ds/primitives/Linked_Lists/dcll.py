@@ -52,7 +52,7 @@ Additionally: The Tail points forwards to the Head, connecting the entire list i
 """
 
 # TODO: Add delete by value
-# TODO: add Slice (override __getsetitem__)
+# TODO: add Slice (override __gettitem__)
 # TODO: Merging Linked lists (maintaining order)
 # TODO: Splitting linked lists
 # TODO: add Search all indices (returns multiple indices...)
@@ -73,7 +73,7 @@ Additionally: The Tail points forwards to the Head, connecting the entire list i
 # TODO: Palindrome check
 
 
-class DoublyCircularList(LinkedListADT[T], Generic[T]):
+class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     """Implementation of DCL: """
     def __init__(self, datatype: type) -> None:
         self._head: Optional[iNode[T]] = None

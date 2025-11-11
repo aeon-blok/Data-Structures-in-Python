@@ -1,9 +1,12 @@
 from typing import TYPE_CHECKING
 
 # region custom imports
+from utils.positional_list_utils import positional_list_traversal
 if TYPE_CHECKING:
     from adts.sequence_adt import SequenceADT
     from adts.linked_list_adt import LinkedListADT
+    from adts.positional_list_adt import PositionalListADT
+
     from utils.custom_types import T
 
 # endregion
@@ -102,6 +105,47 @@ def repr_ll(ll_obj: "LinkedListADT[T]"):
 
 # endregion
 
+# region Positional Lists
+
+def repr_p_node(dll_node_obj: "PositionalListADT[T]"):
+    """"""
+    class_address = (f"<{dll_node_obj.__class__.__qualname__} object at {hex(id(dll_node_obj))}>")
+    prev_pointer = f"Prev: {str(dll_node_obj.prev)}"
+    next_pointer = f"Next: {str(dll_node_obj.next)}"
+    node_element = f"Node: {dll_node_obj.element}"
+    return f"{class_address}, {node_element}, {prev_pointer}, {next_pointer}"
+
+def repr_position(pl_obj):
+    """"""
+    class_address = (f"<{pl_obj.__class__.__qualname__} object at {hex(id(pl_obj))}>")
+    node_element = f"Node: {pl_obj.element}"
+    owner = f"Owner: {repr(pl_obj.container)}"
+    return f"{class_address}, {node_element}, {owner}"
+
+
+def str_positional_list(pl_obj, sep: str = " ->> "):
+    """Displays all the content of the linked list as a string."""
+    seperator = sep
+    datatype = pl_obj.datatype.__name__
+    total_nodes = pl_obj.total_nodes
+    class_name = pl_obj.__class__.__qualname__
+
+    if pl_obj.first() is None:
+        return f"[{class_name}][{datatype}][{total_nodes}]"
+
+    infostring = f"[{class_name}][{datatype}][{total_nodes}]: (H) {seperator.join(positional_list_traversal(pl_obj))} (T)"
+    return infostring
+
+
+def repr_positional_list(pl_obj):
+    """Displays the memory address and other useful info"""
+    class_address = f"<{pl_obj.__class__.__qualname__} object at {hex(id(pl_obj))}>"
+    datatype = pl_obj.datatype.__name__
+    total_nodes = pl_obj.total_nodes
+    return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
+
+
+# endregion
 
 # stacks
 

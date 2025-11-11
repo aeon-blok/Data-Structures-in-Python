@@ -21,15 +21,13 @@ T = TypeVar("T")
 
 
 # Interfaces
-
 class iNode(ABC, Generic[T]):
-    
     @abstractmethod
     def __repr__(self) -> str:
         pass
 
-class QueueADT(ABC, Generic[T]):
 
+class QueueADT(ABC, Generic[T]):
     # ----- Canonical ADT Operations -----
     @abstractmethod
     def enqueue(self, value: T):
@@ -69,7 +67,6 @@ class QueueADT(ABC, Generic[T]):
 
 
 # Concrete Implementations
-
 class Node(iNode[T]):
     def __init__(self, data: T) -> None:
         self.data = data

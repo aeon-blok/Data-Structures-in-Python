@@ -74,17 +74,17 @@ class PositionalListADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def before(self, position) -> Optional["iPosition"]:
+    def before(self, position: "iPosition[T]") -> Optional["iPosition"]:
         """return the position BEFORE specified position"""
         pass
 
     @abstractmethod
-    def after(self, position) -> Optional["iPosition"]:
+    def after(self, position: "iPosition[T]") -> Optional["iPosition"]:
         """return the position AFTER specified position"""
         pass
 
     @abstractmethod
-    def get(self, position) -> T:
+    def get(self, position: "iPosition[T]") -> T:
         """Return element(data) from specified position"""
         pass
 
@@ -95,38 +95,34 @@ class PositionalListADT(ABC, Generic[T]):
 
     # ----- Mutator ADT Operations -----
     @abstractmethod
-    def add_first(self, element) -> "iPosition":
+    def add_first(self, element: T) -> Optional["iPosition[T]"]:
         """Insert an element value and a new position at the Head"""
         pass
 
     @abstractmethod
-    def add_last(self, element) -> "iPosition":
+    def add_last(self, element: T) -> Optional["iPosition[T]"]:
         """Insert an element value & new position at the Tail"""
         pass
 
     @abstractmethod
-    def add_before(self, position, element) -> "iPosition":
+    def add_before(self, position: "iPosition[T]", element: T) -> Optional["iPosition[T]"]:
         """Insert an element value & position before a specified position"""
         pass
 
     @abstractmethod
-    def add_after(self, position, element) -> "iPosition":
+    def add_after(self, position: "iPosition[T]", element: T) -> Optional["iPosition[T]"]:
         """Insert an element value & position after a specified position"""
         pass
 
     @abstractmethod
-    def replace(self, position, element) -> T:
+    def replace(self, position: "iPosition[T]", element: T) -> T:
         """Replaces the element(value) at a specified Position"""
         pass
 
     @abstractmethod
-    def delete(self, position, element) -> T:
+    def delete(self, position: "iPosition[T]") -> T:
         """Removes an element(value) & position also. it reorganizes the list to not have these items."""
         pass
-
-
-
-
 
 
 class iNode(ABC, Generic[T]):
@@ -134,24 +130,24 @@ class iNode(ABC, Generic[T]):
 
     @property
     @abstractmethod
-    def prev(self):
+    def prev(self)-> Optional["iNode[T]"]:
         pass
 
     @property
     @abstractmethod
-    def next(self):
+    def next(self) -> Optional["iNode[T]"]:
         pass
 
     @property
     @abstractmethod
-    def element(self):
+    def element(self) -> T:
         pass
-
 
 
 class iPosition(ABC, Generic[T]):
     """External Interface for Proxy Object for the Nodes."""
 
+    @property
     @abstractmethod
     def element(self) -> T:
         pass

@@ -1,10 +1,31 @@
 import _collections_abc
-from collections import Counter
+from collections import Counter, deque
 
 # just random testing..... delete later
+# So basically, a deque is like a list, but optimized for front/back operations and with some extra “queue-friendly” methods.
+# slicing not supported in python deque - we can fix that :D
+dq = deque([2,3,5,6,7,7,8,0])
+print(dq)
+dq.append(25)
+dq.appendleft(1)
+print(dq)
+dq.pop()
+dq.popleft()
+print(dq)
+dq.rotate(4)
+print(dq)
+dq.rotate(-4)
+print(dq)
+print(dq.count(7))
+dq.remove(7)
+print(dq)
+dq.extend([100,200,300])
+dq.extendleft([1000,2000,3000])
+print(dq)
+dq.clear()
+print(dq)
 
 
-# todo seperate into its own module. can then import for all hash tables going forward instead of duplicating code....
 
 """
 representations.py - __str__ for all data structures
@@ -20,15 +41,12 @@ tree_utils.py
 """
 
 
-# todo test out deques - in collections.
 # todo research priority queues
 # todo positional list implementaiton
 # todo study stacks and queues a bit more.
-# todo refactor dcll and scll
 # todo refactor hash tables.
 # todo refactor general tree
-# todo write error handling decorator wrapper. (research circular imports if it will be an issue)
-# TODO: implement __next__ for generators
+# todo implement __next__ for generators
 
 
 # imports hierarchy
