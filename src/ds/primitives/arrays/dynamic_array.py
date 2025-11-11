@@ -22,10 +22,10 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.array_constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
-from utils.array_utils import initialize_new_array, grow_array, shrink_array, shift_elements_left, shift_elements_right, index_boundary_check
+from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
+from utils.array_utils import initialize_new_array, grow_array, shrink_array, shift_elements_left, shift_elements_right
 from utils.custom_types import T
-from utils.validation_utils import enforce_type
+from utils.validation_utils import enforce_type, index_boundary_check
 from utils.representations import str_array, repr_array, str_view, repr_view
 from adts.collection_adt import CollectionADT
 from adts.sequence_adt import SequenceADT

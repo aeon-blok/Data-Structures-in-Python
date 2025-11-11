@@ -9,6 +9,7 @@ from utils.representations import str_ll_node, repr_sll_node, str_ll, repr_ll
 from utils.linked_list_utils import validate_node, assert_list_not_empty, find_node_before_reference, assert_reference_node_exists
 from adts.collection_adt import CollectionADT
 from adts.linked_list_adt import LinkedListADT, iNode
+from ds.primitives.Linked_Lists.ll_nodes import Sll_Node
 
 
 # endregion
@@ -23,58 +24,12 @@ Sequential access: access by index requires traversal (O(n)).
 """
 
 
-# Concrete Classes
-class Node(iNode[T]):
-    """Node Element in Linked List"""
-
-    def __init__(self, element: T, is_linked: bool = False, list_owner=None) -> None:
-        self._element = element
-        # initialized as none, stores a reference to the next node in the linked list
-        self._next: Optional["Node[T]"] = None
-        self._is_linked = is_linked # checks if node is deleted or not.
-        # ensures the node belongs to the correct list, preventing cross-list misuse.
-        self._list_owner = list_owner
-
-
-    @property
-    def element(self):
-        return self._element
-    @element.setter
-    def element(self, value):
-        self._element = value
-    @property
-    def next(self):
-        return self._next
-    @next.setter
-    def next(self, value) -> None:
-        self._next = value
-    @property
-    def is_linked(self):
-        return self._is_linked
-    @is_linked.setter
-    def is_linked(self, value):
-        self._is_linked = value
-    @property
-    def list_owner(self):
-        return self._list_owner
-    @list_owner.setter
-    def list_owner(self, value):
-        self._list_owner = value
-
-    # ----- Utility Operations -----
-    def __str__(self):
-        return str_ll_node(self)
-
-    def __repr__(self):
-        return repr_sll_node(self)
-
-
 class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     """Implements a Singly Linked List with an additional tail node (for O(1) tail insertions)"""
 
     def __init__(self, datatype: Type[T]) -> None:
-        self._head: Optional[Node] = None  # first node in the linked list
-        self._tail: Optional[Node] = None
+        self._head: Optional[iNode] = None  # first node in the linked list
+        self._tail: Optional[iNode] = None
         self._total_nodes: int = 0  # tracks the number of nodes in the linked list
         self._datatype = datatype
 
@@ -146,7 +101,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """
 
         enforce_type(element, self._datatype)
-        new_node = Node(element, is_linked=True, list_owner=self)  # create new node object with user data
+        new_node = Sll_Node(element, is_linked=True, list_owner=self)  # create new node object with user data
         new_node.next = self._head  # insert before head
         self._head = new_node  # the new node becomes the new head
         self._total_nodes += 1  # update the linked list elements tracker
@@ -165,7 +120,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """
 
         enforce_type(element, self._datatype)
-        new_node = Node(element, is_linked=True, list_owner=self)
+        new_node = Sll_Node(element, is_linked=True, list_owner=self)
 
         if self._tail:
             self._tail.next = new_node  # tail now points to the new last node.
@@ -192,7 +147,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         validate_node(self, node, iNode)
         enforce_type(element, self._datatype)
 
-        new_node = Node(element, is_linked=True, list_owner=self)
+        new_node = Sll_Node(element, is_linked=True, list_owner=self)
         ref_node = node
 
         # Insert After Middle Case: otherwise add to chain
@@ -224,7 +179,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         enforce_type(element, self._datatype)
 
         # initialize nodes
-        new_node = Node(element, is_linked=True, list_owner=self)
+        new_node = Sll_Node(element, is_linked=True, list_owner=self)
         ref_node = node
 
         # Handle Insert Before Head Case: if ref node is the head - become new head -- O(1)

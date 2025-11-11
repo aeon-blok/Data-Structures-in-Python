@@ -1,3 +1,4 @@
+# region standard imports
 from typing import (
     Generic,
     TypeVar,
@@ -11,14 +12,16 @@ from typing import (
     Generator,
     Iterable,
     Type,
+    TYPE_CHECKING
 )
 from abc import ABC, ABCMeta, abstractmethod
-
+# endregion
 
 # region custom imports
 from utils.helpers import RandomClass
 from utils.custom_types import T
-from utils.validation_utils import enforce_type
+from utils.constants import DLL_SEPERATOR
+from utils.validation_utils import enforce_type, index_boundary_check
 from utils.representations import str_ll_node, repr_dll_node, repr_sll_node, str_ll, repr_ll
 from utils.linked_list_utils import (
     validate_node,
@@ -30,7 +33,7 @@ from utils.linked_list_utils import (
 )
 from adts.collection_adt import CollectionADT
 from adts.linked_list_adt import LinkedListADT, iNode
-
+from ds.primitives.Linked_Lists.ll_nodes import Dll_Node
 
 # endregion
 
@@ -40,58 +43,11 @@ Can move forwards or backwards in the list.
 """
 
 
-class Node(iNode[T]):
-    def __init__(self, element: T, is_linked: bool = False, list_owner=None) -> None:
-        self._element = element
-        self._prev: Optional[Node[T]] = None
-        self._next: Optional[Node[T]] = None
-        self._is_linked = is_linked
-        self._list_owner = list_owner
-
-    @property
-    def prev(self):
-        return self._prev
-    @prev.setter
-    def prev(self, value):
-        self._prev = value
-    @property
-    def next(self):
-        return self._next
-    @next.setter
-    def next(self, value):
-        self._next = value
-    @property
-    def element(self):
-        return self._element
-    @element.setter
-    def element(self, value):
-        self._element = value
-    @property
-    def is_linked(self):
-        return self._is_linked
-    @is_linked.setter
-    def is_linked(self, value):
-        self._is_linked = value
-    @property
-    def list_owner(self):
-        return self._list_owner
-    @list_owner.setter
-    def list_owner(self, value):
-        self._list_owner = value
-    
-    # ------------ Utilities ------------
-    def __repr__(self) -> str:
-        return repr_dll_node(self)
-
-    def __str__(self) -> str:
-        return str_ll_node(self)
-
-
 # Double Linked List
 class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def __init__(self, datatype: type) -> None:
-        self._head: Optional[Node[T]] = None
-        self._tail: Optional[Node[T]] = None
+        self._head: Optional["iNode[T]"] = None
+        self._tail: Optional["iNode[T]"] = None
         self._total_nodes: int = 0
         self._datatype = datatype
 
@@ -118,7 +74,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
             yield current_node._element
             current_node = current_node.prev
 
-    def __getitem__(self, key: iNode[T]) -> T:
+    def __getitem__(self, key: iNode[T] | int) -> T:
         """returns the node in the linked list. Overrides builtin: array style index search"""
         # if the key is a node - just return the element. (o(1))
         if isinstance(key, iNode):
@@ -130,7 +86,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         else:
             raise TypeError(f"Error: Invalid Key Provided. Please use a Node or an Index Number.")
 
-    def __setitem__(self, key: iNode[T], value: T) -> None:
+    def __setitem__(self, key: iNode[T] | int, value: T) -> None:
         """sets the value of a node in the linked list. Overrides builtin: array style index search O(n)"""
         if isinstance(key, iNode):
             key.element = value
@@ -142,7 +98,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
 
     def __str__(self) -> str:
         """Displays all the content of the linked list as a string."""
-        return str_ll(self, " <-> ")
+        return str_ll(self, DLL_SEPERATOR)
 
     def __repr__(self) -> str:
         """For Devs"""
@@ -238,9 +194,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def search_index(self, index: int) -> Optional["iNode[T]"]:
         """Average O(N/2) -- Adaptive Index Search: Searches for a specific index in the linked list and returns the node for further manipulation"""
 
-        if index < 0 or index >= self._total_nodes:
-            raise IndexError("Error: Index out of range...")
-
+        index_boundary_check(index, self._total_nodes)
         assert_list_not_empty(self)
 
         # if the index is less than half of the list size - start from the head
@@ -262,7 +216,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         """add a new node at the very beginning of the list — making it the new head."""
         enforce_type(element, self.datatype)
 
-        new_node = Node(element, is_linked =True, list_owner=self)
+        new_node = Dll_Node(element, is_linked =True, list_owner=self)
         new_node.prev = None
         # point to old head (if list is empty = None)
         new_node.next = self._head
@@ -284,7 +238,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         """insert a node at the end of the list - the tail."""
 
         enforce_type(element, self.datatype)
-        new_node = Node(element, is_linked =True, list_owner=self)
+        new_node = Dll_Node(element, is_linked=True, list_owner=self)
 
         # new tail prev should point to old tail.
         new_node.prev = self._tail
@@ -312,7 +266,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         validate_node(self, node, iNode)
         enforce_type(element, self.datatype)
 
-        new_node = Node(element, is_linked =True, list_owner=self)
+        new_node = Dll_Node(element, is_linked=True, list_owner=self)
         # Step 1: link the new node to the previous node
         new_node.prev = node
         # Step 2: link the new node to the future node
@@ -335,7 +289,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         assert_list_not_empty(self)
         validate_node(self, node, iNode)
         enforce_type(element, self.datatype)
-        new_node = Node(element, is_linked =True, list_owner=self)
+        new_node = Dll_Node(element, is_linked=True, list_owner=self)
 
         # Step 1: link the new node to the future node
         new_node._next = node

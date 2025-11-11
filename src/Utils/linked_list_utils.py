@@ -12,6 +12,7 @@ from typing import (
     Iterator,
     Generator,
     Iterable,
+    Type,
     TYPE_CHECKING
 )
 from abc import ABC, ABCMeta, abstractmethod
@@ -23,12 +24,13 @@ import ctypes
 # endregion
 
 # region custom imports
-from utils.custom_types import T
-
+if TYPE_CHECKING:
+    from utils.custom_types import T
+    from adts.linked_list_adt import LinkedListADT, iNode
 # endregion
 
 
-def validate_node(ll_obj, node, node_type):
+def validate_node(ll_obj: "LinkedListADT[T]", node: "iNode[T]", node_type: Type["iNode[T]"]):
     """Checks the node reference input"""
     if node is None:
         raise ValueError("Error: Reference Node Object cannot be None ")
@@ -39,22 +41,26 @@ def validate_node(ll_obj, node, node_type):
     if node.list_owner is not ll_obj:
         raise ValueError(f"Error: Reference Node: {node} does not belong to this linked list.")
 
-def assert_list_not_empty(ll_obj):
+
+def assert_list_not_empty(ll_obj: "LinkedListADT[T]"):
     """checks if the linked list is empty"""
     if ll_obj.is_empty():
-        raise ValueError(f"Error: The Linked list is empty. Total Nodes: {ll_obj._total_nodes}")
+        raise IndexError(f"Error: The Linked list is empty. Total Nodes: {ll_obj._total_nodes}")
 
-def check_node_exists(node):
+
+def check_node_exists(node: "iNode[T]"):
     """check if a node exists."""
     if node is None:
-        raise ValueError("Node cannot be None, please give a valid Node.")
+        raise IndexError("Node cannot be None, please give a valid Node.")
 
-def check_node_after_exists(node):
+
+def check_node_after_exists(node: "iNode[T]"):
     """checks if there is a node after the specified node"""
     if not node.next:
         raise IndexError("Error: No node exists after the specified node...")
 
-def check_node_before_exists(node):
+
+def check_node_before_exists(node: "iNode[T]"):
     """Checks there is a node before the reference node. Useful for insertions and deletions"""
     if not node.prev:
         raise IndexError("No Node exists before the specified node...")
@@ -62,16 +68,37 @@ def check_node_before_exists(node):
 
 # region SLL
 
-def find_node_before_reference(sll_obj, ref_node):
+def find_node_before_reference(sll_obj: "LinkedListADT[T]", ref_node: "iNode[T]"):
     """traverses the singly linked list to 1 node before the reference node"""
     current_node = sll_obj._head
     while current_node and current_node.next != ref_node:
         current_node = current_node.next
     return current_node
 
-def assert_reference_node_exists(current_node, ref_node):
+
+def assert_reference_node_exists(current_node: "iNode[T]", ref_node: "iNode[T]"):
     """Checks if the reference node exists. - if None - its the tail. (used when traversing a Singly Linked List)"""
     if current_node is None:
-        raise ValueError(f"Error: Node {ref_node}: was not found in the list.")
+        raise IndexError(f"Error: Node {ref_node}: was not found in the list.")
+
+# endregion
+
+# region DCLL
+
+
+def traverse_dcll_nodes(ll_obj: "LinkedListADT[T]"):
+    """generator that traverses a dcll and returns nodes (lazily)"""
+    current_node = ll_obj._head
+
+    # empty list Case:
+    if not current_node:
+        return
+
+    while current_node:
+        yield current_node
+        current_node = current_node.next
+        if current_node is ll_obj._head:
+            break
+
 
 # endregion

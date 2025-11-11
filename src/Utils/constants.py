@@ -1,4 +1,4 @@
-#region imports
+# region imports
 
 from typing import (
     Generic,
@@ -17,14 +17,15 @@ from abc import ABC, ABCMeta, abstractmethod
 import numpy
 import ctypes
 
-#endregion
-
+# endregion
 
 
 ARRAY_GROWTH_FACTOR: int = 2    # amount to resize when growing array
 ARRAY_SHRINK_FACTOR: int = 2    # amount to resize when shrinking array
 SHRINK_CAPACITY_RATIO: int = 4  # divide capacity by this number   capacity // 4
 
+SLL_SEPERATOR = " ->> "
+DLL_SEPERATOR = " <-> "
 
 CTYPES_DATATYPES = {
     int: ctypes.c_int,

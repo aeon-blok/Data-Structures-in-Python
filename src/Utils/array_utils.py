@@ -22,7 +22,7 @@ import ctypes
 # endregion
 
 # region custom imports
-from utils.array_constants import CTYPES_DATATYPES, NUMPY_DATATYPES, ARRAY_GROWTH_FACTOR, ARRAY_SHRINK_FACTOR
+from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, ARRAY_GROWTH_FACTOR, ARRAY_SHRINK_FACTOR
 from utils.custom_types import T
 
 if TYPE_CHECKING:   # does not run at runtime - avoids circular imports.
@@ -30,15 +30,6 @@ if TYPE_CHECKING:   # does not run at runtime - avoids circular imports.
 
 # endregion
 
-
-def index_boundary_check(index: int, capacity: int, is_insert: bool = False) -> None:
-    """Checks that the index is a valid number for the array. -- index needs to be greater or equal to 0 and smaller than the number of elements (size)"""
-    if is_insert:
-        if index < 0 or index > capacity:
-            raise IndexError("Error: Index is out of bounds.")
-    else:
-        if index < 0 or index >= capacity:
-            raise IndexError("Error: Index is out of bounds.")
 
 def init_ctypes_array(datatype: type, capacity: int) -> ctypes.Array:
     """Creates a CTYPES array - much faster than standard python list. but is fixed in size and restricted in datatypes it can use..."""
