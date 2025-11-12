@@ -9,6 +9,9 @@ from typing import (
     cast,
     Iterator,
     Generator,
+    Type,
+    Iterable,
+    TYPE_CHECKING,
 )
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
@@ -16,18 +19,18 @@ import numpy
 import ctypes
 
 
-"""
-Dynamic array based Stack. Automatically resizes when it gets close to full.
-Dynamic capacity (resize up/down, usually ×2 / ÷2).
-Double capacity on full 
-Half capacity when ≤25% full
-user supplied initial capacity > 1
-Static Type Validation
-Overflow & Underflow Errors
-"""
+# region custom imports
+from utils.custom_types import T
 
 
-T = TypeVar("T")
+# endregion
+
+
+"""
+Stack ADT:
+A stack is a sequential collection of elements that follow the LIFO principle (the last element inserted is also the first element to be removed)
+Insertions and Deletions only occur at one position - the Top
+"""
 
 
 # interface
@@ -36,34 +39,16 @@ class StackADT(ABC, Generic[T]):
 
     # ----- Canonical ADT Operations -----
     @abstractmethod
-    def push(self, value: T) -> None:
+    def push(self, element: T) -> None:
+        """ Insert Element to the Top of the stack"""
         pass
 
     @abstractmethod
     def pop(self) -> T:
+        """ remove and return the Top element of the stack"""
         pass
 
     @abstractmethod
     def peek(self) -> T:
-        pass
-
-    # ----- Meta Collection ADT Operations -----
-    @abstractmethod
-    def is_empty(self) -> bool:
-        pass
-
-    @abstractmethod
-    def __len__(self) -> int:
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        pass
-
-    @abstractmethod
-    def __contains__(self, value: T) -> bool:
-        pass
-
-    @abstractmethod
-    def __iter__(self) -> Generator[T, None, None]:
+        """ return (but do NOT remove) the Top element of the stack"""
         pass

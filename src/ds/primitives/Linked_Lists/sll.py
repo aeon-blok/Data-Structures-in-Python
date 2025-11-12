@@ -1,12 +1,26 @@
-from typing import Generic, TypeVar, List, Dict, Optional, Callable, Any, cast, Iterator, Generator, Iterable, Type
+from typing import (
+    Generic,
+    TypeVar,
+    List,
+    Dict,
+    Optional,
+    Callable,
+    Any,
+    cast,
+    Iterator,
+    Generator,
+    Iterable,
+    Type,
+)
 from abc import ABC, ABCMeta, abstractmethod
 
 # region custom imports
 from utils.helpers import RandomClass
 from utils.custom_types import T
-from utils.validation_utils import enforce_type
-from utils.representations import str_ll_node, repr_sll_node, str_ll, repr_ll
-from utils.linked_list_utils import validate_node, assert_list_not_empty, find_node_before_reference, assert_reference_node_exists
+from utils.validation_utils import DsValidation
+from utils.representations import LinkedListRepr
+
+from ds.primitives.Linked_Lists.linked_list_utils import LinkedListUtils
 from adts.collection_adt import CollectionADT
 from adts.linked_list_adt import LinkedListADT, iNode
 from ds.primitives.Linked_Lists.ll_nodes import Sll_Node
@@ -32,32 +46,39 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         self._tail: Optional[iNode] = None
         self._total_nodes: int = 0  # tracks the number of nodes in the linked list
         self._datatype = datatype
+        # composed objects
+        self._validators = DsValidation()
+        self._utils = LinkedListUtils(self)
+        self._desc = LinkedListRepr(self)
 
     @property
     def datatype(self):
         return self._datatype
+
     @property
     def total_nodes(self):
         return self._total_nodes
+
     @property
     def head(self):
         """returns the head node if it exists for use as a reference."""
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         return self._head
+
     @property
     def tail(self):
         """returns the tail node if it exists for use as a reference"""
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         return self._tail
 
     # ----- Utility Operations -----
 
     def __str__(self) -> str:
         """Displays all the content of the linked list as a string."""
-        return str_ll(self, " ->> ")
+        return self._desc.str_ll()
 
     def __repr__(self) -> str:
-        return repr_ll(self)
+        return self._desc.repr_ll()
 
     # ----- Canonical ADT Operations -----
     # ----- Accessor Operations -----
@@ -66,7 +87,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """Allows iteration over the Nodes in the linked list. (via for loops etc)"""
         current_node = self._head
         while current_node:
-            yield current_node._element
+            yield current_node.element
             current_node = current_node.next
 
     def search_by_index(self, index: int) -> Optional[iNode[T]]:
@@ -90,7 +111,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
                 return index
             current_node = current_node.next
             index += 1
-        return None # if data not found return None
+        return None  # if data not found return None
 
     # ----- Mutator Operations -----
     def insert_head(self, element):
@@ -100,8 +121,10 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         Case 2: replace current head with new node. rereference head
         """
 
-        enforce_type(element, self._datatype)
-        new_node = Sll_Node(element, is_linked=True, list_owner=self)  # create new node object with user data
+        self._validators.enforce_type(element, self._datatype)
+        new_node = Sll_Node(
+            element, is_linked=True, list_owner=self
+        )  # create new node object with user data
         new_node.next = self._head  # insert before head
         self._head = new_node  # the new node becomes the new head
         self._total_nodes += 1  # update the linked list elements tracker
@@ -110,7 +133,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         if self._tail is None:
             self._tail = new_node
 
-        return new_node # returns the node for reference
+        return new_node  # returns the node for reference
 
     def insert_tail(self, element):
         """
@@ -119,7 +142,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         Case 2: replace current tail - rereference tail
         """
 
-        enforce_type(element, self._datatype)
+        self._validators.enforce_type(element, self._datatype)
         new_node = Sll_Node(element, is_linked=True, list_owner=self)
 
         if self._tail:
@@ -143,16 +166,16 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         Case 2: Insert After Middle
         Case 3: Node Not Found
         """
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        enforce_type(element, self._datatype)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self._datatype)
 
         new_node = Sll_Node(element, is_linked=True, list_owner=self)
         ref_node = node
 
         # Insert After Middle Case: otherwise add to chain
-        new_node.next = ref_node.next # link to 1 after ref  
-        ref_node.next = new_node    # link ref to new node
+        new_node.next = ref_node.next  # link to 1 after ref
+        ref_node.next = new_node  # link ref to new node
 
         # Insert After Tail Case: if ref node is the tail - new node becomes the tail. -- also works for 1 member llist - head is the tail.
         if ref_node == self._tail:
@@ -172,11 +195,11 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """
 
         # Handle Empty List Case:
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
 
         # validate
-        validate_node(self, node, iNode)
-        enforce_type(element, self._datatype)
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self._datatype)
 
         # initialize nodes
         new_node = Sll_Node(element, is_linked=True, list_owner=self)
@@ -188,8 +211,8 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             self._head = new_node
         else:
             # Handle Insert Before Middle Case: traverse linked list and add to chain. -- O(n)
-            current_node = find_node_before_reference(self, ref_node)
-            assert_reference_node_exists(current_node, ref_node)
+            current_node = self._utils.find_sll_node_before_reference(ref_node)
+            self._utils.assert_sll_reference_node_exists(current_node, ref_node)
             # insert new node into chain
             current_node.next = new_node
             new_node.next = ref_node
@@ -199,9 +222,9 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def replace(self, node, element):
         """replaces the element(value) at a specific node reference. - returns the old (replaced) value!"""
-        assert_list_not_empty(self)
-        enforce_type(element, self._datatype)
-        validate_node(self, node, iNode)
+        self._utils.assert_list_not_empty()
+        self._validators.enforce_type(element, self._datatype)
+        self._utils.validate_node(node, iNode)
 
         old_value = node.element
         node.element = element
@@ -211,8 +234,8 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def delete(self, node):
         """removes a specific Node via node reference O(N) - Use a doubly linked list for O(1)."""
 
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
 
         old_node = node
         old_value = node.element
@@ -225,10 +248,10 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             return self.delete_tail()
         else:
             # traverse to node reference
-            current_node = find_node_before_reference(self, old_node)
+            current_node = self._utils.find_sll_node_before_reference(old_node)
 
             # Case: ref node is tail:
-            assert_reference_node_exists(current_node, old_node)
+            self._utils.assert_sll_reference_node_exists(current_node, old_node)
 
             # update pointers to unlink ref node
             current_node.next = node.next
@@ -247,7 +270,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         Case 2: 1 Member List (Head is Tail) - delete last member and make list empty
         Case 3: replace current head with its neighbour
         """
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         old_head = self._head
         old_head_element = self._head.element
 
@@ -268,7 +291,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def delete_tail(self) -> T:
         """Delete the tail node - in singly linked list this is O(N)"""
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
 
         old_tail = self._tail
         old_value = self._tail.element
@@ -282,7 +305,7 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             while current_node.next != self._tail:
                 current_node = current_node.next
 
-            current_node.next = None    # dereference old tail
+            current_node.next = None  # dereference old tail
             # replace tail
             self._tail = current_node
 
@@ -317,9 +340,10 @@ class LinkedList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
 # Main -- Client Facing Code ---
 
+
 def main():
-    # ====== Input Data ====== 
-    # ====== TESTING LINKED LIST ====== 
+    # ====== Input Data ======
+    # ====== TESTING LINKED LIST ======
 
     sll = LinkedList(str)
     print(repr(sll))
@@ -439,6 +463,7 @@ def main():
 
     print(f"\nIs the list empty?: {sll.is_empty()}")
     print(sll)
+
 
 if __name__ == "__main__":
     main()

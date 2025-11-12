@@ -22,15 +22,12 @@ from abc import ABC, ABCMeta, abstractmethod
 from utils.helpers import RandomClass
 from utils.custom_types import T
 from utils.constants import DLL_SEPERATOR
-from utils.validation_utils import enforce_type, index_boundary_check
-from utils.representations import (
-    str_ll_node,
-    repr_dll_node,
-    repr_sll_node,
-)
-from adts.linked_list_adt import iNode
+from utils.representations import DllNodeRepr, SllNodeRepr
+
 if TYPE_CHECKING:
     from adts.linked_list_adt import LinkedListADT
+
+from adts.linked_list_adt import iNode
 
 
 # endregion
@@ -47,6 +44,9 @@ class Sll_Node(iNode[T]):
         self._is_linked = is_linked  # checks if node is deleted or not.
         # ensures the node belongs to the correct list, preventing cross-list misuse.
         self._list_owner = list_owner
+
+        # composed objects
+        self._desc = SllNodeRepr(self)
 
     @property
     def element(self):
@@ -82,11 +82,10 @@ class Sll_Node(iNode[T]):
 
     # ----- Utility Operations -----
     def __str__(self):
-        return str_ll_node(self)
+        return self._desc.str_ll_node()
 
     def __repr__(self):
-        return repr_sll_node(self)
-
+        return self._desc.repr_sll_node()
 
 class Dll_Node(iNode[T]):
     def __init__(self, element: T, is_linked: bool = False, list_owner=None) -> None:
@@ -95,6 +94,7 @@ class Dll_Node(iNode[T]):
         self._next: Optional["iNode[T]"] = None
         self._is_linked = is_linked
         self._list_owner = list_owner
+        self._desc = DllNodeRepr(self)
 
     @property
     def prev(self):
@@ -138,7 +138,7 @@ class Dll_Node(iNode[T]):
 
     # ------------ Utilities ------------
     def __repr__(self) -> str:
-        return repr_dll_node(self)
+        return self._desc.repr_dll_node()
 
     def __str__(self) -> str:
-        return str_ll_node(self)
+        return self._desc.str_ll_node()

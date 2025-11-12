@@ -21,19 +21,16 @@ from abc import ABC, ABCMeta, abstractmethod
 from utils.helpers import RandomClass
 from utils.custom_types import T
 from utils.constants import DLL_SEPERATOR
-from utils.validation_utils import enforce_type, index_boundary_check
-from utils.representations import str_ll_node, repr_dll_node, repr_sll_node, str_ll, repr_ll
-from utils.linked_list_utils import (
-    validate_node,
-    assert_list_not_empty,
-    find_node_before_reference,
-    assert_reference_node_exists,
-    check_node_after_exists,
-    check_node_before_exists
-)
+from utils.validation_utils import DsValidation
+from utils.exceptions import *
+from utils.representations import LinkedListRepr
+
 from adts.collection_adt import CollectionADT
 from adts.linked_list_adt import LinkedListADT, iNode
+
 from ds.primitives.Linked_Lists.ll_nodes import Dll_Node
+from ds.primitives.Linked_Lists.linked_list_utils import LinkedListUtils
+
 
 # endregion
 
@@ -50,14 +47,18 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         self._tail: Optional["iNode[T]"] = None
         self._total_nodes: int = 0
         self._datatype = datatype
+        # composed objects
+        self._validators = DsValidation()
+        self._utils = LinkedListUtils(self)
+        self._desc = LinkedListRepr(self)
 
     @property
     def head(self):
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         return self._head
     @property
     def tail(self):
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         return self._tail
     @property
     def datatype(self):
@@ -71,7 +72,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         """Python Built in - reverses iteration"""
         current_node = self._tail
         while current_node:
-            yield current_node._element
+            yield current_node.element
             current_node = current_node.prev
 
     def __getitem__(self, key: iNode[T] | int) -> T:
@@ -84,7 +85,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
             item = self.search_index(key)
             return item.element
         else:
-            raise TypeError(f"Error: Invalid Key Provided. Please use a Node or an Index Number.")
+            raise KeyInvalidError()
 
     def __setitem__(self, key: iNode[T] | int, value: T) -> None:
         """sets the value of a node in the linked list. Overrides builtin: array style index search O(n)"""
@@ -94,23 +95,23 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
             item = self.search_index(key)
             item.element = value
         else:
-            raise TypeError(f"Error: Invalid Key Provided. Please use a Node or an Index Number.")
+            raise KeyInvalidError()
 
     def __str__(self) -> str:
         """Displays all the content of the linked list as a string."""
-        return str_ll(self, DLL_SEPERATOR)
+        return self._desc.str_ll(DLL_SEPERATOR)
 
     def __repr__(self) -> str:
         """For Devs"""
-        return repr_ll(self)
+        return self._desc.repr_ll()
 
     # ----- Meta Collection ADT Operations -----
     def __iter__(self) -> Generator[T, None, None]:
         """Builtin: List can now be iterated over in loops etc..."""
         current_node = self._head
         while current_node:
-            yield current_node._element
-            current_node = current_node._next
+            yield current_node.element
+            current_node = current_node.next
 
     def __len__(self) -> int:
         """Override Python Built in to ensure the nodes list is returned"""
@@ -120,9 +121,9 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         """return True or False if a node contains the specified data."""
         current_node = self._head
         while current_node:
-            if current_node._element == value:
+            if current_node.element == value:
                 return True
-            current_node = current_node._next
+            current_node = current_node.next
         return False
 
     def clear(self) -> None:
@@ -138,14 +139,14 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     # ----- Accessor Operations -----
     def search_value(self, element: T, reverse: bool=False) -> Optional["iNode[T]"]:
         """Finds the first value that matches a node -- O(N)"""
-        assert_list_not_empty(self)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._validators.enforce_type(element, self.datatype)
 
         current_node = self._tail if reverse else self._head
         while current_node:
-            if current_node._element == element:
+            if current_node.element == element:
                 return current_node 
-            current_node = current_node._prev if reverse else current_node._next
+            current_node = current_node.prev if reverse else current_node.next
         return None
 
     def bidirectional_search_value(self, element: T) -> Optional["iNode[T]"]:
@@ -162,14 +163,14 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         right = self._tail
 
         # Existence check and crossover check
-        while (left and right) and (left != right._next):
-            if left._element == element:
+        while (left and right) and (left != right.next):
+            if left.element == element:
                 return left
-            if right._element == element:
+            if right.element == element:
                 return right
             # move to next step
-            left = left._next
-            right = right._prev
+            left = left.next
+            right = right.prev
         return None  # No value found
 
     def search_all_values(self, element: T) -> Generator["iNode[T]", None, None]:
@@ -185,7 +186,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
         current_node = self._head
         index = 0
         while current_node:
-            if current_node._element == element:
+            if current_node.element == element:
                 return index
             index += 1
             current_node = current_node.next
@@ -194,8 +195,8 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def search_index(self, index: int) -> Optional["iNode[T]"]:
         """Average O(N/2) -- Adaptive Index Search: Searches for a specific index in the linked list and returns the node for further manipulation"""
 
-        index_boundary_check(index, self._total_nodes)
-        assert_list_not_empty(self)
+        self._validators.index_boundary_check(index, self._total_nodes)
+        self._utils.assert_list_not_empty()
 
         # if the index is less than half of the list size - start from the head
         if index < self._total_nodes // 2:
@@ -214,7 +215,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     # ----- Mutator Operations -----
     def insert_head(self, element):
         """add a new node at the very beginning of the list — making it the new head."""
-        enforce_type(element, self.datatype)
+        self._validators.enforce_type(element, self.datatype)
 
         new_node = Dll_Node(element, is_linked =True, list_owner=self)
         new_node.prev = None
@@ -237,7 +238,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def insert_tail(self, element):
         """insert a node at the end of the list - the tail."""
 
-        enforce_type(element, self.datatype)
+        self._validators.enforce_type(element, self.datatype)
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
 
         # new tail prev should point to old tail.
@@ -246,7 +247,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
 
         # Tail Exists Case: is there an exsiting tail. (if so should point to new tail)
         if self._tail:
-            self._tail._next = new_node
+            self._tail.next = new_node
         # Empty List Case: if list is empty - head and tail are same so insert at head and tail
         else:
             self._head = new_node
@@ -262,9 +263,9 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def insert_after(self, node, element):
         """Inserts a new node after a specific node -- O(1)"""
 
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self.datatype)
 
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
         # Step 1: link the new node to the previous node
@@ -286,9 +287,9 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def insert_before(self, node, element):
         """Inserts a new node before a specific node -- O(1)"""
 
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self.datatype)
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
 
         # Step 1: link the new node to the future node
@@ -310,9 +311,9 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
 
     def replace(self, node, element):
         """replace value of a specific node. returns the old value."""
-        assert_list_not_empty(self)
-        validate_node(self,node,iNode)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty(self)
+        self._utils.validate_node(self,node,iNode)
+        self._validators.enforce_type(element, self.datatype)
         old_value = node.element
         node.element = element
         return old_value
@@ -320,8 +321,8 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def delete(self, node):
         """Delete a node via reference -- O(1)"""
         # Empty List Case:
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
 
         # initialize nodes
         old_node = node
@@ -356,7 +357,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def delete_head(self):
         """Deletes Node at the Head Position"""
 
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         old_head = self._head
         old_value = self._head.element
 
@@ -381,7 +382,7 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def delete_tail(self):
         """Deletes the Node at the Tail Position"""
 
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         old_tail = self._tail    # for dereferencing
         old_value = self._tail.element
 
@@ -404,9 +405,9 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def delete_after(self, node):
         """Deletes Node that comes after a specified Node"""
 
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        check_node_after_exists(node)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._utils.check_node_after_exists(node)
 
         # Step 1: Set Target for deletion
         old_node = node.next
@@ -432,9 +433,9 @@ class DoublyLinkedList(LinkedListADT[T], Generic[T]):
     def delete_before(self, node):
         """Deletes Node that comes before a specified Node"""
 
-        assert_list_not_empty(self)
-        validate_node(self,node,iNode)
-        check_node_before_exists(node)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._utils.check_node_before_exists(node)
 
         # Step 1: initialize nodes
         old_node = node.prev

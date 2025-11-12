@@ -26,21 +26,6 @@ dq.clear()
 print(dq)
 
 
-
-"""
-representations.py - __str__ for all data structures
-validation_utils.py - validation logic for all data structures?
-custom_types.py
-hash_utils/
-  hash_functions.py
-  compression.py
-  probe_functions.py
-array_utils.py
-linked_list_utils.py
-tree_utils.py
-"""
-
-
 # todo research priority queues
 # todo positional list implementaiton
 # todo study stacks and queues a bit more.
@@ -48,6 +33,7 @@ tree_utils.py
 # todo refactor general tree
 # todo implement __next__ for generators
 
-
-# imports hierarchy
-# core → primitives → containers(or linear ds, or sequences) → maps → trees → graphs → algorithms
+# todo Solve problems: balanced parentheses, LRU cache, two-sum problem using hash tables
+# todo trees -- Solve problems: heap sort, k largest elements, lowest common ancestor
+# todo graphs -- Solve: connected components, shortest path, cycle detection
+# todo Implement mini projects like a LRU cache, social network connections, or mini graph algorithms

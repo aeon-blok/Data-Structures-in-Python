@@ -20,25 +20,14 @@ from abc import ABC, ABCMeta, abstractmethod
 # region custom imports
 from utils.helpers import RandomClass
 from utils.custom_types import T
-from utils.validation_utils import enforce_type, index_boundary_check
-from utils.representations import (
-    str_ll_node,
-    repr_dll_node,
-    str_ll,
-    repr_ll,
-)
-from utils.linked_list_utils import (
-    validate_node,
-    assert_list_not_empty,
-    find_node_before_reference,
-    assert_reference_node_exists,
-    check_node_after_exists,
-    check_node_before_exists,
-    traverse_dcll_nodes,
-)
+from utils.validation_utils import DsValidation
+from utils.exceptions import *
+from utils.representations import DllNodeRepr, LinkedListRepr
 from adts.collection_adt import CollectionADT
 from adts.linked_list_adt import LinkedListADT, iNode
+
 from ds.primitives.Linked_Lists.ll_nodes import Dll_Node
+from ds.primitives.Linked_Lists.linked_list_utils import LinkedListUtils
 
 
 # endregion
@@ -60,6 +49,7 @@ Additionally: The Tail points forwards to the Head, connecting the entire list i
 # TODO: Count how many times a value appears in the linked list...
 # TODO: remove every N node
 # TODO: implement __next__ for generators
+# todo Solve simple problems: reverse a linked list, detect a cycle, merge two sorted lists
 
 # TODO: Interview additions:
 # TODO: Find middle Node
@@ -80,6 +70,10 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         self._tail: Optional[iNode[T]] = None
         self._total_nodes: int = 0
         self._datatype = datatype
+        # composed objects
+        self._validators = DsValidation()
+        self._utils = LinkedListUtils(self)
+        self._desc = LinkedListRepr(self)
 
     @property
     def head(self):
@@ -97,7 +91,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     # ----- Meta Collection ADT Operations -----
     def __iter__(self) -> Generator[T, None, None]:
         """iterates over the linked list and returns element values."""
-        for node in traverse_dcll_nodes(self):
+        for node in self._utils.traverse_dcll_nodes():
             yield node.element
 
     def __contains__(self, value: T):
@@ -137,9 +131,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             item = self._search_index(key)
             return item.element
         else:
-            raise TypeError(
-                f"Error: Invalid Key Provided. Please use a Node or an Index Number."
-            )
+            raise KeyInvalidError()
 
     def __setitem__(self, key: iNode[T] | int, value: T) -> None:
         """Overrides python built in - access linked list like an array -- O(N)"""
@@ -150,7 +142,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
             item = self._search_index(key)
             item.element = value
         else:
-            raise TypeError(f"Error: Invalid Key Provided. Please use a Node or an Index Number.")
+            raise KeyInvalidError()
 
     def __reversed__(self):
         """Python Built in - reverses iteration"""
@@ -169,16 +161,16 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def __str__(self) -> str:
         """Displays all the content of the linked list as a string."""
-        return str_ll(self)
+        return self._desc.str_ll()
 
     def __repr__(self) -> str:
-        return repr_ll(self)
+        return self._desc.repr_ll()
 
     # ----- Accessor Operations -----
     def search_value(self, element: T, reverse=False) -> Optional["iNode[T]"]:
         """Finds the first node that matches a value -- O(N)"""
-        assert_list_not_empty(self)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._validators.enforce_type(element, self.datatype)
 
         # can go from the head or the tail
         current_node = self._tail if reverse else self._head
@@ -194,8 +186,8 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def bidirectional_search_value(self, element) -> Optional["iNode[T]"]:
         """Searches for the first or last value that matches a node -- O(N/2) """
-        assert_list_not_empty(self)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._validators.enforce_type(element, self.datatype)
 
         left = self._head
         right = self._tail
@@ -214,8 +206,8 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def search_all_values(self, element: T) -> Generator["iNode[T]", None, None]:
         """searches for all the Nodes that match a specific value, and yields them as a generator - can be used with loops"""
 
-        assert_list_not_empty(self)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._validators.enforce_type(element, self.datatype)
 
         current_node = self._head
 
@@ -233,8 +225,8 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def _search_index(self, index: int) -> Optional["iNode[T]"]:
         """ Average O(N/2) -- Adaptive Index Search: Searches for a specific index in the linked list and returns the node or data for further manipulation"""
 
-        assert_list_not_empty(self)
-        index_boundary_check(index, self._total_nodes)
+        self._utils.assert_list_not_empty()
+        self._validators.index_boundary_check(index, self._total_nodes)
 
         # if the index is less than half of the list size - start from the head
         if index < self._total_nodes // 2:
@@ -251,7 +243,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def search_for_index_by_value(self, element: T, reverse: bool=False) -> Optional[int]:
         """Searches for a specific value and returns the first or last index number (via reverse) for that value."""
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
 
         index = self._total_nodes -1 if reverse else 0
         step = -1 if reverse else 1
@@ -269,7 +261,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """Insert Node at the head position"""
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
 
-        enforce_type(element, self.datatype)
+        self._validators.enforce_type(element, self.datatype)
         # Empty Case & 1 Member Case: if the list is empty or has 1 node:
         if self._head is None:
             self._head = self._tail = new_node
@@ -291,7 +283,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
         self._total_nodes += 1  # increment size tracker
         return new_node
-    
+
     def insert_tail(self, element):
         """Insert Node into tail position"""
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
@@ -321,9 +313,9 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """Insert Node in the position after a reference node..."""
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
         # existence check for list
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self.datatype)
         # if there is only 1 node (new node becomes the tail)
         if self._head == self._tail:
             # new node points back to head
@@ -366,9 +358,9 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
         """Inserts a Node before a reference node position"""
         new_node = Dll_Node(element, is_linked=True, list_owner=self)
         # existence check for list
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self.datatype)
 
         # if there is only 1 node or ref node is the head -> (new node becomes the head)
         if self._head == self._tail or node == self._head:
@@ -388,9 +380,9 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def replace(self, node, element):
         """replaces a value of a specific node and returns the old value."""
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
-        enforce_type(element, self.datatype)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
+        self._validators.enforce_type(element, self.datatype)
         old_value = node.element
         node.element = element
         return old_value
@@ -399,8 +391,8 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def delete(self, node):
         """Deletes a node from the linked list and returns the old value."""
         # empty list Case:
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
 
         old_node = node
         old_value = node.element
@@ -437,7 +429,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def delete_head(self):
         # is list empty?
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
 
         old_head = self._head
         old_value = self._head.element    # original head data for return
@@ -462,7 +454,7 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
 
     def delete_tail(self):
         # check if list is not empty
-        assert_list_not_empty(self)
+        self._utils.assert_list_not_empty()
         old_tail = self._tail
         old_value = self._tail.element
 
@@ -486,8 +478,8 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def delete_after(self, node):
         """Delete Node after supplied reference node position..."""
         # check if list is not empty
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
 
         old_node = node.next
         old_value = old_node.element
@@ -519,8 +511,8 @@ class DoublyCircularList(LinkedListADT[T], CollectionADT[T], Generic[T]):
     def delete_before(self, node):
         """Delete Node before specified reference node..."""
 
-        assert_list_not_empty(self)
-        validate_node(self, node, iNode)
+        self._utils.assert_list_not_empty()
+        self._utils.validate_node(node, iNode)
 
         old_node = node.prev
         old_value = node.prev.data
@@ -656,7 +648,8 @@ def main():
     print(f"Get item via node reference: {dcll[node_f]}")
     dcll[node_f] = "6849"
     print(f"Set item via node reference: {dcll[node_f]}")
-
+    print(dcll)
+    
     print(f"List length: {len(dcll)}")
     print(f"Is '10' in DCLL? {'10' in dcll}")
     print(f"Is '200' in DCLL? {'200' in dcll}")
@@ -679,19 +672,19 @@ def main():
 
     try:
         dcll.replace(node, RandomClass("YOLO"))
-    except TypeError as e:
+    except Exception as e:
         print(f"Caught enforce_type error: {e}")
 
     # validate_node errors
     fake_node = "not_a_node"
     try:
         dcll.insert_after(fake_node, "X")
-    except TypeError as e:
+    except Exception as e:
         print(f"Caught validate_node error: {e}")
 
     try:
         dcll.delete(fake_node)
-    except TypeError as e:
+    except Exception as e:
         print(f"Caught validate_node error: {e}")
 
     # deleting from empty list

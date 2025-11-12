@@ -22,12 +22,16 @@ from abc import ABC, ABCMeta, abstractmethod
 from utils.helpers import RandomClass
 from utils.custom_types import T
 from utils.constants import DLL_SEPERATOR
-from utils.validation_utils import enforce_type, index_boundary_check
-from utils.representations import repr_positional_list, str_positional_list
-from utils.positional_list_utils import validate_position, make_position, insert_between, positional_list_traversal
+from utils.validation_utils import DsValidation
+from utils.exceptions import *
+from utils.representations import PlistRepr
+
+
 from adts.collection_adt import CollectionADT
 from adts.positional_list_adt import PositionalListADT, iNode, iPosition
+
 from ds.primitives.Positional_Lists.position import PNode, Position
+from ds.primitives.Positional_Lists.positional_list_utils import PositionalListUtils
 
 # endregion
 
@@ -35,6 +39,7 @@ from ds.primitives.Positional_Lists.position import PNode, Position
 class PositionalList(PositionalListADT[T], CollectionADT):
     """
     abstracted dll that uses position objects instead of nodes for references.
+    Implemented with Sentinels - returns sentinel values for the underflow / overflow (None)
     """
     def __init__(self, datatype: type) -> None:
         self._header = PNode()
@@ -43,6 +48,10 @@ class PositionalList(PositionalListADT[T], CollectionADT):
         self._trailer.prev = self._header   # sentinel
         self._total_nodes = 0
         self._datatype = datatype
+        # composed objects
+        self._validators = DsValidation()
+        self._utils = PositionalListUtils(self)
+        self._desc = PlistRepr(self)
 
     @property
     def datatype(self):
@@ -60,19 +69,19 @@ class PositionalList(PositionalListADT[T], CollectionADT):
             target_element = target_node.element
             return target_element
         else:
-            raise TypeError("Error: Key needs to be a Node reference")
+            raise KeyInvalidError("Error: Key needs to be a Node reference")
 
     def __setitem__(self, key: Optional[iPosition[T]], element: T) -> None:
         if isinstance(key, iPosition):
             replaced_value = self.replace(key, element) 
         else:
-            raise TypeError("Error: Key needs to be a Node reference")
+            raise KeyInvalidError("Error: Key needs to be a Node reference")
 
     def __str__(self) -> str:
-        return str_positional_list(self, DLL_SEPERATOR)
+        return self._desc.str_positional_list(DLL_SEPERATOR)
 
     def __repr__(self) -> str:
-        return repr_positional_list(self)
+        return self._desc.repr_positional_list()
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self) -> int:
@@ -80,7 +89,7 @@ class PositionalList(PositionalListADT[T], CollectionADT):
         return self._total_nodes
 
     def __contains__(self, element: Any) -> bool:
-        """ check if list contains an element value"""
+        """check if list contains an element value"""
         current_pos = self.first()
         while current_pos is not None:
             if current_pos.element == element:
@@ -108,68 +117,82 @@ class PositionalList(PositionalListADT[T], CollectionADT):
     def __iter__(self) -> Generator[T, None, None]:
         """Iterate through all the positions in the list and return the value"""
         # traverse
-        yield from positional_list_traversal(self)
+        return self._utils.positional_list_traversal()
 
     # ----- Accessor ADT Operations -----
     def first(self):
         """Access the Head Position"""
-        return make_position(self, self._header.next)
+        node = self._utils.check_not_sentinel(self._header.next)
+        return Position(node, container=self) if node else None
 
     def last(self):
         """Access the tail position"""
-        return make_position(self, self._trailer.prev)
+        node = self._utils.check_not_sentinel(self._trailer.prev)
+        return Position(node, container=self) if node else None
 
     def before(self, position):
         """access the position before a specified position"""
-        ref_node = validate_position(self, position)
+        ref_node = self._utils.validate_position(position)
         previous_node = ref_node.prev
         # Start of List Case:
         if previous_node is self._header:
             return None
-        return make_position(self, previous_node)
+        return Position(previous_node, container=self)
 
     def after(self, position):
         """access the position after a specified position"""
-        ref_node = validate_position(self, position)
+        ref_node = self._utils.validate_position(position)
         next_node = ref_node.next
         # End of List Case:
         if next_node is self._trailer:
             return None
-        return make_position(self, next_node)
+        return Position(next_node, container=self)
 
     def get(self, position):
         """retrieve the element value of a specified position"""
-        ref_node = validate_position(self, position)
+        ref_node = self._utils.validate_position(position)
         ref_value = ref_node.element
         return ref_value
 
     # ----- Mutator ADT Operations -----
     def add_first(self, element):
         """Add a position at the head"""
-        enforce_type(element, self.datatype)
-        return insert_between(self, element, previous_node=self._header, next_node=self._header.next)
+        self._validators.enforce_type(element, self.datatype)
+        new_node = PNode(element, next=self._header.next, prev=self._header)
+        relinked_node = self._utils.relink_nodes(new_node)
+        self._total_nodes += 1  # update tracker
+        return Position(relinked_node, self)
 
     def add_last(self, element):
         """Add a position at the tail."""
-        enforce_type(element, self.datatype)
-        return insert_between(self, element, previous_node=self._trailer.prev, next_node=self._trailer)
+        self._validators.enforce_type(element, self.datatype)
+        new_node = PNode(element, next=self._trailer, prev=self._trailer.prev)
+        relinked_node = self._utils.relink_nodes(new_node)
+        self._total_nodes += 1  # update tracker
+        return Position(relinked_node, self)
 
     def add_before(self, position, element):  
         """ add a new position before a specified position reference"""      
-        enforce_type(element, self.datatype)
-        ref_node = validate_position(self, position)
-        return insert_between(self, element, previous_node=ref_node.prev, next_node=ref_node)
+        self._validators.enforce_type(element, self.datatype)
+        ref_node = self._utils.validate_position(position)
+        new_node = PNode(element, next=ref_node, prev=ref_node.prev)
+        relinked_node = self._utils.relink_nodes(new_node)
+        self._total_nodes += 1  # update tracker
+        return Position(relinked_node, self)
 
     def add_after(self, position, element):
         """ add a new position after a specified position reference"""
-        ref_node = validate_position(self, position)
-        enforce_type(element, self.datatype)
-        return insert_between(self, element, previous_node=ref_node, next_node=ref_node.next)
+        ref_node = self._utils.validate_position(position)
+        self._validators.enforce_type(element, self.datatype)
+        new_node = PNode(element, next=ref_node.next, prev=ref_node)
+        relinked_node = self._utils.relink_nodes(new_node)
+        self._total_nodes += 1  # update tracker
+        return Position(relinked_node, self)
 
     def replace(self, position, element):
         """replace the element value of a specified position"""        
-        old_node = validate_position(self, position)
-        enforce_type(element, self.datatype)
+        old_node = self._utils.validate_position(position)
+        self._validators.enforce_type(element, self.datatype)
         old_value = position.element
         old_node.element = element
         return old_value
@@ -177,7 +200,7 @@ class PositionalList(PositionalListADT[T], CollectionADT):
     def delete(self, position): 
         """deletes a node at the specified position and returns the value"""
         # initialize nodes.
-        old_node = validate_position(self, position)
+        old_node = self._utils.validate_position(position)
         old_position = position
         old_value = old_node.element
         previous_node = old_node.prev
@@ -275,15 +298,9 @@ def main():
     print(f"Is '10' in PositionalList? {'10' in plist}")
     print(f"Is '200' in PositionalList? {'200' in plist}")
 
-    # ---------- Clear ----------
-    print("\n--- Clearing List ---")
-    plist.clear()
-    print(plist)
-    print(f"Is empty after clear? {plist.is_empty()}")
-
-    print("\n\n--- Testing Error Cases ---")
-    plist = PositionalList(str)
-    node = plist.add_first("A")
+    print("\n--- Testing Error Cases ---")
+    plist_b = PositionalList(str)
+    another_list_pos = plist_b.add_first("A")
 
     # enforce_type errors
     try:
@@ -292,28 +309,40 @@ def main():
         print(f"Caught enforce_type error: {e}")
 
     try:
-        plist.replace(node, RandomClass("YOLO"))
-    except TypeError as e:
+        plist.replace(pos6, RandomClass("YOLO"))
+    except Exception as e:
         print(f"Caught enforce_type error: {e}")
 
     # validate_position errors
-    fake_node = "not_a_node"
+    fake_pos = "not_a_node"
     try:
-        plist.add_after(fake_node, "X")
-    except TypeError as e:
+        plist.add_after(fake_pos, "X")
+    except Exception as e:
         print(f"Caught validate_position error: {e}")
 
     try:
-        plist.delete(fake_node)
-    except TypeError as e:
+        plist.delete(fake_pos)
+    except Exception as e:
         print(f"Caught validate_position error: {e}")
+
+    try:
+        plist.delete(another_list_pos)
+    except Exception as e:
+        print(f"Caught Position belongs to another list error: {e}")
 
     # deleting from empty list
-    plist.clear()
+    # plist.clear()
+
     try:
-        plist.delete(node)
-    except ValueError as e:
-        print(f"Caught Error: {e}")
+        plist.delete(pos6)
+    except Exception as e:
+        print(f"Caught Deleted position Error: {e}")
+
+    # ---------- Clear ----------
+    print("\n--- Clearing List ---")
+    plist.clear()
+    print(plist)
+    print(f"Is empty after clear? {plist.is_empty()}")
 
 if __name__ == "__main__":
     main()

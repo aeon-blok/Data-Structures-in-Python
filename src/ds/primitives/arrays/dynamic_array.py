@@ -23,13 +23,15 @@ from collections.abc import Sequence
 
 # region custom imports
 from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
-from utils.array_utils import initialize_new_array, grow_array, shrink_array, shift_elements_left, shift_elements_right
 from utils.custom_types import T
-from utils.validation_utils import enforce_type, index_boundary_check
-from utils.representations import str_array, repr_array, str_view, repr_view
+from utils.validation_utils import DsValidation
+from utils.representations import ArrayRepr, ViewRepr
+from utils.exceptions import *
+
 from adts.collection_adt import CollectionADT
 from adts.sequence_adt import SequenceADT
 
+from ds.primitives.arrays.array_utils import ArrayUtils
 
 # endregion
 
@@ -67,6 +69,11 @@ class VectorView(Generic[T]):
         self._length = length if length is not None else len(array) - start  # length of view
         self._stride = stride   # step value
         self._datatype = datatype
+
+        # composed objects
+        self._utils = ArrayUtils(self)
+        self._validators = DsValidation()
+        self._desc = ViewRepr(self)
     
     @property
     def datatype(self):
@@ -91,7 +98,7 @@ class VectorView(Generic[T]):
             index += self._length
 
         # Bounds check: make sure idx is within the view.
-        index_boundary_check(index, self._length, is_insert=True)
+        self._validators.index_boundary_check(index, self._length, is_insert=True)
 
         # access index
         return self._view[self._start + index * self._stride]
@@ -102,10 +109,10 @@ class VectorView(Generic[T]):
         if index < 0:
             index += self._length
 
-        enforce_type(value, self._datatype)
+        self._validators.enforce_type(value, self._datatype)
 
         # Bounds check: make sure idx is within the view.
-        index_boundary_check(index, self._length, is_insert=True)
+        self._validators.index_boundary_check(index, self._length, is_insert=True)
         self._view[self._start + index * self._stride] = value
 
     def __iter__(self) -> Generator[Any , None, None]:
@@ -114,15 +121,19 @@ class VectorView(Generic[T]):
             yield self._view[self._start + i * self._stride]
 
     def __str__(self) -> str:
-        return str_view(self)
+        return self._desc.str_view()
 
     def __repr__(self) -> str:
-        return repr_view(self)
+        return self._desc.repr_view()
 
 
 class VectorArray(SequenceADT[T], CollectionADT[T]):
     """Dynamic Array — automatically resizes as elements are added."""
     def __init__(self, capacity: int, datatype: type, datatype_map: dict = CTYPES_DATATYPES, is_static: bool = False) -> None:
+        # composed objects
+        self._utils = ArrayUtils(self)
+        self._validators = DsValidation()
+        self._desc = ArrayRepr(self)
 
         # datatype
         self.datatype = datatype
@@ -133,7 +144,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         self.capacity = capacity  # sets total amount of spaces for the array
         self.size = 0  # tracks number of elements in the array
         # creates a new ctypes/numpy array with a specified capacity
-        self.array = initialize_new_array(self.datatype, self.capacity, self.datatype_map)
+        self.array = self._utils.initialize_new_array(self.datatype, self.capacity, self.datatype_map)
         self._is_static = is_static
 
     # ----- Utility -----
@@ -144,11 +155,11 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
     def __str__(self) -> str:
         """a list of strings representing all the elements in the array"""
-        return str_array(self)
+        return self._desc.str_array()
 
     def __repr__(self) -> str:
         """ returns memory address and info"""
-        return repr_array(self)
+        return self._desc.repr_array()
 
     def __getitem__(self, index: int | slice) -> T | VectorView:
         """Built in override - adds indexing, & slicing but for views instead of copies (like python slice)"""
@@ -170,14 +181,14 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     # ----- Canonical ADT Operations -----
     def get(self, index):
         """Return element at index i"""
-        index_boundary_check(index, self.capacity)
+        self._validators.index_boundary_check(index, self.capacity)
         result = self.array[index]
         return cast(T, result)
 
     def set(self, index, value):
         """Replace element at index i with x"""
-        enforce_type(value, self.datatype)
-        index_boundary_check(index, self.capacity)
+        self._validators.enforce_type(value, self.datatype)
+        self._validators.index_boundary_check(index, self.capacity)
         self.array[index] = value
 
     def insert(self, index, value):
@@ -189,12 +200,12 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         Step 4: Increment Array Size Tracker
         """
 
-        enforce_type(value, self.datatype)
-        index_boundary_check(index, self.capacity,is_insert=True)
+        self._validators.enforce_type(value, self.datatype)
+        self._validators.index_boundary_check(index, self.capacity,is_insert=True)
 
         # dynamically resize the array if capacity full.
         if self.size == self.capacity and self._is_static == False:
-            self.array = grow_array(self)
+            self.array = self._utils.grow_array()
         elif self.size == self.capacity and self._is_static == True:
             raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
@@ -204,7 +215,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
             return
 
         # move all array elements right.
-        shift_elements_right(self, index, value)
+        self._utils.shift_elements_right(index, value)
 
         self.size += 1  # update size tracker
 
@@ -220,17 +231,17 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         """
 
         if self.is_empty():
-            raise ValueError("Error: Array is Empty.")
+            raise DsUnderflowError("Error: Array is Empty.")
 
-        index_boundary_check(index, self.capacity)
+        self._validators.index_boundary_check(index, self.capacity)
 
         # dynamically shrink array if capacity at 25% and greater than min capacity
         if self.size == self.capacity // SHRINK_CAPACITY_RATIO and self.capacity > self.min_capacity and self._is_static == False:
-            self.array = shrink_array(self)
+            self.array = self._utils.shrink_array()
 
         deleted_value = self.array[index]   # store index for return
 
-        shift_elements_left(self, index)
+        self._utils.shift_elements_left(index)
         self.size -= 1  # decrement size tracker
 
         return deleted_value
@@ -238,11 +249,11 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     def append(self, value):
         """Add x at end -- O(1)"""
 
-        enforce_type(value, self.datatype)
+        self._validators.enforce_type(value, self.datatype)
 
         # dynamically resize the array if capacity full.
         if self.size == self.capacity and self._is_static == False:
-            self.array = grow_array(self)
+            self.array = self._utils.grow_array()
         elif self.size == self.capacity and self._is_static == True:
             raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
@@ -252,15 +263,15 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     def prepend(self, value):
         """Insert x at index 0 -- O(N) - Same logic as insert, shift elems right"""
 
-        enforce_type(value, self.datatype)
+        self._validators.enforce_type(value, self.datatype)
 
         # dynamically resize the array if capacity full.
         if self.size == self.capacity and self._is_static == False:
-            self.array = grow_array(self)
+            self.array = self._utils.grow_array()
         elif self.size == self.capacity and self._is_static == True:
-            raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
+            raise DsOverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
-        shift_elements_right(self, 0, value)
+        self._utils.shift_elements_right(0, value)
         self.size += 1
 
     def index_of(self, value):
@@ -281,7 +292,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
     def clear(self):
         """removes all items and reinitializes a new array with the original capacity, resets the size tracker also"""
-        self.array = initialize_new_array(self.datatype, self.min_capacity, self.datatype_map)
+        self.array = self._utils.initialize_new_array(self.datatype, self.min_capacity, self.datatype_map)
         self.capacity = self.min_capacity
         self.size = 0
 
@@ -327,7 +338,6 @@ def run_array_tests(
 
     print(f"Initial array: {arr}")
 
-
     # --- Core operations ---
     # append()
     for val in test_values:
@@ -362,20 +372,20 @@ def run_array_tests(
     # --- Type enforcement ---
     try:
         arr.append(artificial[1])  # deliberately wrong
-    except TypeError as e:
+    except Exception as e:
         print(f"Caught expected type error: {e}")
 
     # --- Index errors ---
     try:
         arr.get(999)
-    except IndexError as e:
+    except Exception as e:
         print(f"Caught expected index error: {e}")
 
     # --- Empty array delete ---
     arr.clear()
     try:
         arr.delete(0)
-    except (IndexError, ValueError) as e:
+    except (Exception, Exception) as e:
         print(f"Caught expected error on deleting from empty array: {e}")
 
     # --- Dynamic growth test ---
@@ -413,7 +423,6 @@ def run_array_tests(
     print(repr(new_view))
     for item in new_view:
         print(f"Iterated item in View: {item}")
-
 
 
 def main():

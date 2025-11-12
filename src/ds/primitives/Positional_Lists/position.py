@@ -22,12 +22,13 @@ from abc import ABC, ABCMeta, abstractmethod
 from utils.helpers import RandomClass
 from utils.custom_types import T
 from utils.constants import DLL_SEPERATOR
-from utils.validation_utils import enforce_type, index_boundary_check
+from utils.representations import PNodeRepr, PositionRepr
 
 from adts.positional_list_adt import iNode, iPosition
 
 if TYPE_CHECKING:
     from adts.positional_list_adt import PositionalListADT
+
 
 
 class PNode(iNode[T]):
@@ -40,6 +41,8 @@ class PNode(iNode[T]):
         self._element = element
         self._prev = prev
         self._next = next
+        # Composed Objects
+        self._desc = PNodeRepr(self)
 
     @property
     def prev(self):
@@ -67,8 +70,7 @@ class PNode(iNode[T]):
 
     # ------------ Utilities ------------
     def __repr__(self) -> str:
-        from utils.representations import repr_p_node
-        return repr_p_node(self)
+        return self._desc.repr_p_node()
 
 
 class Position(iPosition[T]):
@@ -82,6 +84,8 @@ class Position(iPosition[T]):
         self._element: Optional[T] = None
         self._container = container # represents a specific position list.
         self._access_counter: int = 0    # for MTF heuristic. (frequency based access)
+        # composed objects
+        self._desc = PositionRepr(self)
     @property
     def node(self):
         return self._node
@@ -97,8 +101,7 @@ class Position(iPosition[T]):
         self._container = value
 
     def __repr__(self) -> str:
-        from utils.representations import repr_position
-        return repr_position(self)
+        return self._desc.repr_position()
 
     def __eq__(self, value: object) -> bool:
         """the two position objects are compared and considered equal ONLY if they point to the exact same memory address."""
