@@ -106,9 +106,12 @@ class ArrayStack(StackADT[T], CollectionADT[T], Generic[T]):
         """remove and return an element from the top"""
         self._utils.check_array_stack_underflow_error()
         old_value = self._array.array[self._top]
-        # dereference
-        self._array.array[self._top] = None
         self._top -= 1
+
+        # dereference if object
+        if self._datatype in (object, ctypes.py_object):
+            self._array.array[self._top + 1] = None
+
         return old_value
 
     def peek(self) -> T:
@@ -117,7 +120,7 @@ class ArrayStack(StackADT[T], CollectionADT[T], Generic[T]):
         return self._array.array[self._top]
 
 
-
+# todo test with class objects - for dereferencing.
 
 
 # main --- client facing code ---

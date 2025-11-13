@@ -1,3 +1,5 @@
+# region standard imports
+
 from typing import (
     Generic,
     TypeVar,
@@ -14,7 +16,17 @@ from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
 import ctypes
+import random
+from collections.abc import Sequence
 
+# endregion
+
+
+# region custom imports
+from utils.custom_types import T
+
+
+# endregion
 
 """
 Queue ADT Definition:
@@ -35,14 +47,15 @@ Dequeue on empty queue: Raises error/exception.
 """
 
 
-T = TypeVar("T")
-
-
 class QueueADT(ABC, Generic[T]):
-    """"""
+    """
+    Queue ADT: Access and Deletion of elements are restricted to the first element of the queue. (front)
+    Insertion of elements is restricted to the last element of the queue (rear)
+    """
+
     # ----- Canonical ADT Operations -----
     @abstractmethod
-    def enqueue(self, value: T):
+    def enqueue(self, value: T) -> None:
         """Adds an Element to the end of the Queue"""
         pass
 
@@ -56,23 +69,3 @@ class QueueADT(ABC, Generic[T]):
         """return (but not remove) the first element of the Queue"""
         pass
 
-    # ----- Meta Collection ADT Operations -----
-    @abstractmethod
-    def is_empty(self) -> bool:
-        pass
-
-    @abstractmethod
-    def __len__(self) -> int:
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        pass
-
-    @abstractmethod
-    def __contains__(self, value: T) -> bool:
-        pass
-
-    @abstractmethod
-    def __iter__(self) -> Generator[T, None, None]:
-        pass

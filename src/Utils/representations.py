@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 from ds.primitives.Positional_Lists.positional_list_utils import PositionalListUtils
 from ds.primitives.Linked_Lists.linked_list_utils import LinkedListUtils
+from utils.helpers import Ansi
 # endregion
 
 
@@ -182,25 +183,26 @@ class LlStackRepr:
     """Stack Representation in the console."""
     def __init__(self, stack_obj) -> None:
         self.obj = stack_obj
+        self._ansi = Ansi()
+        self._top_marker = self._ansi.color(f"(Top)", Ansi.GREEN)
 
-    def __str__(self) -> str:
+    def str_ll_stack(self) -> str:
         """Stack __str__ representation"""
         datatype = self.obj.datatype.__name__
         class_name = self.obj.__class__.__qualname__
         total_nodes = self.obj.total_nodes
 
         if self.obj.is_empty():
-            return f"[{class_name}][{datatype}]: [Top][]"
+            return f"[{class_name}][{datatype}]: []{self._top_marker}"
 
         elements = (str(element) for element in self.obj)
-        return f"[{class_name}][{datatype}][{total_nodes}]: [Top][{', '.join(elements)}]"
+        return f"[{class_name}][{datatype}][{total_nodes}]: [{', '.join(elements)}]{self._top_marker}"
 
-    def __repr__(self) -> str:
+    def repr_ll_stack(self) -> str:
         """Displays the memory address and other useful info"""
         class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
         datatype = self.obj.datatype.__name__
         total_nodes = self.obj.total_nodes
-
         return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
 
 
@@ -208,6 +210,8 @@ class ArrayStackRepr:
     """Array Stack Representation in the console"""
     def __init__(self, stack_obj) -> None:
         self.obj = stack_obj
+        self._ansi = Ansi()
+        self._top_marker = self._ansi.color(f"(Top)", Ansi.GREEN)
 
     def str_array_stack(self) -> str:
         """Stack __str__ representation"""
@@ -215,9 +219,9 @@ class ArrayStackRepr:
         class_name = self.obj.__class__.__qualname__
         total_elements = self.obj.size
         if self.obj.is_empty():
-            return f"[{class_name}][{datatype}]: [](Top)"
+            return f"[{class_name}][{datatype}]: []{self._top_marker}"
         elements = (str(element) for element in self.obj)
-        return f"[{class_name}][{datatype}][{total_elements}]: [{', '.join(elements)}](Top)"
+        return f"[{class_name}][{datatype}][{total_elements}]: [{', '.join(elements)}]{self._top_marker}"
 
     def repr_array_stack(self) -> str:
         """Displays the memory address and other useful info"""
@@ -226,32 +230,185 @@ class ArrayStackRepr:
         total_nodes = self.obj.total_nodes
         return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
 
-    def str_min_max_stack(self) -> str:
+    def str_min_max_avg_stack(self) -> str:
         """representation for the min max stack."""
         datatype = self.obj.datatype.__name__
         class_name = self.obj.__class__.__qualname__
         total_elements = self.obj.size
         min_element = self.obj.min
         max_element = self.obj.max
+        avg_element = self.obj.average
         if self.obj.is_empty():
-            return f"[{class_name}][{datatype}]: [](Top)"
+            return f"[{class_name}][{datatype}]: []{self._top_marker}"
         elements = (str(element) for element in self.obj)
-        return f"[{class_name}][{datatype}][{total_elements}]: {', '.join(elements)}(Top), Min: {min_element}, Max: {max_element}"
+        return f"[{class_name}][{datatype}][{total_elements}]: {', '.join(elements)}{self._top_marker}, Min: {min_element}, Max: {max_element}, Avg: {avg_element:.2f}"
 
-    def repr_min_max_stack(self) -> str:
+    def repr_min_max_avg_stack(self) -> str:
         """Displays the memory address and other useful info"""
         class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
         datatype = self.obj.datatype.__name__
         total_elements = self.obj.size
-        min_element = self.obj.min
-        max_element = self.obj.max
-        return f"{class_address}, Type: {datatype}, Total Nodes: {total_elements}, Min: {min_element}, Max: {max_element}"
+        return f"{class_address}, Type: {datatype}, Total Nodes: {total_elements}"
 
 
 # queues
+class llQueueRepr:
+    """Linked list queue representation """
+    def __init__(self, queue_obj) -> None:
+        self.obj = queue_obj
+        self._ansi = Ansi()
+        self._front_marker = self._ansi.color(f"(front)", Ansi.GREEN)
+        self._rear_marker = self._ansi.color(f"(rear)", Ansi.GREEN)
+
+    def str_ll_queue(self):
+        datatype = self.obj.datatype.__name__
+        class_name = self.obj.__class__.__qualname__
+        total_nodes = self.obj.size
+        if self.obj.is_empty():
+            return f"[{class_name}][{datatype}]: []"
+        elements = (str(element) for element in self.obj)
+        return f"[{class_name}][{datatype}][{total_nodes}]: {self._front_marker}[{', '.join(elements)}]{self._rear_marker}"
+
+    def repr_ll_queue(self) -> str:
+        """Displays the memory address and other useful info"""
+        class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
+        datatype = self.obj.datatype.__name__
+        total_nodes = self.obj.size
+        front_node = self.obj.front
+        return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}, Front: {front_node}"
+
+
+class CircArrayQueueRepr:
+    """Linked list queue representation"""
+
+    def __init__(self, queue_obj) -> None:
+        self.obj = queue_obj
+        self._ansi = Ansi()
+
+    def str_circ_array_queue(self):
+        datatype = self.obj.datatype.__name__
+        class_name = self.obj.__class__.__qualname__
+        queue_size = self.obj.queue_size
+
+        if self.obj.is_empty():
+            return f"[{class_name}][{datatype}]: []"
+        
+        front = self.obj.front
+        rear = self.obj.rear
+
+        def _element_generator(color=Ansi.GREEN):
+            """colors the front and rear in a specified color"""
+            for i in range(queue_size):
+                index = (self.obj._front + i) % self.obj._capacity
+                value = self.obj._buffer.array[index]
+
+                if value in (front, rear):
+                    yield self._ansi.color(f"{value}", color)
+                else:
+                    yield str(value)
+
+        return f"[{class_name}][{datatype}][{queue_size}]: [F][{', '.join(_element_generator())}][R]"
+
+    def repr_circ_array_queue(self) -> str:
+        """Displays the memory address and other useful info"""
+        class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
+        datatype = self.obj.datatype.__name__
+        queue_size = self.obj.queue_size
+        front = self.obj.front
+        rear = self.obj.rear
+        return f"{class_address}, Type: {datatype}, Size: {queue_size}, Front: {front} Rear: {rear}"
 
 
 # deques
+class CircDequeRepr:
+    def __init__(self, deque_obj) -> None:
+        self.obj = deque_obj
+        self._ansi = Ansi()
+
+    def str_circ_deque(self):
+        datatype = self.obj.datatype.__name__
+        class_name = self.obj.__class__.__qualname__
+        deque_size = self.obj.deque_size
+        capacity = self.obj._capacity
+
+        if self.obj.is_empty():
+            return f"[{class_name}][{datatype}]: []"
+
+        front = self.obj.front
+        rear = self.obj.rear
+
+        def _element_generator():
+            """colors the front and rear in a specified color"""
+            for i in range(deque_size):
+                index = (self.obj._front + i) % self.obj._capacity
+                value = self.obj._buffer.array[index]
+
+                if value == front:
+                    yield self._ansi.color(f"{value}", Ansi.GREEN)
+                elif value == rear:
+                    yield self._ansi.color(f"{value}", Ansi.YELLOW)
+                else:
+                    yield str(value)
+
+        return f"[{class_name}][{datatype}][{deque_size}/{capacity}]: [F][{', '.join(_element_generator())}][R]"
+
+    def repr_circ_deque(self) -> str:
+        """Displays the memory address and other useful info"""
+        class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
+        datatype = self.obj.datatype.__name__
+        deque_size = self.obj.deque_size
+        capacity = self.obj._capacity
+        if self.obj.is_empty():
+            return f"{class_address}, Type: {datatype}, Size: {deque_size}/{capacity}"
+
+        front = self.obj.front
+        rear = self.obj.rear
+        return f"{class_address}, Type: {datatype}, Size: {deque_size}/{capacity}, Front: {front} Rear: {rear}"
+
+
+class LlDequeRepr:
+    def __init__(self, deque_obj) -> None:
+        self.obj = deque_obj
+        self._ansi = Ansi()
+
+    def dll_str_deque(self):
+        datatype = self.obj.datatype.__name__
+        class_name = self.obj.__class__.__qualname__
+        deque_size = self.obj._dll.total_nodes
+
+        if self.obj.is_empty():
+            return f"[{class_name}][{datatype}]: []"
+
+        front = self.obj.front
+        rear = self.obj.rear
+
+        def _element_generator():
+            """colors the front and rear in a specified color"""
+            current_node = self.obj._dll.head
+            while current_node:
+                element = current_node.element
+                if element == front:
+                    yield self._ansi.color(f"{element}", Ansi.GREEN)
+                elif element == rear:
+                    yield self._ansi.color(f"{element}", Ansi.YELLOW)
+                else:
+                    yield str(current_node.element)
+                current_node = current_node.next    # traverse
+
+        return f"[{class_name}][{datatype}][{deque_size}]: [F][{', '.join(_element_generator())}][R]"
+
+    def dll_repr_deque(self):
+        """Displays the memory address and other useful info"""
+        class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
+        datatype = self.obj.datatype.__name__
+        deque_size = self.obj._dll.total_nodes
+        if self.obj.is_empty():
+            return f"{class_address}, Type: {datatype}, Total Nodes: {deque_size}"
+
+        front = self.obj.front
+        rear = self.obj.rear
+
+        return f"{class_address}, Type: {datatype}, Total Nodes: {deque_size}, Front: {front} Rear: {rear}"
 
 
 # heaps

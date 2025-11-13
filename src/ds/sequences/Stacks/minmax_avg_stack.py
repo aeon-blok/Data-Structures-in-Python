@@ -41,8 +41,8 @@ from ds.sequences.Stacks.stack_utils import StackUtils
 # endregion
 
 
-class MinMaxStack(StackADT[T], CollectionADT[T], Generic[T]):
-    """A Min/Max Stack is a stack variant that can return the current minimum or maximum element (as defined by comparison operators) from the stack in O(1) time"""
+class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
+    """A Min/Max/Avg Stack is a stack variant that can return the current minimum or maximum element (as defined by comparison operators) or the average of the elements from the stack in O(1) time"""
 
     def __init__(self, datatype: type, key: Optional[Callable[[T],T]] = None, capacity: int = 10) -> None:
         self._datatype = datatype
@@ -50,7 +50,9 @@ class MinMaxStack(StackADT[T], CollectionADT[T], Generic[T]):
         self._stack = VectorArray(self._capacity, self._datatype)
         self._min_stack = VectorArray(self._capacity, self._datatype)
         self._max_stack = VectorArray(self._capacity, self._datatype)
+        self._totals_stack = VectorArray(self._capacity, object)
         self.key = key
+        self._key_type: Optional[type] = None
         self._top: int = -1  # starts at -1 -- not a valid index.
         # Composed Objects
         self._utils = StackUtils(self)
@@ -72,10 +74,16 @@ class MinMaxStack(StackADT[T], CollectionADT[T], Generic[T]):
     @property
     def max(self):
         return self._max_stack.array[self._top]
+    @property
+    def average(self):
+        if self.is_empty():
+            return None
+        avg = self._totals_stack.array[self._top] / self.size
+        return avg
 
     # ------------ Utilities ------------
     def __str__(self) -> str:
-        return self._desc.str_min_max_stack()
+        return self._desc.str_min_max_avg_stack()
 
     def __repr__(self) -> str:
         return self._desc.repr_array_stack()
@@ -111,43 +119,56 @@ class MinMaxStack(StackADT[T], CollectionADT[T], Generic[T]):
     def push(self, element: T) -> None:
         """
         Insert an element at the top -- compares new element to previous top to determine new min and max, and adds them to min and max stacks.
+        If objects in stack are mutated after being pushed, min/max/average values are based on original key output at push, not live value.
         """
+        # set the key either using custom key (function) or preset defaults.
+        key_function = self._utils.min_max_standard_comparison_lib()
+        # set key as its own type - to enforce consistency throughout the program (cant change via conditionals etc.)
+        self._utils.validate_key_consistency(key_function, element)
+
+        # validate element type
         self._validators.enforce_type(element, self.datatype)
+        # ensures all elements can be compared with each other - necessary for min max avg stack.
+        element = self._utils.validate_is_comparator(element)
+
+        # ensures that the totals stack only contains numeric representations (needed for average math function...)
+        avg_element = self._utils.validate_average_value(key_function, element)
+
         self._stack.append(element)
+
         # Empty Stack Case: if there are no elements - add the current element to the min max stacks - its the new min & max!
         if self._min_stack.is_empty():
             self._top += 1  # tracks the top of the stack.
             self._min_stack.append(element)
             self._max_stack.append(element)
-
+            self._totals_stack.append(avg_element)  # has to add numeric representation.
         else:
             # Default Case: Calculate the min and max elements and append to stack.
-            # set the key either using custom key (function) or preset defaults.
-            if not self.key:
-                self.key = self._utils.min_max_standard_comparison_lib()
-            key_function = self.key
-
             # get current min and max
             current_min = self._min_stack.array[self._top]    
             current_max = self._max_stack.array[self._top]
+            current_total = self._totals_stack.array[self._top]
+
             # set new min and max - by comparing the results of our key function with the current min and max.
             new_min_key = key_function(element)
             current_min_key = key_function(current_min)
+
             new_max_key = key_function(element)
             current_max_key = key_function(current_max)
 
-            if not isinstance(new_min_key, type(current_min_key)):
-                raise KeyInvalidError(f"Key is Invalid Type for Comparison.")
-            if not isinstance(new_max_key, type(current_max_key)):
-                raise KeyInvalidError(f"Key is Invalid Type for Comparison.")
+            new_total_key = avg_element
+            current_total_key = current_total
 
+            # calculate new min, max & total values.
             new_min = element if new_min_key < current_min_key else current_min
             new_max = element if new_max_key > current_max_key else current_max
+            new_total = new_total_key + current_total_key   # will always be a numeric representation (either number, or len(item))
 
             # append the new min and max to their respective stacks.
             self._top += 1  # tracks the top of the stack.
             self._min_stack.append(new_min)
             self._max_stack.append(new_max)
+            self._totals_stack.append(new_total)
 
     def pop(self) -> T:
         """remove and return an element from the top"""
@@ -169,7 +190,7 @@ class MinMaxStack(StackADT[T], CollectionADT[T], Generic[T]):
 # main ---- client facing code ----
 def main():
     print("Integer Stack:")
-    stack = MinMaxStack(int)
+    stack = MinMaxAvgStack(int)
     for x in [3, 1, 4, 2]:
         stack.push(x)
         print(stack)
@@ -179,14 +200,14 @@ def main():
         print(stack)
 
     print("\nList Stack:")
-    list_stack = MinMaxStack(list)
+    list_stack = MinMaxAvgStack(list)
     list_stack.push([1, 2, 3])
     list_stack.push([4, 5])
     list_stack.push([6, 7, 8, 9])
     print(list_stack)
 
     print("\nTuple Stack (lexicographic comparison):")
-    tuple_stack = MinMaxStack(tuple)
+    tuple_stack = MinMaxAvgStack(tuple)
     for t in [(1, 2), (0, 5), (2, 1)]:
         tuple_stack.push(t)
     print(tuple_stack)
@@ -199,14 +220,14 @@ def main():
             return f"MyObj({self.val})"
 
     print("\nCustom Class Stack (key=lambda x: x.val):")
-    obj_stack = MinMaxStack(MyObj, key=lambda x: x.val)
+    obj_stack = MinMaxAvgStack(MyObj, key=lambda x: x.val)
     for o in [MyObj(10), MyObj(3), MyObj(7)]:
         obj_stack.push(o)
     print(obj_stack)
 
     print("\nMulti Stack - Comparing iterables by number of elements")
     key = lambda x: len(x)
-    multi_stack = MinMaxStack[Any](object, key=key)  # generic object stack
+    multi_stack = MinMaxAvgStack[Any](object, key=key)  # generic object stack
     multi_stack.push([1, 2, 3, 25, 50, 100])
     multi_stack.push({"a": 1, "b": 2, "c": 3, "d":4})
     multi_stack.push((2,3,4))
@@ -230,7 +251,7 @@ def main():
 
     # key must normalize them
     key = lambda x: x.cost if isinstance(x, Product) else x.weight
-    multi_class_stack = MinMaxStack(object, key=key)
+    multi_class_stack = MinMaxAvgStack(object, key=key)
     multi_class_stack.push(Product(100))
     multi_class_stack.push(RawMaterial(7))
     multi_class_stack.push(Product(50))
@@ -245,14 +266,14 @@ def main():
 
     # ----- Underflow Test -----
     print("\nUnderflow Test:")
-    empty_stack = MinMaxStack(int)
+    empty_stack = MinMaxAvgStack(int)
     try:
         empty_stack.pop()
     except Exception as e:
         print(f"Caught expected error: {e}")
         
     print("\nStrings Test:")
-    stack = MinMaxStack(str)
+    stack = MinMaxAvgStack(str)
     stack.push("apple")
     stack.push("banana")
     stack.push("aardvark")

@@ -17,6 +17,8 @@ class Ansi:
     def color(text: str, color_code: str) -> str:
         return f"{color_code}{text}{Ansi.RESET}"
 
+
+
 class RandomClass:
     """dummy class for testing - move to test folder later."""
     def __init__(self, name=None) -> None:

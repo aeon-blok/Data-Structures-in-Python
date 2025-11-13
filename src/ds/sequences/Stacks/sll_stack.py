@@ -72,10 +72,10 @@ class Stackll(CollectionADT[T], StackADT[T], Generic[T]):
 
     # ------------ Utility ------------
     def __str__(self) -> str:
-        return self._desc.__str__()
+        return self._desc.str_ll_stack()
 
     def __repr__(self) -> str:
-        return self._desc.__repr__()
+        return self._desc.repr_ll_stack()
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self) -> int:

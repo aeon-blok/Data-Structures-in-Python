@@ -1,3 +1,5 @@
+# region standard imports
+
 from typing import (
     Generic,
     TypeVar,
@@ -14,284 +16,150 @@ from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
 import ctypes
+import random
+from collections.abc import Sequence
+
+# endregion
 
 
-# Custom Types
-T = TypeVar("T")
+# region custom imports
+from utils.custom_types import T
+from utils.validation_utils import DsValidation
+from utils.representations import llQueueRepr
+from utils.helpers import RandomClass
+
+from utils.exceptions import *
+
+from adts.collection_adt import CollectionADT
+from adts.linked_list_adt import LinkedListADT, iNode
+from adts.queue_adt import QueueADT
+
+from ds.primitives.Linked_Lists.ll_nodes import Sll_Node
+from ds.sequences.Queue.queue_utils import QueueUtils
+from ds.primitives.Linked_Lists.sll import LinkedList
+
+# endregion
 
 
-# Interfaces
-class iNode(ABC, Generic[T]):
-    @abstractmethod
-    def __repr__(self) -> str:
-        pass
+class LlQueue(QueueADT[T], CollectionADT[T], Generic[T]):
+    """Linked List Queue Implementation. O(1) - insert and retrieval & deletion"""
+    def __init__(self, datatype: type) -> None:
+        self._datatype = datatype
 
+        # composed objects
+        self._ll = LinkedList(self._datatype)
+        self._utils = QueueUtils(self)
+        self._validator = DsValidation()
+        self._desc = llQueueRepr(self)
 
-class QueueADT(ABC, Generic[T]):
-    # ----- Canonical ADT Operations -----
-    @abstractmethod
-    def enqueue(self, value: T):
-        """O(1) -- Adds an Element to the end of the Queue"""
-        pass
-
-    @abstractmethod
-    def dequeue(self) -> T:
-        """O(1) -- remove and return the first element of the Queue"""
-        pass
-
-    @abstractmethod
-    def peek(self) -> T:
-        """O(1) -- return (but not remove) the first element of the Queue"""
-        pass
+    @property
+    def front(self):
+        self._utils.check_empty_queue()
+        result = self._ll.head.element
+        return result
+    @property
+    def rear(self):
+        self._utils.check_empty_queue()
+        result = self._ll.tail.element
+        return result
+    @property
+    def datatype(self):
+        return self._datatype
+    @property
+    def size(self):
+        return self._ll.total_nodes
 
     # ----- Meta Collection ADT Operations -----
-    @abstractmethod
-    def is_empty(self) -> bool:
-        pass
-
-    @abstractmethod
     def __len__(self) -> int:
-        pass
+        return self._ll.total_nodes
 
-    @abstractmethod
-    def clear(self) -> None:
-        pass
-
-    @abstractmethod
     def __contains__(self, value: T) -> bool:
-        pass
+        return self._ll.__contains__(value)
 
-    @abstractmethod
-    def __iter__(self) -> Generator[T, None, None]:
-        pass
-
-
-# Concrete Implementations
-class Node(iNode[T]):
-    def __init__(self, data: T) -> None:
-        self.data = data
-        self.next: Optional[Node] = None
-    
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}: {self.data}"
-
-
-class LinkedListQueue(QueueADT[T]):
-    """Linked List Queue: utilizes a singly linked list with head & tail pointers."""
-    def __init__(self) -> None:
-        self.head: Optional[Node] = None
-        self.tail: Optional[Node] = None
-        self.size: int = 0
-
-    # ----- Utility -----
-    def _underflow_error(self):
-        if not self.head:
-            raise IndexError("Error: Queue is empty")
-
-    def __str__(self) -> str:
-        """Displays all the content of the linked list queue as a string."""
-
-        seperator = " ->> "
-
-        if self.head is None:
-            return f"List is Empty"
-
-        def _simple_traversal():
-            """traverses the nodes and returns a string via generator"""
-            current_node = self.head
-            while current_node:
-                yield str(current_node.data)
-                current_node = current_node.next
-
-        return f"[head]{seperator.join(_simple_traversal())}[tail]"
-    
-    def __repr__(self) -> str:
-        """returns the classname and the size of the queue"""
-        return f"{self.__class__.__name__}(size={self.size})"
-
-    # ----- Canonical ADT Operations -----
-    def enqueue(self, value):
-        """
-        Adds an Element to the end of the Queue
-        Step 1: initialize Node
-        Step 2: if Tail exists - point to the new node
-        Step 3: New Node becomes the Tail
-        Step 4: If list is empty - new node becomes the head
-        Step 5: update queue size value.
-        """
-        node = Node(value)  # initialize Node Element
-
-        # if a tail exists - points it to the new node.
-        if self.tail:
-            self.tail.next = node
-        # New node becomes the tail. (last node)
-        self.tail = node
-
-        # if the queue is empty - Node becomes the head (first element - aka the front)
-        if not self.head:
-            self.head = node
-
-        self.size += 1  # increment queue size
-
-    def dequeue(self):
-        """
-        remove and return the first element of the Queue
-        Step 1: Check if queue is empty
-        step 2: store deleted value (the head) to return later
-        Step 3: Move Head to the next node in the chain (deleting the original head)
-        Step 4: Dereference head and tail if list is now empty
-        Step 5: Update queue size tracker
-        Step 6: return deleted value (the original head.)
-        """
-
-        self._underflow_error()
-
-        deleted = self.head.data
-        self.head = self.head.next
-        # Dereferencing: if the queue becomes empty after removing a link. ensure both head and tail are none
-        if self.head is None:
-            self.tail = None
-        self.size -= 1
-        return deleted
-
-    def peek(self):
-        """return (but not remove) the first element of the Queue"""
-        self._underflow_error()
-        return self.head.data
-
-    # ----- Meta Collection ADT Operations -----
-    def is_empty(self):
-        return self.head is None
-
-    def __len__(self):
-        return self.size
-
-    def clear(self):
-        """Clearing a linked list queue"""        
-        # Traverse the list
-        current_node = self.head
-        while current_node:
-            next_node = current_node.next   # 1 after current node
-            # dereference current node
-            current_node.next = None
-            current_node = next_node
-        # derefence the Head and Tail
-        self.head = None
-        self.tail = None
-        self.size = 0   # update tracker.
-
-    def __contains__(self, value):
-        """Check if the queue contains a value - returns true or false"""
-        if self.head is None:
-            return False
-        current_node = self.head
-        while current_node:
-            if current_node.data == value:
-                return True
-            current_node = current_node.next
-        return False
+    def is_empty(self) -> bool:
+        return self._ll.is_empty()
 
     def __iter__(self):
-        """allows for iterations - loops, lists etc..."""
-        current_node = self.head
-        while current_node:
-            yield current_node.data
-            current_node = current_node.next
+        return self._ll.__iter__()
+
+    def clear(self) -> None:
+        return self._ll.clear()
+
+    # ------------ Utilities ------------
+    def __str__(self) -> str:
+        return self._desc.str_ll_queue()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_ll_queue()
+
+    # ----- Canonical ADT Operations -----
+    def enqueue(self, value: T):
+        """inserts an element at the back of the queue."""
+        self._validator.enforce_type(value, self._datatype)
+        self._ll.insert_tail(value)
+
+    def dequeue(self) -> T:
+        """removes and returns the front element of the queue"""
+        self._utils.check_empty_queue()
+        old_value = self._ll.head.element
+        self._ll.delete_head()
+        return old_value
+
+    def peek(self) -> T:
+        """returns the front of the queue value (but doesnt remove it)"""
+        self._utils.check_empty_queue()
+        result = self._ll.head.element
+        return result 
 
 
 # Main --- Client Facing Code ---
 def main():
-    print("\n=== LINKED LIST QUEUE TEST SUITE WITH ERROR CHECKS ===")
+    print("=== LlQueue Test Suite with __str__ ===\n")
 
-    # --- Empty Queue Error Checks ---
-    print("\n--- Empty Queue Error Checks ---")
-    q_empty = LinkedListQueue[int]()
+    queue = LlQueue(int)
+
+    # --- Empty queue ---
+    print("Initial empty queue:")
+    print(queue, "\n")
+
+    # --- Enqueue operations ---
+    print("Enqueue Operations:")
+    for val in [10, 20, 30, 40]:
+        queue.enqueue(val)
+        print(queue)
+
+    # --- Peek operation ---
+    print("\nPeek front:")
     try:
-        q_empty.dequeue()
+        print(queue.peek())
     except IndexError as e:
-        print("Dequeue on empty queue:", e)
+        print(e)
+
+    # --- Dequeue operations ---
+    print("\nDequeue Operations:")
+    while not queue.is_empty():
+        queue.dequeue()
+        print(queue)
+
+    # --- Type Safety Test ---
+    print("\nType Safety Test:")
     try:
-        q_empty.peek()
-    except IndexError as e:
-        print("Peek on empty queue:", e)
+        queue.enqueue(RandomClass("woooowllololo"))
+    except Exception as e:
+        print("Caught type error:", e)
 
-    # --- Integer Queue ---
-    print("\n--- Testing Integer Queue with 5 items ---")
-    q_int = LinkedListQueue[int]()
-    for i in range(1, 6):
-        q_int.enqueue(i)
-    print("Queue:", q_int)
-    print("Peek:", q_int.peek())
-    print("Contains 3?", 3 in q_int)
-    print("Contains 10? (should be False)", 10 in q_int)
-    print("Length:", len(q_int))
-    print("Dequeueing all items:")
-    while not q_int.is_empty():
-        print(q_int.dequeue(), end=" ")
-    print()
-    try:
-        q_int.dequeue()
-    except IndexError as e:
-        print("Dequeue on empty after clearing:", e)
+    queue.enqueue(50)
+    queue.enqueue(60)
+    print(queue)
 
-    # --- Dynamically Generated Classes ---
-    MyClassA = type(
-        "MyClassA",
-        (object,),
-        {
-            "__init__": lambda self, id, name: setattr(self, "_data", (id, name)),
-            "__repr__": lambda self: f"MyClassA(id={self._data[0]}, name='{self._data[1]}')",
-            "__eq__": lambda self, other: isinstance(other, type(self))
-            and self._data == other._data,
-        },
-    )
-    MyClassB = type(
-        "MyClassB",
-        (object,),
-        {
-            "__init__": lambda self, code, value: setattr(self, "_data", (code, value)),
-            "__repr__": lambda self: f"MyClassB(code={self._data[0]}, value='{self._data[1]}')",
-            "__eq__": lambda self, other: isinstance(other, type(self))
-            and self._data == other._data,
-        },
-    )
-
-    # --- Custom Object Queue with Error Checks ---
-    print("\n--- Testing Custom Object Queue (Type Enforcement) ---")
-    obj_a1 = MyClassA(1, "Alice")
-    obj_a2 = MyClassA(2, "Bob")
-    obj_b1 = MyClassB(99, "X")
-
-    q_obj = LinkedListQueue[MyClassA]()
-    q_obj.enqueue(obj_a1)
-    q_obj.enqueue(obj_a2)
-    print("Queue:", q_obj)
-    print("Contains obj_a2?", obj_a2 in q_obj)
-    print("Contains obj_b1? (should be False)", obj_b1 in q_obj)
-    print("Peek:", q_obj.peek())
-    print("Dequeueing all items:")
-    while not q_obj.is_empty():
-        print(q_obj.dequeue(), end=" ")
-    print()
-    try:
-        q_obj.peek()
-    except IndexError as e:
-        print("Peek on empty object queue:", e)
-
-    # --- Mixed Types Queue with Any ---
-    print("\n--- Testing Mixed Types Queue ---")
-    q_any = LinkedListQueue[Any]()
-    q_any.enqueue(1)
-    q_any.enqueue("a")
-    q_any.enqueue(obj_a1)
-    q_any.enqueue(obj_b1)
-    print("Queue:", q_any)
-    print("Iterating:")
-    for item in q_any:
-        print(item, "Type:", type(item))
-
-    print("\n=== ERROR CHECKS COMPLETE ===")
-
-
+    # --- Error handling: Dequeue/peek/front/rear on empty queue ---
+    print("\nError Handling Test:")
+    queue.clear()
+    print(queue)  # empty queue
+    for method in [queue.dequeue, queue.peek, lambda: queue.front, lambda: queue.rear]:
+        try:
+            method()
+        except Exception as e:
+            print("Caught error:", e)
 if __name__ == "__main__":
     main()
