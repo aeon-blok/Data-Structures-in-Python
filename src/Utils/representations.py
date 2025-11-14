@@ -417,7 +417,7 @@ class PQueueRepr:
         self.obj = priority_queue_obj
         self._ansi = Ansi()
 
-    def str_unsorted_pq(self):
+    def str_simple_pq(self):
         datatype = self.obj.datatype.__name__
         class_name = self.obj.__class__.__qualname__
         size = self.obj.size
@@ -441,7 +441,7 @@ class PQueueRepr:
 
         return f"[{class_name}][{datatype}][{size}/{capacity}]: [{', '.join(_generate_items())}]"
 
-    def repr_unsorted_pq(self):
+    def repr_simple_pq(self):
         """Displays the memory address and other useful info"""
         class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
         datatype = self.obj.datatype.__name__

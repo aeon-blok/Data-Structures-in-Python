@@ -47,10 +47,14 @@ class PriorityQueueUtils:
     def check_element_already_exists(self, element):
         if element in self.obj:
             raise DsDuplicationError("Error: Element already exists. Use 'Decrease Key()' to modify priority level.")
-    
+
     def check_new_min_priority(self, new_priority: int, stored_priority: int):
         if new_priority > stored_priority:
             raise PriorityInvalidError("Error: Priority input must be lower than currently stored priority value.")
+
+    def check_new_max_priority(self, new_priority: int, stored_priority: int):
+        if new_priority < stored_priority:
+            raise PriorityInvalidError("Error: Priority input must be higher than currently stored priority value.")
 
     def linear_scan_min(self, input_array) -> int:
         """Linear Scan: compare to all other elements in the array."""
@@ -73,3 +77,16 @@ class PriorityQueueUtils:
                 candidate = kv_pair
                 priority_index = i
         return priority_index
+
+    def add_kv_pair_to_max_sorted_list(self, element, priority):
+        """Automatically adds the item to the correct spot in the list."""
+        kv_pair = (element, priority)
+        found = False
+        # traverse through items.
+        for i in range(self.obj.size):
+            current_element, current_priority = self.obj._data.array[i]
+            if priority > current_priority:
+                self.obj._data.insert(i, kv_pair)
+                return
+        # lowest priority case: -- if priority is the lowest - add to the end of the array
+        self.obj._data.append(kv_pair)

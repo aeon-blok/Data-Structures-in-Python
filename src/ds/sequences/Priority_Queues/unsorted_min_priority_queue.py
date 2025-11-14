@@ -106,10 +106,10 @@ class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic
     # ------------ Utilities ------------
 
     def __str__(self) -> str:
-        return self._desc.str_unsorted_pq()
+        return self._desc.str_simple_pq()
 
     def __repr__(self) -> str:
-        return self._desc.repr_unsorted_pq()
+        return self._desc.repr_simple_pq()
 
     # ----- Canonical ADT Operations -----
     # ----- Accessor ADT Operations -----
