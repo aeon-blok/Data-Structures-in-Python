@@ -456,6 +456,50 @@ class PQueueRepr:
 
 
 # heaps
+class BinaryHeapRepr:
+    def __init__(self, priority_queue_obj) -> None:
+        self.obj = priority_queue_obj
+        self._ansi = Ansi()
+
+    def str_heap(self):
+        datatype = self.obj.datatype.__name__
+        class_name = self.obj.__class__.__qualname__
+        size = self.obj.size
+        capacity = self.obj.capacity
+
+        # empty case:
+        if self.obj.is_empty():
+            return f"[{class_name}][{datatype}]: []"
+
+        priority_element = self._ansi.color(f"{self.obj.priority}", Ansi.GREEN)
+
+        def _generate_items():
+            for i in range(self.obj.size):
+                kv_pair = self.obj._heap.array[i]
+                element, priority = kv_pair
+                # color priority element
+                if element == self.obj.priority:
+                    yield self._ansi.color(f"{element}: (p{priority})", Ansi.GREEN)
+                else:
+                    yield f"{element}: (p{priority})"
+
+        return f"[{class_name}][{datatype}][{size}/{capacity}]: [{', '.join(_generate_items())}]"
+
+    def repr_heap(self):
+        """Displays the memory address and other useful info"""
+        class_address = (
+            f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
+        )
+        datatype = self.obj.datatype.__name__
+        size = self.obj.size
+        capacity = self.obj.capacity
+        heap_type = self.obj.heap_type
+
+        if self.obj.is_empty():
+            return f"{class_address}, Type: {datatype}, Heap Type: {heap_type}, Size: {size}/{capacity}"
+
+        priority_element = self._ansi.color(f"{self.obj.priority}", Ansi.GREEN)
+        return f"{class_address}, Type: {datatype}, Heap Type: {heap_type}, Size: {size}/{capacity}, Priority Element: {priority_element}"
 
 
 # Maps

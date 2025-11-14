@@ -128,11 +128,6 @@ class PriorityQueueADT(ABC, Generic[T]):
     # ----- Canonical ADT Operations -----
     # ----- Accessor ADT Operations -----
 
-    @property
-    @abstractmethod
-    def comparison_key(self):
-        """custom key used to determine priority sorting behaviour"""
-        pass
 
     @abstractmethod
     def find_extreme(self) -> T:

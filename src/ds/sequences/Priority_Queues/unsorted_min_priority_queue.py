@@ -150,6 +150,7 @@ class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic
         Many algorithms (Dijkstra, Prim, A*) assume that once an element is in the PQ, its priority can only improve, i.e., get smaller.
         """
         self._utils.check_empty_pq()
+        self._validators.enforce_type(priority, int)
 
         # find element.
         for i in range(self.size):

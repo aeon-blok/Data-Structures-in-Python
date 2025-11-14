@@ -148,6 +148,8 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
         """
         # empty case:
         self._utils.check_empty_pq()
+        self._validators.enforce_type(priority, int)
+
         found_match = False
 
         # main case:

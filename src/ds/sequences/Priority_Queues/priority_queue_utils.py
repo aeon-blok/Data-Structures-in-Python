@@ -90,3 +90,60 @@ class PriorityQueueUtils:
                 return
         # lowest priority case: -- if priority is the lowest - add to the end of the array
         self.obj._data.append(kv_pair)
+
+    def compare_heap_nodes(self, child, parent) -> bool:
+        """compares child and parent nodes - returns true or false
+        - choose betwee min and max heap. can choose custom key if so desired
+        """
+        if self.obj.min_heap:
+            return self.obj.key(child) < self.obj.key(parent)
+        else:
+            return self.obj.key(child) > self.obj.key(parent)
+
+    def bubble_up_heap(self, index: int):
+        """
+        Compares Child and parent nodes, and swaps positions
+        if current order violates heap-order property
+        repeats process until heap-order is restored
+        O(log n) - due to complete tree property.
+        """
+        # Step 1: compute parent index
+        parent_index = (index - 1) // 2  
+        # Step 2: loop through tree structure.
+        while index > 0:
+            # Step 3: define child and parent nodes
+            child = self.obj._heap.array[index]
+            parent = self.obj._heap.array[parent_index]
+
+            # Step 4: Exit Condition: heap order is satisified
+            if self.compare_heap_nodes(child, parent) == False:
+                break
+
+            # Step 5: (if heap order still violated) swap node positions.
+            self.obj._heap.array[index], self.obj._heap.array[parent_index] = parent, child
+
+            # Step 6: move up to next node
+            index = parent_index    # move to parent index position.
+            parent_index = (index - 1) // 2 # derive new parent index.
+
+    def bubble_down_heap(self, index: int):
+        """
+        Compares a parent node to its children and swaps if the heap order is violated.
+        """
+        while index < self.obj.size:
+            left_child_index = 2 * index + 1
+            right_child_index = 2 * index + 2
+            parent_index = index
+            # If left child violates heap-order, set selected = left.
+            if left_child_index < self.obj.size and self.compare_heap_nodes(self.obj._heap.array[left_child_index], self.obj._heap.array[parent_index]):
+                parent_index = left_child_index
+            # If right child violates heap-order more, set selected = right.
+            if right_child_index < self.obj.size and self.compare_heap_nodes(self.obj._heap.array[right_child_index], self.obj._heap.array[parent_index]):
+                parent_index = right_child_index
+            # exit condition: heap order satisfied
+            if parent_index == index:
+                break
+            # After comparing, if selected != index,
+            # swap nodes - and move down tree.
+            self.obj._heap.array[index], self.obj._heap.array[parent_index] = self.obj._heap.array[parent_index], self.obj._heap.array[index]
+            index = parent_index
