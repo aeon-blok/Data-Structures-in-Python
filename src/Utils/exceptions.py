@@ -40,6 +40,15 @@ class DsUnderflowError(DsError):
         self._message = self._default_message if message is None else message
         super().__init__(self._message)
 
+
+class DsDuplicationError(DsError):
+    """Error when an element in a data structure already exists."""
+    def __init__(self, message: Optional[str] = None) -> None:
+        self._default_message = f"Error: Element already exists."
+        self._message = self._default_message if message is None else message
+        super().__init__(self._message)
+
+
 class DsTypeError(DsError):
     """Error when datatype enforcement fails."""
     def __init__(self, message: Optional[str] = None) -> None:
@@ -94,5 +103,12 @@ class KeyInvalidError(DsError):
     """Error when the key provided to the list or dictionary is of an invalid type."""
     def __init__(self, message: Optional[str] = None) -> None:
         self._default_message = f"Error: Invalid Key Provided. Please use a Node or an Index Number."
+        self._message = self._default_message if message is None else message
+        super().__init__(self._message)
+
+class PriorityInvalidError(DsError):
+    """Error when the key provided to the list or dictionary is of an invalid type."""
+    def __init__(self, message: Optional[str] = None) -> None:
+        self._default_message = f"Error: Priority input is invalid."
         self._message = self._default_message if message is None else message
         super().__init__(self._message)

@@ -141,8 +141,8 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
         # Core Array Properties
         self.min_capacity = max(4, capacity)  # min size for array
-        self.capacity = capacity  # sets total amount of spaces for the array
-        self.size = 0  # tracks number of elements in the array
+        self.capacity = capacity  # sets total amount of spaces for the array (# todo same change to private)
+        self.size = 0  # tracks number of elements in the array (# todo change to protected with property)
         # creates a new ctypes/numpy array with a specified capacity
         self.array = self._utils.initialize_new_array(self.datatype, self.capacity, self.datatype_map)
         self._is_static = is_static
@@ -152,6 +152,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     @property
     def is_static(self):
         return self._is_static
+
 
     def __str__(self) -> str:
         """a list of strings representing all the elements in the array"""
