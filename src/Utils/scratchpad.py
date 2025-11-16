@@ -45,4 +45,4 @@ print(newlist)
 # todo trees -- Solve problems: heap sort, k largest elements, lowest common ancestor
 # todo graphs -- Solve: connected components, shortest path, cycle detection
 # todo Implement mini projects like a LRU cache, social network connections, or mini graph algorithms
-
+# todo need to add recursion guards to the representations to prevent recursive loops with __str__....

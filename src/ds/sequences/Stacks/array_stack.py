@@ -70,6 +70,9 @@ class ArrayStack(StackADT[T], CollectionADT[T], Generic[T]):
     def __repr__(self) -> str:
         return self._desc.repr_array_stack()
 
+    def __bool__(self):
+        return self.size > 0
+
     # ----- Meta Collection ADT Operations -----
     def __len__(self) -> int:
         return self.size
@@ -99,19 +102,15 @@ class ArrayStack(StackADT[T], CollectionADT[T], Generic[T]):
     def push(self, element: T) -> None:
         """Insert an element at the top"""
         self._validators.enforce_type(element, self.datatype)
-        self._top += 1  # tracks the top of the stack.
         self._array.append(element)
+        self._top += 1  # tracks the top of the stack.
 
     def pop(self) -> T:
         """remove and return an element from the top"""
         self._utils.check_array_stack_underflow_error()
         old_value = self._array.array[self._top]
+        self._array.delete(self._top)
         self._top -= 1
-
-        # dereference if object
-        if self._datatype in (object, ctypes.py_object):
-            self._array.array[self._top + 1] = None
-
         return old_value
 
     def peek(self) -> T:
@@ -120,7 +119,7 @@ class ArrayStack(StackADT[T], CollectionADT[T], Generic[T]):
         return self._array.array[self._top]
 
 
-# todo test with class objects - for dereferencing.
+# todo write more tests, including class objects. test errors also.
 
 
 # main --- client facing code ---
@@ -129,93 +128,14 @@ def main():
     stack = ArrayStack(int)
     print(stack)
     print(f"Testing is_empty? {stack.is_empty()}\n")
-
-    # Push Operations
-    print("Testing Push Operations:")
-    for val in [10, 20, 30, 40]:
-        print(f"Pushing {val}...")
-        stack.push(val)
-        print(stack)
-
-    # Peek Top Element
-    try:
-        print(f"\nPeek Top Element: {stack.peek()}")
-        print(f"Current Top Property: {stack.top}")
-    except Exception as e:
-        print(f"Error: {e}")
-
-    # Pop Operations
-    print("\nTesting Pop Operations:")
-    try:
-        popped = stack.pop()
-        print(f"Popped: {popped}")
-        print(stack)
-        popped = stack.pop()
-        print(f"Popped: {popped}")
-        print(stack)
-    except Exception as e:
-        print(f"Error: {e}")
-
-    # Mixed Push/Pop
-    print("\nTesting Mixed Push/Pop:")
-    stack.push(50)
+    for i in range(50):
+        stack.push(i)
     print(stack)
-    try:
-        popped = stack.pop()
-        print(f"Popped: {popped}")
-        print(stack)
-    except Exception as e:
-        print(f"Error: {e}")
 
-    # Iteration
-    print("\nTesting Iteration:")
-    for val in [60, 70, 80]:
-        stack.push(val)
-
-    print("Iterating over stack (bottom -> top):")
-    for i, item in enumerate(stack):
-        print(f"Iterated over {i}: {item}")
-
-    # Reversed Iteration
-    print("\nIterating over stack (top -> bottom):")
-    for i, item in enumerate(reversed(stack)):
-        print(f"Iterated over {i}: {item}")
-
-    # Contains
-    print("\nTesting __contains__:")
-    print(f"Is 70 in stack? {70 in stack}")
-    print(f"Is 999 in stack? {999 in stack}")
-
-    # Length
-    print("\nTesting __len__:")
-    print(f"Stack length: {len(stack)}")
-
-    try:
-        print("Pushing a wrong type into stack...")
-        stack.push(RandomClass("Woaggggg"))  # should raise TypeError
-    except TypeError as e:
-        print(f"{e}")
-
-    # Clear
-    print("\nTesting clear():")
-    stack.clear()
-    print(stack)
-    print(f"Testing is_empty? {stack.is_empty()}")
-
-    # Pop/Peek from empty stack
-    print("\nTesting errors on empty stack:")
-
-    try:
+    for i in range(40):
         stack.pop()
-    except Exception as e:
-        print(f"{e}")
 
-    try:
-        stack.peek()
-    except Exception as e:
-        print(f"{e}")
-
-    print("\n=== DynamicArrayStack Test Complete ===")
+    print(stack)
 
 
 if __name__ == "__main__":

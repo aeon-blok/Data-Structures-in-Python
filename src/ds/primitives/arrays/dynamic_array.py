@@ -11,6 +11,7 @@ from typing import (
     cast,
     Iterator,
     Generator,
+    Iterable
 )
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
@@ -173,7 +174,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
             return VectorView(self.datatype, view, slice_start, view_length, slice_step)
         return self.get(index)
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index, value: T):
         """Built in override - adds indexing."""
         self.set(index, value)
 
@@ -256,10 +257,15 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         if self.size == self.capacity and self._is_static == False:
             self.array = self._utils.grow_array()
         elif self.size == self.capacity and self._is_static == True:
-            raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
+            raise DsOverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
         self.array[self.size] = value
         self.size += 1
+
+    def append_many(self, list_of_values: Iterable):
+        """appends multiple values to the end of the array. works similar to python implementation"""
+        for i in list_of_values:
+            self.append(i)
 
     def prepend(self, value):
         """Insert x at index 0 -- O(N) - Same logic as insert, shift elems right"""

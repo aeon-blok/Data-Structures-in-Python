@@ -35,7 +35,7 @@ from adts.sequence_adt import SequenceADT
 
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
-from ds.sequences.Priority_Queues.priority_queue_utils import PriorityQueueUtils
+from ds.trees.Priority_Queues.priority_queue_utils import PriorityQueueUtils
 
 # endregion
 
@@ -131,6 +131,8 @@ class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic
         """inserts a kv pair into the priority queue"""
         self._utils.check_element_already_exists(element)
         self._validators.enforce_type(element, self._datatype)
+        self._validators.enforce_type(priority, int)
+
         kv_pair = (element, priority)   # pack storage tuple
         self._data.append(kv_pair)  # append to array
         # should update size automatically.
@@ -150,6 +152,7 @@ class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic
         Many algorithms (Dijkstra, Prim, A*) assume that once an element is in the PQ, its priority can only improve, i.e., get smaller.
         """
         self._utils.check_empty_pq()
+        self._validators.enforce_type(element, self._datatype)
         self._validators.enforce_type(priority, int)
 
         # find element.

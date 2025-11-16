@@ -1,3 +1,4 @@
+# region standard imports
 from typing import (
     Generic,
     TypeVar,
@@ -11,6 +12,8 @@ from typing import (
     Generator,
     Tuple,
     Literal,
+    Iterable,
+    TYPE_CHECKING
 )
 
 from abc import ABC, ABCMeta, abstractmethod
@@ -22,18 +25,21 @@ import math
 import random
 import time
 from pprint import pprint
+# endregion
+
+# region custom imports
+from utils.custom_types import T
+# endregion
 
 
 """
 Tree ADT: A tree is a hierarchical data structure consisting of nodes with a parent - child relationship.
 
-Tree Operations:
-
-Accessor Operations:
-
-Mutator Operations:
-
-Traversal Operations
+Unique Path Invariant: for any node. there is only one path from root to the node.
+Leaf Identity: Leaf nodes have no children
+Parent Identity: Parent have 1 or more children.
+Connectivity: Every node in the tree is reachable from the root.
+Acyclicity: 
 
 Properties:
 There is only one root node.
@@ -42,23 +48,23 @@ Every node has 1 parent.
 Root node is None
 All nodes are reachable from the root
 
-Nodes:
-there are several types of Nodes: root, parent, child, sibling & leaf
-
 Terminology:
-Depth: - the number of children a node has.
+Depth: the number of children a node has.
 Height: the length in terms of nodes of the longest path from root to leaf node.
-
+Breadth: Number of Leaves(no children) attached to the tree.
+Width: Number of nodes in a specific level.
+level: the number of edges from root to a node. (all nodes are grouped by level in BFS)
+Degree: The number of children it has (and number of subtrees attached to itself)
+Nodes:there are several types of Nodes: root, parent, child, sibling & leaf
+Edges: are the paths from one node to another. (connections between nodes)
+Subtree: Is another tree that is connected to the main tree
 """
-
-T = TypeVar("T")
 
 
 class TreeADT(ABC, Generic[T]):
-    """Tree"""
+    """Tree ADT:"""
 
     # ----- Canonical ADT Operations -----
-
     # ----- Accessors -----
     @property
     @abstractmethod
@@ -67,68 +73,63 @@ class TreeADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def parent(self, node) -> Optional["iNode[T]"]:
+    def parent(self, node: "iTNode[T]") -> Optional["iTNode[T]"]:
         """returns the parent NODE of a specified node"""
         pass
 
     @abstractmethod
-    def child(self, node) -> Optional["iNode[T]"]:
+    def children(self, node: "iTNode[T]") -> list["iTNode[T]"] | None:
         """returns the child NODE of a specified node"""
         pass
 
     @abstractmethod
-    def num_children(self, node) -> int:
+    def num_children(self, node: "iTNode[T]") -> int:
         """returns the total number of children of a specified node"""
         pass
 
     @abstractmethod
-    def is_root(self, node) -> bool:
+    def is_root(self, node: "iTNode[T]") -> bool:
         """returns true if the node is the root of a tree"""
         pass
 
     @abstractmethod
-    def is_leaf(self, node) -> bool:
+    def is_leaf(self, node: "iTNode[T]") -> bool:
         """returns True if the node is a leaf node (no children)"""
         pass
 
     @abstractmethod
-    def is_internal(self, node) -> bool:
+    def is_internal(self, node: "iTNode[T]") -> bool:
         """returns True if the node has children nodes."""
         pass
 
     @abstractmethod
-    def size(self) -> int:
-        """returns total number of nodes in the tree"""
-        pass
-
-    @abstractmethod
-    def depth(self, node) -> int:
+    def depth(self, node: "iTNode[T]") -> int:
         """returns Number of edges from the ROOT down to the specified node"""
         pass
 
     @abstractmethod
-    def height(self, node) -> int:
+    def height(self, node: "iTNode[T]") -> int:
         """returns Max Number of edges from a specified node to a leaf node (no children)."""
         pass
 
     # ----- Mutators -----
     @abstractmethod
-    def createTree(self, value: T) -> "iNode[T]":
+    def createTree(self, value: T) -> "iTNode[T]":
         """creates a new tree with a root node"""
         pass
 
     @abstractmethod
-    def addChild(self, parent_node, value) -> "iNode[T]":
+    def addChild(self, parent_node: "iTNode[T]", value: T) -> "iTNode[T]":
         """adds a child node to the specified node."""
         pass
 
     @abstractmethod
-    def remove(self, node) -> "iNode[T]":
+    def remove(self, node: "iTNode[T]") -> "iTNode[T]":
         """removes a specified node and all its descendants"""
         pass
 
     @abstractmethod
-    def replace(self, node, value) -> "iNode[T]":
+    def replace(self, node: "iTNode[T]", value: T) -> "iTNode[T]":
         """replaces a value in a specified node"""
         pass
 
@@ -148,31 +149,11 @@ class TreeADT(ABC, Generic[T]):
         """Breadth First Search: (BFS) --- visiting nodes level by level, - starts from left -> right, and traverses the entire tree top -> bottom"""
         pass
 
-    # ----- Meta Collection ADT Operations -----
-    @abstractmethod
-    def is_empty(self) -> bool:
-        pass
 
-    @abstractmethod
-    def __len__(self) -> int:
-        """returns total number of nodes in the tree"""
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        pass
-
-    @abstractmethod
-    def __contains__(self, value: T) -> bool:
-        pass
-
-    @abstractmethod
-    def __iter__(self) -> Generator[T, None, None]:
-        pass
 
 
 # Node interface
-class iNode(ABC, Generic[T]):
+class iTNode(ABC, Generic[T]):
     """interface for Tree ADT node"""
 
     @property
@@ -183,24 +164,24 @@ class iNode(ABC, Generic[T]):
 
     @property
     @abstractmethod
-    def parent(self) -> Optional["iNode[T]"]:
+    def parent(self) -> Optional["iTNode[T]"]:
         """return the parent node or None if this is the root"""
         pass
 
     @property
     @abstractmethod
-    def children(self) -> Optional[list["iNode[T]"]]:
+    def children(self) -> Optional[list["iTNode[T]"]]:
         """return a list of all the children nodes"""
         pass
 
     # ----- Mutators -----
     @abstractmethod
-    def add_child(self, value: T) -> None:
+    def add_child(self, value: T) -> Optional["iTNode[T]"]:
         """insert a child under this node"""
         pass
 
     @abstractmethod
-    def remove_child(self, node: "iNode[T]") -> T:
+    def remove_child(self, node: "iTNode[T]") -> T:
         """removes a specific child node"""
 
     # ----- Accessors -----

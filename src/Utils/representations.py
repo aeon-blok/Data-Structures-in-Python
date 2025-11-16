@@ -205,7 +205,6 @@ class LlStackRepr:
         total_nodes = self.obj.total_nodes
         return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
 
-
 class ArrayStackRepr:
     """Array Stack Representation in the console"""
     def __init__(self, stack_obj) -> None:
@@ -218,17 +217,19 @@ class ArrayStackRepr:
         datatype = self.obj.datatype.__name__
         class_name = self.obj.__class__.__qualname__
         total_elements = self.obj.size
+        capacity = self.obj._array.capacity
+        array_size = self.obj._array.size
         if self.obj.is_empty():
             return f"[{class_name}][{datatype}]: []{self._top_marker}"
         elements = (str(element) for element in self.obj)
-        return f"[{class_name}][{datatype}][{total_elements}]: [{', '.join(elements)}]{self._top_marker}"
+        return f"[{class_name}][{datatype}][{total_elements}] ({array_size}/{capacity}): [{', '.join(elements)}]{self._top_marker}"
 
     def repr_array_stack(self) -> str:
         """Displays the memory address and other useful info"""
         class_address = f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
         datatype = self.obj.datatype.__name__
-        total_nodes = self.obj.total_nodes
-        return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}"
+        size = self.obj.size
+        return f"{class_address}, Type: {datatype},"
 
     def str_min_max_avg_stack(self) -> str:
         """representation for the min max stack."""
@@ -276,7 +277,6 @@ class llQueueRepr:
         total_nodes = self.obj.size
         front_node = self.obj.front
         return f"{class_address}, Type: {datatype}, Total Nodes: {total_nodes}, Front: {front_node}"
-
 
 class CircArrayQueueRepr:
     """Linked list queue representation"""
@@ -364,7 +364,6 @@ class CircDequeRepr:
         front = self.obj.front
         rear = self.obj.rear
         return f"{class_address}, Type: {datatype}, Size: {deque_size}/{capacity}, Front: {front} Rear: {rear}"
-
 
 class LlDequeRepr:
     def __init__(self, deque_obj) -> None:
@@ -506,6 +505,76 @@ class BinaryHeapRepr:
 
 
 # Trees
+class TreeNodeRepr:
+    def __init__(self, tree_node_obj) -> None:
+        self.obj = tree_node_obj
+        
+
+    def repr_tnode(self):
+        """Displays the memory address and other useful info"""
+        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
+        datatype = self.obj.datatype.__name__
+        node_status = self.obj.alive
+        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.value}, Node Alive?: {node_status}"
+
+    def str_tnode(self):
+        datatype = self.obj.datatype.__name__
+        class_name = self.obj.__class__.__qualname__
+        return f"({class_name}: {datatype}) {self.obj.value}"
+
+class GenTreeRepr:
+    def __init__(self, tree_obj) -> None:
+        self.obj = tree_obj
+        self._ansi = Ansi()
+
+    def repr_gen_tree(self):
+        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
+        datatype = self.obj.datatype.__name__
+        total_elements =  f"Total Nodes: {len(self.obj)}"
+        return f"{class_address}, Type: {datatype}, {total_elements}"
+
+    def str_gen_tree(self):
+        """
+        Traverses the Tree via stack
+        adds connector symbols in front of each node value, depending on whether it is the last child "└─" or one of many "├─",
+        every node adds either " " if parent is last child (no vertical bar needed) or "| " if parent is not last child (vertical bar continues)
+        the node & its display symbols are appended to a list for the final string output.
+        """
+        total_tree_nodes = len(self.obj)
+        tree_height = self.obj.height(self.obj.root)
+        if self.obj.root is None:
+            return f"< 🌳 empty tree>"
+
+        hierarchy = []
+        tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
+
+        while tree:
+            # we traverse depth-first, which naturally fits a hierarchical print.
+            node, prefix, is_last = tree.pop()
+
+            # root (depth = 0), we print 🌲
+            if node is self.obj.root:
+                indicator = "🌲:"
+            # decides what connector symbol appears before the node value when printing the tree.
+            else: 
+                indicator = "" if prefix == "" else ("└─" if is_last else "├─")
+
+            # add to final string output
+            hierarchy.append(f"{prefix}{indicator}{str(node.value)}") 
+
+            # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
+            new_prefix = prefix + ("   " if is_last else "│  ")
+
+            # Iterates over the node’s children in reverse. (left to right) --- enumerate gives index i for calculating new prefix.
+            for i, child in enumerate(reversed(node.children)):
+                last_child = (i==0)
+                # Update ancestor flags: current node's is_last boolean affects all its children
+                tree.append((child, new_prefix, last_child))
+        # final string:
+        node_structure = "\n".join(hierarchy)
+        title = self._ansi.color(f"Tree: Depth First Search (DFS):", Ansi.GREEN)
+
+        return f"\n{title}\nTotal Nodes: {total_tree_nodes}, Tree Height: {tree_height}\n{node_structure}\n"
 
 
 # Graphs

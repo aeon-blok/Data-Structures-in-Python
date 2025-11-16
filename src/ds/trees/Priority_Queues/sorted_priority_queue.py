@@ -39,7 +39,7 @@ from adts.sequence_adt import SequenceADT
 
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
-from ds.sequences.Priority_Queues.priority_queue_utils import PriorityQueueUtils
+from ds.trees.Priority_Queues.priority_queue_utils import PriorityQueueUtils
 
 # endregion
 
@@ -123,6 +123,7 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
     def insert(self, element: T, priority: int) -> None:
         """insert a key value pair into the priority queue."""
         self._validators.enforce_type(element, self._datatype)
+        self._validators.enforce_type(priority, int)
         self._utils.check_element_already_exists(element)
         new_element = (element, priority)
         # empty case
@@ -148,6 +149,7 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
         """
         # empty case:
         self._utils.check_empty_pq()
+        self._validators.enforce_type(element, self._datatype)
         self._validators.enforce_type(priority, int)
 
         found_match = False
