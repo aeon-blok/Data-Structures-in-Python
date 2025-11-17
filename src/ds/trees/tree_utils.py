@@ -37,13 +37,16 @@ if TYPE_CHECKING:
 from ds.primitives.arrays.dynamic_array import VectorArray
 from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.sequences.Deques.circular_array_deque import CircularArrayDeque
+from adts.tree_adt import iTNode
+from adts.binary_tree_adt import iBNode
 
 # endregion
 
 class TreeNodeUtils:
     """Utility Methods for Tree Nodes"""
-    def __init__(self, tree_node_obj: "iTNode[T]") -> None:
+    def __init__(self, tree_node_obj) -> None:
         self.obj = tree_node_obj
+
 
     def validate_tnode(self, node):
         """ensures the specified child belongs to this node."""
@@ -60,30 +63,36 @@ class TreeNodeUtils:
 
 class TreeUtils:
     """A collection of reusable utility methods for tree data structures"""
-    def __init__(self, tree_obj: "TreeADT[T]") -> None:
+    def __init__(self, tree_obj) -> None:
         self.obj = tree_obj
         self._ansi = Ansi()
 
-    def validate_tree_node(self, node):
+    def validate_tree_node(self, node, node_type: type):
         """ensures tree node is valid and belongs to the tree"""
+        self.validate_datatype(node_type)
         if node is None:
             raise NodeEmptyError("Error: Node is None.")
-        from adts.tree_adt import iTNode
-        if not isinstance(node, iTNode):
+        elif not isinstance(node, node_type):
             raise DsTypeError("Error: Node is not a valid Node Type.")
-        if node.deleted:
+        elif node.deleted:
             raise NodeDeletedError("Error: This Node has been deleted and cannot be utilized in tree networks.")
-        if node._tree_owner is not self.obj:
+        if node.tree_owner is not self.obj:
             raise NodeOwnershipError("Error: Node Belongs to a different Tree...")
 
-    def count_total_tree_nodes(self) -> int:
+    def validate_datatype(self, datatype):
+        if datatype is None:
+            raise DsUnderflowError("Error: Datatype cannot be None Value.")
+        if not isinstance(datatype, type):
+            raise DsTypeError("Error: Datatype must be a valid Python Type object.")
+
+    def count_total_tree_nodes(self, node_type: type) -> int:
         """Counts the total number of nodes in the tree. -- traverses whole tree - O(N)"""
+        self.validate_datatype(node_type)
         # empty case:
         if self.obj.root is None:
             return 0
         # main case: traverse tree - and count nodes
-        from adts.tree_adt import iTNode
-        tree_nodes = ArrayStack(iTNode)
+        tree_nodes = ArrayStack(node_type)
         tree_nodes.push(self.obj.root)
         total_nodes = 0
         while tree_nodes:
@@ -93,18 +102,23 @@ class TreeUtils:
                 tree_nodes.push(i)
         return total_nodes
 
-    def dfs_depth_first_search(self):
+    def _dfs_depth_first_search(self, target_node, node_type: type):
         """
         Depth First Search: (DFS) -- travels from root to last child 
         First goes (top -> bottom) then (left -> right)
         """
+        self.validate_datatype(node_type)
+
+        self.validate_tree_node(target_node, node_type)  # validate input
+
         # empty case:
-        if not self.obj.root:
-            return 
+        if not target_node:
+            return
+
         # main case
-        from adts.tree_adt import iTNode
-        tree_nodes = ArrayStack(iTNode)
-        tree_nodes.push(self.obj.root)
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(target_node)
+
         # traverse tree - add children in reverse order to the stack.
         while tree_nodes:
             node = tree_nodes.pop()
@@ -112,20 +126,22 @@ class TreeUtils:
             for i in reversed(node.children):
                 tree_nodes.push(i)
 
-    def reverse_dfs_postorder_search(self):
+    def _reverse_dfs_postorder_search(self, target_node, node_type: type):
         """
         generator for postorder traversal 
         goes bottom to top, left to right.
         Uses 2 stack technique to reverse the order.
         """
-        if not self.obj.root:
-            return
-        # main case
-        from adts.tree_adt import iTNode
-        tree_nodes = ArrayStack(iTNode)
-        tree_nodes.push(self.obj.root)
+        self.validate_datatype(node_type)
+        self.validate_tree_node(target_node, node_type)
 
-        reverse_stack = ArrayStack(iTNode)
+        if not target_node:
+            return
+
+        # main case
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(target_node)
+        reverse_stack = ArrayStack(node_type)
 
         while tree_nodes:
             node = tree_nodes.pop()
@@ -137,15 +153,18 @@ class TreeUtils:
             node = reverse_stack.pop()
             yield node.value
 
-    def bfs_breadth_first_search(self):
+    def _bfs_breadth_first_search(self, target_node, node_type: type):
         """
         generator for BFS - Breadth First Search
         goes level by level, left to right.
         Uses a deque for adding and removing from both ends -- O(1) time
         """
+
+        self.validate_datatype(node_type)
+        self.validate_tree_node(target_node, node_type)
+
         if not self.obj.root:
             return
-        from adts.tree_adt import iTNode
         tree_nodes = CircularArrayDeque(iTNode)
         tree_nodes.add_rear(self.obj.root)
         while tree_nodes:
@@ -154,8 +173,11 @@ class TreeUtils:
             for i in node.children:
                 tree_nodes.add_rear(i)
 
-    def tree_depth(self, node):
+    def _tree_depth(self, node, node_type):
         """returns Number of edges from the ROOT to the specified node -- traverse up parents until root."""
+        self.validate_datatype(node_type)
+        self.validate_tree_node(node, node_type)
+
         depth = 0  # tracks the level from target node
         current_node = node
         while current_node.parent:
@@ -163,21 +185,22 @@ class TreeUtils:
             depth += 1
         return depth
 
-    def tree_height(self, node):
+    def _tree_height(self):
         """returns Max Number of edges from a specified node to a leaf node (no children). -- Algorithm: recursively compute the max height of children."""
-        if self.obj.is_leaf(node):  # leaf nodes have 0 height
+        if self.obj.is_leaf(self.obj.root):  # leaf nodes have 0 height
             return 0
-        max_height = max(self.obj.height(i) for i in node.children)
+        max_height = max(self.obj.height(i) for i in self.obj.root.children)
         return 1 + max_height   # height must be 1 or over, because not a leaf
 
-    def view_bfs(self):
+    def view_bfs(self, node_type):
         """BFS Visualization - splits nodes by level."""
         if not self.obj.root:
             return f"\nTree: (Breadth First Search) 🌳: Total Nodes: {len(self.obj)}\n"
 
-        from adts.tree_adt import iTNode
+        self.validate_datatype(node_type)
+
         # store tree in a deque
-        tree_nodes = tree_nodes = CircularArrayDeque(iTNode)
+        tree_nodes = tree_nodes = CircularArrayDeque(node_type)
         tree_nodes.add_rear(self.obj.root)
         current_level = 0
         infostring_stack = ArrayStack(str)
@@ -205,3 +228,150 @@ class TreeUtils:
         title = self._ansi.color(f"Tree: (Breadth First Search) 🌳:", Ansi.BLUE)
         tree_height = self.obj.height(self.obj.root)
         return f"\n{title}\nTotal Nodes: {len(self.obj)}, Tree Height: {tree_height}\n" + "\n".join(infostring_stack)
+
+    # region binary tree
+    def check_empty_binary_tree(self):
+        """ensures the tree is not empty when inserting left or right children."""
+        if self.obj.is_empty():
+            raise DsUnderflowError("Error: Tree is empty... Action was not performed")
+
+    def binary_count_total_tree_nodes(self, node_type: type):
+        """binary tree variant for counting the nodes in a tree"""
+        self.validate_datatype(node_type)
+
+        # empty case:
+        if self.obj.root is None:
+            return 0
+
+        # main case: traverse tree - and count nodes
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(self.obj.root)
+        total_nodes = 0
+        while tree_nodes:
+            current_node = tree_nodes.pop()
+            total_nodes += 1
+            # add children to the stack
+            if current_node.right is not None:
+                tree_nodes.push(current_node.right)
+            if current_node.left is not None:
+                tree_nodes.push(current_node.left)
+        return total_nodes
+
+    def binary_tree_height(self, edge_based: bool = True):
+        """returns max height for binary tree..."""
+        if self.obj.root is None:
+            return 0
+        start_depth = 0 if edge_based else 1
+        tree_nodes = ArrayStack(tuple)  # note the type is a tuple.
+        tree_nodes.push((self.obj.root, start_depth))
+        max_height_counter = 0
+
+        while tree_nodes:
+            current_node, depth = tree_nodes.pop()
+            max_height_counter = max(max_height_counter, depth)
+
+            # add children to the stack
+            if current_node.right is not None:
+                tree_nodes.push((current_node.right, depth + 1))
+            if current_node.left is not None:
+                tree_nodes.push((current_node.left, depth + 1))
+
+        return max_height_counter
+
+    def binary_dfs_traversal(self, target_node, node_type:type):
+        """depth first search for binary trees"""
+        self.validate_datatype(node_type)
+        self.validate_tree_node(target_node, node_type)  # validate input
+
+        # empty case:
+        if not target_node:
+            return
+
+        # main case
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(target_node)
+
+        # traverse tree - add children in reverse order to the stack.
+        while tree_nodes:
+            current_node = tree_nodes.pop()
+            yield current_node.element
+            # NOTICE THE ORDER - its right to left - when pushing to the stack with dfs
+            if current_node.right is not None:
+                tree_nodes.push(current_node.right)
+            if current_node.left is not None:
+                tree_nodes.push(current_node.left)  # push to main stack
+
+    def binary_postorder_traversal(self, target_node, node_type:type):
+        """reversed dfs for binary trees"""
+        self.validate_datatype(node_type)
+        self.validate_tree_node(target_node, node_type)
+
+        if not target_node:
+            return
+
+        # main case
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(target_node)
+        reverse_stack = ArrayStack(node_type)
+
+        while tree_nodes:
+            current_node = tree_nodes.pop()
+            reverse_stack.push(current_node)
+            # NOTICE: the order is reversed for postorder.
+            if current_node.left is not None:
+                tree_nodes.push(current_node.left)
+            if current_node.right is not None:
+                tree_nodes.push(current_node.right)
+
+        while reverse_stack:
+            node = reverse_stack.pop()
+            yield node.element
+
+    def binary_bfs_traversal(self, target_node, node_type: type):
+        """breadth first search for binary trees"""
+        self.validate_datatype(node_type)
+        self.validate_tree_node(target_node, node_type)
+
+        if not target_node:
+            return
+
+        tree_nodes = CircularArrayDeque(node_type)
+        tree_nodes.add_rear(target_node)
+
+        while tree_nodes:
+            current_node = tree_nodes.remove_front()
+            yield current_node.element
+            if current_node.left is not None:
+                tree_nodes.add_rear(current_node.left) 
+            if current_node.right is not None:
+                tree_nodes.add_rear(current_node.right)
+
+    def inorder_traversal(self, target_node, node_type: type):
+        """
+        Inorder traversal for binary trees. Visit nodes in the order Left → Root → Right.
+        For a general binary tree, the values won’t be sorted (only for BST)
+        """
+        self.validate_datatype(node_type)
+        # self.validate_tree_node(target_node, node_type)
+
+        if target_node is None:
+            return
+
+        tree_nodes = ArrayStack(node_type)
+        current_node = target_node
+
+        while tree_nodes or current_node:
+            while current_node:
+                tree_nodes.push(current_node)
+                # move along left subtree.
+                current_node = current_node.left
+            # once we get to the end of the subtree
+            current_node = tree_nodes.pop()
+            # return value
+            yield current_node.element
+            # move to the right subtree.
+            current_node = current_node.right
+
+
+
+    # endregion

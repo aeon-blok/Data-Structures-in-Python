@@ -31,14 +31,16 @@ from pprint import pprint
 # region custom imports
 from utils.custom_types import T
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr
+from utils.representations import TreeNodeRepr, BinaryNodeRepr
 from utils.exceptions import *
 
 from adts.collection_adt import CollectionADT
 from adts.tree_adt import iTNode
+from adts.binary_tree_adt import iBNode
 
 if TYPE_CHECKING:
     from adts.tree_adt import TreeADT
+    from adts.binary_tree_adt import BinaryTreeADT
 
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
@@ -181,6 +183,119 @@ class TNode(iTNode[T], Generic[T]):
         return len(self._children) > 0
 
     # -------------- Testing Node Solo Functionality -----------------
+
+
+class BinaryNode(iBNode[T], Generic[T]):
+    """Node for a Basic Binary Tree"""
+    def __init__(self, datatype: type, element: T, tree_owner=None) -> None:
+        self._datatype = datatype
+        self._element = element
+        self._parent = None
+        self._left = None
+        self._right = None
+        self._tree_owner = tree_owner
+        self._deleted: bool = False
+
+        # composed objects
+        self._utils = TreeNodeUtils(self)
+        self._validators = DsValidation()
+        self._desc = BinaryNodeRepr(self)
+
+        self._validators.check_input_value_exists(self._element)
+        self._validators.validate_datatype(self._datatype)
+        self._validators.enforce_type(self._element, self._datatype)
+
+    @property
+    def datatype(self):
+        return self._datatype
+
+    @property
+    def element(self):
+        return self._element
+    @element.setter
+    def element(self, value):
+        self._element = value
+        
+    @property
+    def parent(self):
+        return self._parent
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
+
+    @property
+    def left(self):
+        return self._left
+    @left.setter
+    def left(self, value):
+        self._left = value
+
+    @property
+    def right(self):
+        return self._right
+    @right.setter
+    def right(self, value):
+        self._right = value
+    
+    @property
+    def sibling(self):
+        """derived from the parent if it exists."""
+        # no parent case:
+        if self._parent is None:
+            return None
+        # check parent left child if its this node, its sibling must be right.
+        if self.parent.left is self:
+            return self.parent.right
+        else:
+            return self.parent.left
+
+    @property
+    def tree_owner(self):
+        return self._tree_owner
+    @tree_owner.setter
+    def tree_owner(self, value):
+        self._tree_owner = value
+
+    @property
+    def deleted(self):
+        return self._deleted
+    @deleted.setter
+    def deleted(self, value):
+        self._deleted = value
+    
+    @property
+    def alive(self):
+        return not self._deleted
+
+    # ----- Utilities -----
+
+    def __str__(self) -> str:
+        return self._desc.str_binary_node()
+    
+    def __repr__(self) -> str:
+        return self._desc.repr_binary_node()
+
+    # ----- Accessors -----
+    def num_children(self) -> int:
+        counter = 0
+        if self._left:
+            counter += 1
+        if self._right:
+            counter += 1
+        return counter    
+
+    def is_root(self) -> bool:
+        return self._parent is None
+
+    def is_leaf(self) -> bool:
+        return self.num_children() == 0
+
+    def is_internal(self) -> bool:
+        return self.num_children() > 0
+
+
+
+
 
 def main():
     node_a = TNode(str, "NODE ROOT")

@@ -125,7 +125,7 @@ class GeneralTree(TreeADT[T]):
         return f"[{', '.join(node_values)}]"
 
     def bfs_view(self):
-        return self._utils.view_bfs()
+        return self._utils.view_bfs(iTNode)
 
     def __str__(self) -> str:
         return self._desc.str_gen_tree()
@@ -142,41 +142,41 @@ class GeneralTree(TreeADT[T]):
 
     def parent(self, node):
         """returns the parent NODE of a specified node"""
-        self._utils.validate_tree_node(node)
+        self._utils.validate_tree_node(node, iTNode)
         return node.parent
 
     def children(self, node):
         """returns a list of all children nodes of a specified node"""
-        self._utils.validate_tree_node(node)
+        self._utils.validate_tree_node(node, iTNode)
         return node.children
 
     def num_children(self, node):
         """returns the total number of children of a specified node"""
-        self._utils.validate_tree_node(node)
+        self._utils.validate_tree_node(node, iTNode)
         return len(node.children)
 
     def is_root(self, node):
         """returns true if the node is the root of a tree"""
-        self._utils.validate_tree_node(node)
+        self._utils.validate_tree_node(node, iTNode)
         return node == self._root
 
     def is_leaf(self, node):
         """returns True if the node is a leaf node (no children)"""
-        self._utils.validate_tree_node(node)
+        self._utils.validate_tree_node(node, iTNode)
         return len(node.children) == 0
 
     def is_internal(self, node):
         """returns True if the node has children nodes."""
-        self._utils.validate_tree_node(node)
+        self._utils.validate_tree_node(node, iTNode)
         return len(node.children) > 0
 
     def depth(self, node):
-        self._utils.validate_tree_node(node)
-        return self._utils.tree_depth(node)
+        self._utils.validate_tree_node(node, iTNode)
+        return self._utils._tree_depth(node)
 
     def height(self, node):
-        self._utils.validate_tree_node(node)
-        return self._utils.tree_height(node)
+        self._utils.validate_tree_node(node, iTNode)
+        return self._utils._tree_height(node)
 
     # ----- Mutators -----
     def createTree(self, value):
@@ -188,6 +188,7 @@ class GeneralTree(TreeADT[T]):
     def addChild(self, parent_node, value):
         """adds a child node to the specified node."""
         self._validators.enforce_type(value, self._datatype)
+        self._utils.validate_tree_node(parent_node, iTNode)
         child = TNode(self._datatype, value, tree_owner=self)
         child.parent = parent_node  # link to parent.
         parent_node.children.append(child) # link  parent to child.
@@ -197,12 +198,9 @@ class GeneralTree(TreeADT[T]):
         """
         removes a specified node and all its descendants
         """
-
-        self._utils.validate_tree_node(node)
-
+        self._utils.validate_tree_node(node, iTNode)
         # 1. Store Node & Subtree -- Capture subtree size before modifying anything
         deleted_node = node  # store node to return later
-
         # 2. Unlink from parent (remove from children list) BEFORE deleting parent pointers
         parent = node.parent
         node.tree_owner = None
@@ -224,6 +222,9 @@ class GeneralTree(TreeADT[T]):
 
     def replace(self, node, value):
         """replaces a value in a specified node. Does NOT replace the subtree. Structure remains the same."""
+        self._utils.validate_tree_node(node, iTNode)
+        self._validators.enforce_type(value, self._datatype)
+
         replace_node = node
         replace_node.value = value
         return replace_node
@@ -231,15 +232,15 @@ class GeneralTree(TreeADT[T]):
     # ----- Traversals -----
     def preorder(self):
         """Depth First Search: (DFS)"""
-        return [i for i in self._utils.dfs_depth_first_search()]
+        return [i for i in self._utils._dfs_depth_first_search(self._root, iTNode)]
 
     def postorder(self):
         """Reversed Depth First Search: (RDFS) travels from last child to root - returns a list of values"""
-        return [i for i in self._utils.reverse_dfs_postorder_search()]
+        return [i for i in self._utils._reverse_dfs_postorder_search(self._root, iTNode)]
 
     def level_order(self):
         """Breadth First Search: (BFS) -- traverses the tree horizontally a level at a time."""
-        return [i for i in self._utils.bfs_breadth_first_search()]
+        return [i for i in self._utils._bfs_breadth_first_search(self._root, iTNode)]
 
     # ----- Meta Collection ADT Operations -----
     def is_empty(self):
@@ -247,7 +248,7 @@ class GeneralTree(TreeADT[T]):
 
     def __len__(self):
         """returns total number of nodes in the tree"""
-        return self._utils.count_total_tree_nodes()
+        return self._utils.count_total_tree_nodes(iTNode)
 
     def clear(self):
         """The tree is completely emptied and all children nodes are dereferenced."""
@@ -262,6 +263,7 @@ class GeneralTree(TreeADT[T]):
 
     def __contains__(self, value):
         """checks to see if any nodes in the tree contain the value."""
+        self._validators.enforce_type(value, self._datatype)
         if not self.root:
             return False
         tree = [self.root]  # change to custom stack later....
@@ -275,11 +277,11 @@ class GeneralTree(TreeADT[T]):
     def __iter__(self):
         """iterates over the tree via 3 traversal methods, DFS, DFS reversed & BFS"""
         if self.iteration_type == 'pre order':
-            return self._utils.dfs_depth_first_search()
+            return self._utils._dfs_depth_first_search(self._root, iTNode)
         elif self.iteration_type == 'post order':
-            return self._utils.reverse_dfs_postorder_search()
+            return self._utils._reverse_dfs_postorder_search(self._root, iTNode)
         elif self.iteration_type == 'level order':
-            return self._utils.bfs_breadth_first_search()
+            return self._utils._bfs_breadth_first_search(self._root, iTNode)
         else:
             raise KeyInvalidError(f"Error: Iteration Type: {self.iteration_type} is Invalid.")
 
@@ -289,7 +291,7 @@ class GeneralTree(TreeADT[T]):
 
 # todo create a size counter for tree. will mean O(1) for __len__ instead of O(N) - however delete will be O(H)
 # todo test adding deleted nodes to the tree - should be error
-# todo more testing required.
+# todo - need to fix up gen tree, many helper methods have changed.
 
 def main():
     # -------------- Testing Tree Functionality -----------------

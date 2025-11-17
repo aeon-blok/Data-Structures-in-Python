@@ -174,16 +174,6 @@ class iTNode(ABC, Generic[T]):
         """return a list of all the children nodes"""
         pass
 
-    # ----- Mutators -----
-    @abstractmethod
-    def add_child(self, value: T) -> Optional["iTNode[T]"]:
-        """insert a child under this node"""
-        pass
-
-    @abstractmethod
-    def remove_child(self, node: "iTNode[T]") -> T:
-        """removes a specific child node"""
-
     # ----- Accessors -----
     @abstractmethod
     def num_children(self) -> int:
