@@ -37,7 +37,6 @@ from utils.exceptions import *
 from adts.collection_adt import CollectionADT
 from adts.tree_adt import iTNode
 from adts.binary_tree_adt import iBNode
-from adts.
 
 if TYPE_CHECKING:
     from adts.tree_adt import TreeADT
