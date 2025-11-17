@@ -114,12 +114,12 @@ class TreeADT(ABC, Generic[T]):
 
     # ----- Mutators -----
     @abstractmethod
-    def createTree(self, value: T) -> "iTNode[T]":
+    def createTree(self, element: T) -> "iTNode[T]":
         """creates a new tree with a root node"""
         pass
 
     @abstractmethod
-    def addChild(self, parent_node: "iTNode[T]", value: T) -> "iTNode[T]":
+    def addChild(self, parent_node: "iTNode[T]", element: T) -> "iTNode[T]":
         """adds a child node to the specified node."""
         pass
 
@@ -129,7 +129,7 @@ class TreeADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def replace(self, node: "iTNode[T]", value: T) -> "iTNode[T]":
+    def replace(self, node: "iTNode[T]", element: T) -> "iTNode[T]":
         """replaces a value in a specified node"""
         pass
 
@@ -158,7 +158,7 @@ class iTNode(ABC, Generic[T]):
 
     @property
     @abstractmethod
-    def value(self) -> T:
+    def element(self) -> T:
         """return the value stored inside the node"""
         pass
 

@@ -79,45 +79,7 @@ class GeneralTree(TreeADT[T]):
         return self._datatype
 
     # ----- Utilities -----
-    def view(self):
-        """
-        Traverses the Tree via stack
-        adds connector symbols in front of each node value, depending on whether it is the last child "└─" or one of many "├─",
-        every node adds either " " if parent is last child (no vertical bar needed) or "| " if parent is not last child (vertical bar continues)
-        the node & its display symbols are appended to a list for the final string output.
-        """
-        if self.root is None:
-            return f"< 🌳 empty tree>"
 
-        hierarchy = []
-        tree = [(self.root, "", True)]  # (node, prefix, is_last)
-
-        while tree:
-            # we traverse depth-first, which naturally fits a hierarchical print.
-            node, prefix, is_last = tree.pop()
-
-            # root (depth = 0), we print 🌲
-            if node is self.root:
-                indicator = "🌲:"
-            # decides what connector symbol appears before the node value when printing the tree.
-            else: 
-                indicator = "" if prefix == "" else ("└─" if is_last else "├─")
-
-            # add to final string output
-            hierarchy.append(f"{prefix}{indicator}{str(node.value)}") 
-
-            # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
-            new_prefix = prefix + ("   " if is_last else "│  ")
-
-            # Iterates over the node’s children in reverse. (left to right) --- enumerate gives index i for calculating new prefix.
-            for i, child in enumerate(reversed(node.children)):
-                last_child = (i==0)
-                # Update ancestor flags: current node's is_last boolean affects all its children
-                tree.append((child, new_prefix, last_child))    
-
-        node_structure = "\n".join(hierarchy)
-
-        return f"\nTree Total Nodes: {len(self)}\n{node_structure}\n"
 
     def flattened_view(self):
         # utilizes __iter__ which has 3 different traversal algos
@@ -138,6 +100,8 @@ class GeneralTree(TreeADT[T]):
     @property
     def root(self):
         """returns the root node"""
+        if self._root is None:
+            return None
         return self._root
 
     def parent(self, node):
@@ -172,24 +136,24 @@ class GeneralTree(TreeADT[T]):
 
     def depth(self, node):
         self._utils.validate_tree_node(node, iTNode)
-        return self._utils._tree_depth(node)
+        return self._utils._tree_depth(node, iTNode)
 
     def height(self, node):
         self._utils.validate_tree_node(node, iTNode)
-        return self._utils._tree_height(node)
+        return self._utils._tree_height(self._root)
 
     # ----- Mutators -----
-    def createTree(self, value):
+    def createTree(self, element):
         """creates a new tree with a root node"""
-        self._validators.enforce_type(value, self._datatype)
-        self._root = TNode(self._datatype, value, tree_owner=self)
+        self._validators.enforce_type(element, self._datatype)
+        self._root = TNode(self._datatype, element, tree_owner=self)
         return self._root
 
-    def addChild(self, parent_node, value):
+    def addChild(self, parent_node, element):
         """adds a child node to the specified node."""
-        self._validators.enforce_type(value, self._datatype)
+        self._validators.enforce_type(element, self._datatype)
         self._utils.validate_tree_node(parent_node, iTNode)
-        child = TNode(self._datatype, value, tree_owner=self)
+        child = TNode(self._datatype, element, tree_owner=self)
         child.parent = parent_node  # link to parent.
         parent_node.children.append(child) # link  parent to child.
         return child
@@ -220,13 +184,13 @@ class GeneralTree(TreeADT[T]):
             node.deleted = True
         return deleted_node
 
-    def replace(self, node, value):
+    def replace(self, node, element):
         """replaces a value in a specified node. Does NOT replace the subtree. Structure remains the same."""
         self._utils.validate_tree_node(node, iTNode)
-        self._validators.enforce_type(value, self._datatype)
+        self._validators.enforce_type(element, self._datatype)
 
         replace_node = node
-        replace_node.value = value
+        replace_node.element = element
         return replace_node
 
     # ----- Traversals -----
@@ -269,7 +233,7 @@ class GeneralTree(TreeADT[T]):
         tree = [self.root]  # change to custom stack later....
         while tree:
             node = tree.pop()
-            if node.value == value:
+            if node.element == value:
                 return True
             tree.extend(reversed(node.children))
         return False
@@ -291,7 +255,6 @@ class GeneralTree(TreeADT[T]):
 
 # todo create a size counter for tree. will mean O(1) for __len__ instead of O(N) - however delete will be O(H)
 # todo test adding deleted nodes to the tree - should be error
-# todo - need to fix up gen tree, many helper methods have changed.
 
 def main():
     # -------------- Testing Tree Functionality -----------------
@@ -327,21 +290,21 @@ def main():
     print(tree)
 
     # height
-    print(f"Max Edges to the furthest Leaf Node: (Height) From:[{child_a.value}] {tree.height(child_a)}")
+    print(f"Max Edges to the furthest Leaf Node: (Height) From:[{child_a.element}] {tree.height(child_a)}")
 
     # depth
-    print(f"Edges from root to this node: (Depth) From[{child_c.value}]: {tree.depth(child_c)}")
+    print(f"Edges from root to this node: (Depth) From[{child_c.element}]: {tree.depth(child_c)}")
 
     # parent node
     parent_of = tree.parent(child_c)
-    print(f"Find the parent of the of the following Node:[{child_c.value}] Parent: {parent_of.value}")
+    print(f"Find the parent of the of the following Node:[{child_c.element}] Parent: {parent_of.element}")
 
     # children nodes
     child_of = tree.children(child_a)
-    print(f"Find the children of the of the following Node:[{child_a.value}] Children: {[node.value for node in child_of]}")
+    print(f"Find the children of the of the following Node:[{child_a.element}] Children: {[node.element for node in child_of]}")
 
     # test num children
-    print(f"Testing num_children on node: [{child_d.value}] - Number of Children: {tree.num_children(child_a)}")
+    print(f"Testing num_children on node: [{child_d.element}] - Number of Children: {tree.num_children(child_a)}")
 
     # test iteration via different traversal algos
     print(f"\nDFS Search: (Always goes top -> bottom, then left -> right)\n{tree.preorder()}")

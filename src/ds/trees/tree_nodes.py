@@ -37,10 +37,12 @@ from utils.exceptions import *
 from adts.collection_adt import CollectionADT
 from adts.tree_adt import iTNode
 from adts.binary_tree_adt import iBNode
+from adts.
 
 if TYPE_CHECKING:
     from adts.tree_adt import TreeADT
     from adts.binary_tree_adt import BinaryTreeADT
+    
 
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
@@ -50,10 +52,10 @@ from ds.trees.tree_utils import TreeNodeUtils
 
 class TNode(iTNode[T], Generic[T]):
     """Node for general tree implementaiton"""
-    def __init__(self, datatype: type, value: T, tree_owner: "TreeADT[T]" | iTNode[T] | None = None) -> None:
+    def __init__(self, datatype: type, element: T, tree_owner: "TreeADT[T]" | iTNode[T] | None = None) -> None:
 
         self._datatype = datatype
-        self._value = value
+        self._element: T = element
         self._parent: Optional[iTNode[T]] = None
         self._children: List[iTNode[T]] = []
         self._tree_owner: "TreeADT[T]" | iTNode[T] | None = tree_owner
@@ -64,7 +66,7 @@ class TNode(iTNode[T], Generic[T]):
         self._validators = DsValidation()
         self._desc = TreeNodeRepr(self)
 
-        self._validators.check_input_value_exists(self._value)
+        self._validators.check_input_value_exists(self._element)
         self._validators.validate_datatype(self._datatype)
 
     @property
@@ -78,7 +80,7 @@ class TNode(iTNode[T], Generic[T]):
     @property
     def alive(self) -> bool:
         return not self._deleted
-    
+
     @property
     def tree_owner(self):
         return self._tree_owner
@@ -92,12 +94,12 @@ class TNode(iTNode[T], Generic[T]):
         return self._datatype
 
     @property
-    def value(self):
-        return self._value
+    def element(self) -> T:
+        return self._element
 
-    @value.setter
-    def value(self, value):
-        self._value = value
+    @element.setter
+    def element(self, value: T):
+        self._element = value
 
     @property
     def parent(self):
@@ -123,10 +125,10 @@ class TNode(iTNode[T], Generic[T]):
         return self._desc.repr_tnode()
 
     # ----- Mutators -----
-    def add_child(self, value):
+    def add_child(self, element):
         """insert a child under this node"""
-        self._validators.enforce_type(value, self._datatype)
-        new_node = TNode(self._datatype, value, tree_owner=self._tree_owner)
+        self._validators.enforce_type(element, self._datatype)
+        new_node = TNode(self._datatype, element, tree_owner=self._tree_owner)
         new_node.parent = self
         self._children.append(new_node)
         return new_node
@@ -141,11 +143,9 @@ class TNode(iTNode[T], Generic[T]):
         """
         self._utils.validate_tnode(node)
         deleted_node = node
-        deleted_value = node.value
+        deleted_value = node._element
         node._tree_owner = None
         node._deleted = True
-
-
 
         subtree = [node]  # reference subtree in a list(stack)
 
@@ -215,7 +215,7 @@ class BinaryNode(iBNode[T], Generic[T]):
     @element.setter
     def element(self, value):
         self._element = value
-        
+
     @property
     def parent(self):
         return self._parent
@@ -236,7 +236,7 @@ class BinaryNode(iBNode[T], Generic[T]):
     @right.setter
     def right(self, value):
         self._right = value
-    
+
     @property
     def sibling(self):
         """derived from the parent if it exists."""
@@ -262,7 +262,7 @@ class BinaryNode(iBNode[T], Generic[T]):
     @deleted.setter
     def deleted(self, value):
         self._deleted = value
-    
+
     @property
     def alive(self):
         return not self._deleted
@@ -271,7 +271,7 @@ class BinaryNode(iBNode[T], Generic[T]):
 
     def __str__(self) -> str:
         return self._desc.str_binary_node()
-    
+
     def __repr__(self) -> str:
         return self._desc.repr_binary_node()
 
@@ -294,7 +294,120 @@ class BinaryNode(iBNode[T], Generic[T]):
         return self.num_children() > 0
 
 
+class BSTNode(iBNode[T], Generic[T]):
+    """Node for a Basic Binary Tree"""
 
+    def __init__(self, datatype: type, element: T, tree_owner=None) -> None:
+        self._datatype = datatype
+        self._element = element
+        self._parent = None
+        self._left = None
+        self._right = None
+        self._tree_owner = tree_owner
+        self._deleted: bool = False
+
+        # composed objects
+        self._utils = TreeNodeUtils(self)
+        self._validators = DsValidation()
+        self._desc = BinaryNodeRepr(self)
+
+        self._validators.check_input_value_exists(self._element)
+        self._validators.validate_datatype(self._datatype)
+        self._validators.enforce_type(self._element, self._datatype)
+
+    @property
+    def datatype(self):
+        return self._datatype
+
+    @property
+    def element(self):
+        return self._element
+
+    @element.setter
+    def element(self, value):
+        self._element = value
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
+
+    @property
+    def left(self):
+        return self._left
+
+    @left.setter
+    def left(self, value):
+        self._left = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
+    @property
+    def sibling(self):
+        """derived from the parent if it exists."""
+        # no parent case:
+        if self._parent is None:
+            return None
+        # check parent left child if its this node, its sibling must be right.
+        if self.parent.left is self:
+            return self.parent.right
+        else:
+            return self.parent.left
+
+    @property
+    def tree_owner(self):
+        return self._tree_owner
+
+    @tree_owner.setter
+    def tree_owner(self, value):
+        self._tree_owner = value
+
+    @property
+    def deleted(self):
+        return self._deleted
+
+    @deleted.setter
+    def deleted(self, value):
+        self._deleted = value
+
+    @property
+    def alive(self):
+        return not self._deleted
+
+    # ----- Utilities -----
+
+    def __str__(self) -> str:
+        return self._desc.str_binary_node()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_binary_node()
+
+    # ----- Accessors -----
+    def num_children(self) -> int:
+        counter = 0
+        if self._left:
+            counter += 1
+        if self._right:
+            counter += 1
+        return counter
+
+    def is_root(self) -> bool:
+        return self._parent is None
+
+    def is_leaf(self) -> bool:
+        return self.num_children() == 0
+
+    def is_internal(self) -> bool:
+        return self.num_children() > 0
 
 
 def main():

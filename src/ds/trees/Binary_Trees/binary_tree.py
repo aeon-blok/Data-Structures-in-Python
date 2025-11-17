@@ -96,7 +96,8 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
 
     def clear(self) -> None:
         self._utils.check_empty_binary_tree()
-        self.delete(self._root)
+        # self.delete(self._root)
+        self._root = None
 
        
     # ----- Utilities -----
@@ -230,6 +231,9 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
         self._utils.validate_tree_node(node, iBNode)
         old_value = node.element    # store value
 
+        if node is self._root:
+            self._root = None
+
         # Step 1: unlink the parent of the node first.
         parent_node = node.parent
         if parent_node:
@@ -283,11 +287,6 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
 
 
 # Main ---- Client Facing Code ----
-
-# todo test depth
-# todo test num children
-# todo test clear
-
 
 def main():
     bt = BinaryTree(str)
@@ -370,6 +369,20 @@ def main():
     right_zebras = bt.right(level_2a)
     print(left_zebras)
     print(right_zebras)
+
+    print(f"\nTesting Node Depth - from root, and specified node.")
+    print(bt.depth(bt.root))
+    print(bt.depth(level_3b))
+    print(bt.height())
+
+    print(f"\nTesting Num Children.")
+    print(bt.num_children(level_3b))
+    print(bt.num_children(bt.root))
+
+    print(f"Testing Clear()")
+    print(bt)
+    bt.clear()
+    print(bt)
 
 
 if __name__ == "__main__":

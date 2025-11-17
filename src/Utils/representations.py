@@ -515,12 +515,12 @@ class TreeNodeRepr:
         class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
         datatype = self.obj.datatype.__name__
         node_status = self.obj.alive
-        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.value}, Node Alive?: {node_status}"
+        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.element}, Node Alive?: {node_status}"
 
     def str_tnode(self):
         datatype = self.obj.datatype.__name__
         class_name = self.obj.__class__.__qualname__
-        return f"({class_name}: {datatype}) {self.obj.value}"
+        return f"({class_name}: {datatype}) {self.obj.element}"
 
 class GenTreeRepr:
     def __init__(self, tree_obj) -> None:
@@ -560,7 +560,7 @@ class GenTreeRepr:
                 indicator = "" if prefix == "" else ("└─" if is_last else "├─")
 
             # add to final string output
-            hierarchy.append(f"{prefix}{indicator}{str(node.value)}") 
+            hierarchy.append(f"{prefix}{indicator}{str(node.element)}") 
 
             # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
             new_prefix = prefix + ("   " if is_last else "│  ")

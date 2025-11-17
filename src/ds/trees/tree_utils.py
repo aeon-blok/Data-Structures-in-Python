@@ -122,7 +122,7 @@ class TreeUtils:
         # traverse tree - add children in reverse order to the stack.
         while tree_nodes:
             node = tree_nodes.pop()
-            yield node.value
+            yield node.element
             for i in reversed(node.children):
                 tree_nodes.push(i)
 
@@ -151,7 +151,7 @@ class TreeUtils:
 
         while reverse_stack:
             node = reverse_stack.pop()
-            yield node.value
+            yield node.element
 
     def _bfs_breadth_first_search(self, target_node, node_type: type):
         """
@@ -169,7 +169,7 @@ class TreeUtils:
         tree_nodes.add_rear(self.obj.root)
         while tree_nodes:
             node = tree_nodes.remove_front()
-            yield node.value
+            yield node.element
             for i in node.children:
                 tree_nodes.add_rear(i)
 
@@ -185,11 +185,11 @@ class TreeUtils:
             depth += 1
         return depth
 
-    def _tree_height(self):
+    def _tree_height(self, node):
         """returns Max Number of edges from a specified node to a leaf node (no children). -- Algorithm: recursively compute the max height of children."""
-        if self.obj.is_leaf(self.obj.root):  # leaf nodes have 0 height
+        if self.obj.is_leaf(node):  # leaf nodes have 0 height
             return 0
-        max_height = max(self.obj.height(i) for i in self.obj.root.children)
+        max_height = max(self._tree_height(i) for i in node.children)
         return 1 + max_height   # height must be 1 or over, because not a leaf
 
     def view_bfs(self, node_type):
@@ -215,7 +215,7 @@ class TreeUtils:
                 # pop the oldest item. (from the tree deque)
                 node = tree_nodes.remove_front()
                 # add to the level stack
-                level_node_elements.push(node.value)
+                level_node_elements.push(node.element)
                 # enqueue children (add to rear of the tree deque)
                 for i in node.children:
                     tree_nodes.add_rear(i)
@@ -371,7 +371,5 @@ class TreeUtils:
             yield current_node.element
             # move to the right subtree.
             current_node = current_node.right
-
-
 
     # endregion

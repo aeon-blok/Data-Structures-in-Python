@@ -12,6 +12,8 @@ from typing import (
     Iterator,
     Generator,
     Iterable,
+    Protocol,
+    runtime_checkable,
 )
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
@@ -24,10 +26,37 @@ import ctypes
 # These are reused everywhere. That’s what “types” is for.
 
 
+@runtime_checkable  # ? A decorator that allows the protocol to be used with isinstance() at runtime.
+class Key(Protocol):
+    """
+    Enforces that the type must:
+    is comparable (<,>,==,!=
+    is hashable (compared for equality __eq__ -- can compare any object - required by base class)
+    """
+
+    def __lt__(self, other: "Key") -> bool: ...
+    def __gt__(self, other: "Key") -> bool: ...
+    def __eq__(self, other: object) -> bool:
+        """If two objects compare equal (__eq__), their hashes must also be equal."""
+        ...
+
+    def __hash__(self) -> int:
+        """
+        to be hashable, an object’s __hash__() method must return an integer.
+        Keys must be effectively immutable.
+        """
+        ...
+
+
 # Custom Types
 
 T = TypeVar("T")  # generic type
-K = TypeVar("K")  # Keys usually must be hashable.
+K = TypeVar("K", bound=Key)  # Keys usually must be hashable.
+
+
+
+
+
 V = TypeVar("V")  # Values can be anything.
 
 
