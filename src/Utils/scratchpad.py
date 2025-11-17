@@ -37,8 +37,8 @@ popo = heapq.heapreplace(newlist, 1000)
 print(newlist)
 
 
+# todo refactor tree nodes to use inheritance.
 # todo refactor hash tables.
-# todo refactor general tree
 # todo implement __next__ for generators
 
 # todo Solve problems: balanced parentheses, LRU cache, two-sum problem using hash tables

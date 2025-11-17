@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from utils.custom_types import T
+from utils.custom_types import T, K
 from utils.validation_utils import DsValidation
 from utils.representations import TreeNodeRepr, BinaryNodeRepr
 from utils.exceptions import *
@@ -37,11 +37,12 @@ from utils.exceptions import *
 from adts.collection_adt import CollectionADT
 from adts.tree_adt import iTNode
 from adts.binary_tree_adt import iBNode
+from adts.bst_adt import iBSTNode
 
 if TYPE_CHECKING:
     from adts.tree_adt import TreeADT
     from adts.binary_tree_adt import BinaryTreeADT
-    
+    from adts.bst_adt import BinarySearchTreeADT
 
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
@@ -140,7 +141,7 @@ class TNode(iTNode[T], Generic[T]):
         Step 3: traverse child node subtree - and dereference all nodes
         Step 4: return node value
         """
-        self._utils.validate_tnode(node)
+        self._utils.validate_node(node, iTNode)
         deleted_node = node
         deleted_value = node._element
         node._tree_owner = None
@@ -180,8 +181,6 @@ class TNode(iTNode[T], Generic[T]):
     def is_internal(self):
         """returns True if the node has children nodes."""
         return len(self._children) > 0
-
-    # -------------- Testing Node Solo Functionality -----------------
 
 
 class BinaryNode(iBNode[T], Generic[T]):
@@ -293,10 +292,11 @@ class BinaryNode(iBNode[T], Generic[T]):
         return self.num_children() > 0
 
 
-class BSTNode(iBNode[T], Generic[T]):
+class BSTNode(iBSTNode[T, K], Generic[T, K]):
     """Node for a Basic Binary Tree"""
 
-    def __init__(self, datatype: type, element: T, tree_owner=None) -> None:
+    def __init__(self, datatype: type, key: K, element: T, tree_owner=None) -> None:
+        self._key = key
         self._datatype = datatype
         self._element = element
         self._parent = None
@@ -315,13 +315,16 @@ class BSTNode(iBNode[T], Generic[T]):
         self._validators.enforce_type(self._element, self._datatype)
 
     @property
+    def key(self):
+        return self._key
+
+    @property
     def datatype(self):
         return self._datatype
 
     @property
     def element(self):
         return self._element
-
     @element.setter
     def element(self, value):
         self._element = value
@@ -407,6 +410,11 @@ class BSTNode(iBNode[T], Generic[T]):
 
     def is_internal(self) -> bool:
         return self.num_children() > 0
+
+    
+
+
+# -------------- Testing Node Solo Functionality -----------------
 
 
 def main():

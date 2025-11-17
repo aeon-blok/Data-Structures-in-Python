@@ -36,8 +36,13 @@ from utils.custom_types import T, K
 
 """
 Binary Search Tree ADT: (BST)
-for any node n: all values in its left subtree are < n, and all values in its right subtree are > n.
 all nodes are sorted via a key (which must be comparable (>,<,==, != etc))
+BST ADT = Binary Tree ADT + ordering constraint:
+You reuse your Binary Tree ADT exactly as-is (nodes, positions, parent, children).
+
+Binary Search Property: (fundamental invariant)
+This turns the tree into a decision structure, not a search space that must be fully scanned.
+
 """
 
 
@@ -53,17 +58,17 @@ class BinarySearchTreeADT(ABC, Generic[T, K]):
         pass
 
     @abstractmethod
-    def parent(self, node: "iBSTNode[T, K]"):
+    def parent(self, node: "iBSTNode[T, K]") -> Optional["iBSTNode[T, K]"]:
         """returns the parent of specified node"""
         pass
 
     @abstractmethod
-    def left(self, node: "iBSTNode[T, K]"):
+    def left(self, node: "iBSTNode[T, K]") -> Optional["iBSTNode[T, K]"]:
         """returns the left child of the specified node"""
         pass
 
     @abstractmethod
-    def right(self, node: "iBSTNode[T, K]"):
+    def right(self, node: "iBSTNode[T, K]") -> Optional["iBSTNode[T, K]"]:
         """returns the right child of the specified node"""
         pass
 

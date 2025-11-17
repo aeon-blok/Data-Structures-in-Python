@@ -25,7 +25,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.custom_types import T
+from utils.custom_types import T, K, Key
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi
@@ -47,26 +47,32 @@ class TreeNodeUtils:
     def __init__(self, tree_node_obj) -> None:
         self.obj = tree_node_obj
 
-
-    def validate_tnode(self, node):
+    def validate_node(self, node, node_type: type):
         """ensures the specified child belongs to this node."""
         if node is None:
             raise NodeEmptyError("Error: Node is None.")
-        from adts.tree_adt import iTNode
-        if not isinstance(node, iTNode):
+        if not isinstance(node, node_type):
             raise DsTypeError("Error: Node is not a valid Node Type.")
         if node.deleted:
             raise NodeDeletedError(f"Error: Node has already been deleted.")
         if node not in self.obj.children:  # existence check
             raise NodeOwnershipError(f"Error: Node {node} is not a child of this node.")
 
+    def validate_node_binary_search_key(self, key):
+            """ensures the the input key, is a valid key."""
+            if not isinstance(key, Key):
+                raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
+            elif key is None:
+                raise KeyInvalidError("Error: Key cannot be None Value")
 
+    
 class TreeUtils:
     """A collection of reusable utility methods for tree data structures"""
     def __init__(self, tree_obj) -> None:
         self.obj = tree_obj
         self._ansi = Ansi()
 
+    # region general tree
     def validate_tree_node(self, node, node_type: type):
         """ensures tree node is valid and belongs to the tree"""
         self.validate_datatype(node_type)
@@ -229,6 +235,8 @@ class TreeUtils:
         tree_height = self.obj.height(self.obj.root)
         return f"\n{title}\nTotal Nodes: {len(self.obj)}, Tree Height: {tree_height}\n" + "\n".join(infostring_stack)
 
+    # endregion
+
     # region binary tree
     def check_empty_binary_tree(self):
         """ensures the tree is not empty when inserting left or right children."""
@@ -294,7 +302,7 @@ class TreeUtils:
         # traverse tree - add children in reverse order to the stack.
         while tree_nodes:
             current_node = tree_nodes.pop()
-            yield current_node.element
+            yield current_node
             # NOTICE THE ORDER - its right to left - when pushing to the stack with dfs
             if current_node.right is not None:
                 tree_nodes.push(current_node.right)
@@ -325,7 +333,7 @@ class TreeUtils:
 
         while reverse_stack:
             node = reverse_stack.pop()
-            yield node.element
+            yield node
 
     def binary_bfs_traversal(self, target_node, node_type: type):
         """breadth first search for binary trees"""
@@ -340,7 +348,7 @@ class TreeUtils:
 
         while tree_nodes:
             current_node = tree_nodes.remove_front()
-            yield current_node.element
+            yield current_node
             if current_node.left is not None:
                 tree_nodes.add_rear(current_node.left) 
             if current_node.right is not None:
@@ -368,8 +376,62 @@ class TreeUtils:
             # once we get to the end of the subtree
             current_node = tree_nodes.pop()
             # return value
-            yield current_node.element
+            yield current_node
             # move to the right subtree.
             current_node = current_node.right
+
+    # endregion
+
+    # region BST
+    def validate_binary_search_key(self, key):
+            """ensures the the input key, is a valid key."""
+            if not isinstance(key, Key):
+                raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
+            elif key is None:
+                raise KeyInvalidError("Error: Key cannot be None Value")
+
+    def bst_descent(self, node, node_type, key):
+        """
+        descent algorithm - traverses the bst
+        node - key matches? return match
+        key < node key? traverse left (left keys are smaller than the parent.)
+        key > node key? traverse right (right keys are lareger than the parent.)
+        in both these cases traversal will continue until no more nodes are found (return None)
+        All authoritative BST definitions treat search as a presence test, not “give me the last node you touched”.
+        """
+        self.validate_datatype(node_type)
+        self.validate_binary_search_key(key)
+        self.validate_tree_node(node, node_type)
+        while node is not None:
+            # match found case:
+            if key == node.key: return node
+            # key < node key case:
+            elif key < node.key: node = self.obj.left(node)
+            # key > node key case:
+            else: node = self.obj.right(node)
+        return None
+    
+    def bst_parent_descent(self, node, node_type, key):
+        """Descent algorithm that returns the last node and an existence flag instead of None."""
+        self.validate_binary_search_key(key)
+        self.validate_tree_node(node, node_type)
+
+        last_node = None
+        current_node = node
+        match_exists = False
+
+        while current_node is not None:
+            last_node = current_node
+            # match found case:
+            if key == current_node.key: 
+                match_exists = True
+                return current_node, match_exists
+            # key < node key case:
+            elif key < current_node.key: 
+                current_node = self.obj.left(current_node)
+            # key > node key case:
+            else: 
+                current_node = self.obj.right(current_node)
+        return last_node, match_exists
 
     # endregion

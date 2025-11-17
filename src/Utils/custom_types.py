@@ -26,7 +26,7 @@ import ctypes
 # These are reused everywhere. That’s what “types” is for.
 
 
-@runtime_checkable  # ? A decorator that allows the protocol to be used with isinstance() at runtime.
+@runtime_checkable  # ? allows the protocol to be used with isinstance() at runtime. (not automatic)
 class Key(Protocol):
     """
     Enforces that the type must:

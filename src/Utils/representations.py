@@ -593,7 +593,7 @@ class BinaryNodeRepr:
         node_status = self.obj.alive
         left_child = self.obj.left
         right_child = self.obj.right
-        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.value}, Children: L: {left_child} R: {right_child} Node Alive?: {node_status}"
+        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.element}, Children: L: {left_child} R: {right_child} Node Alive?: {node_status}"
 
 
 class BinaryTreeRepr:
@@ -602,6 +602,7 @@ class BinaryTreeRepr:
         self._ansi = Ansi()
 
     def str_binary_tree(self):
+        """binary tree __str__"""
         total_tree_nodes = len(self.obj)
         tree_height = self.obj.height()
         if self.obj.root is None:
@@ -647,6 +648,66 @@ class BinaryTreeRepr:
         return f"\n{title}\nTotal Nodes: {total_tree_nodes}, Tree Height: {tree_height}\n{node_structure}\n"
 
     def repr_binary_tree(self):
+        """__repr__ for binary tree"""
+        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
+        datatype = self.obj.datatype.__name__
+        total_elements =  f"Total Nodes: {len(self.obj)}"
+        return f"{class_address}, Type: {datatype}, {total_elements}"
+
+
+class BSTRepr:
+    def __init__(self, tree_obj) -> None:
+        self.obj = tree_obj
+        self._ansi = Ansi()
+
+    def str_bst(self):
+        """ __str__ for binary search tree"""
+        total_tree_nodes = len(self.obj)
+        tree_height = self.obj.height()
+        if self.obj.root is None:
+            return f"< 🌳 empty tree>"
+
+        hierarchy = []
+        tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
+
+        while tree:
+            # we traverse depth-first, which naturally fits a hierarchical print.
+            node, prefix, is_last = tree.pop()
+
+            # root (depth = 0), we print 🌲
+            if node is self.obj.root:
+                indicator = ""
+            # decides what connector symbol appears before the node value when printing the tree.
+            else:
+                indicator = "" if prefix == "" else ("└─ " if is_last else "├─ ")
+
+            # add to final string output
+            node_string = f"K:{node.key}: {node.element}"
+            hierarchy.append(f"{prefix}{indicator}{str(node_string)}")
+
+            # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
+            new_prefix = prefix + ("   " if is_last else "│  ")
+
+            # Iterates over the node’s children in reverse. (left to right) --- enumerate gives index i for calculating new prefix.
+            children = []
+            if node.right is not None:
+                children.append((node.right, True))
+            if node.left is not None:
+                children.append((node.left, False))
+
+            for child, last_flag in children:
+                # Update ancestor flags: current node's is_last boolean affects all its children
+                if child is not None:
+                    tree.append((child, new_prefix, last_flag))
+
+        # final string:
+        node_structure = "\n".join(hierarchy)
+        title = self._ansi.color(f"Binary Search Tree: Inorder Traversal:🌲", Ansi.GREEN)
+
+        return f"\n{title}\nTotal Nodes: {total_tree_nodes}, Tree Height: {tree_height}\n{node_structure}\n"
+
+    def repr_bst(self):
+        """ __repr__ for binary search tree"""
         class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
         datatype = self.obj.datatype.__name__
         total_elements =  f"Total Nodes: {len(self.obj)}"
