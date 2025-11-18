@@ -400,8 +400,8 @@ class ChainHashTable(MapADT[T]):
             if bucket is not None and bucket.size > 0:
                 bucket_collisions = max(0, bucket.size - 1)
                 collisions.append((i, bucket_collisions))
-
         return collisions # return list of tuples
+    
 
     def performance_profile_report(self):
         """Tracks the performance of the Hash table, load factor, collisions, rehashes, rehash time, capacity etc..."""

@@ -21,6 +21,7 @@ import ctypes
 # endregion
 
 from utils.exceptions import *
+from utils.custom_types import Key
 
 
 class DsValidation:
@@ -53,3 +54,11 @@ class DsValidation:
         """Check input value exists...."""
         if value is None:
             raise DsInputValueError("Error: Must have an Input Value")
+
+    def validate_key(self, key):
+            """ensures the the input key, is a valid key."""
+            if not isinstance(key, Key):
+                raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
+            elif key is None:
+                raise KeyInvalidError("Error: Key cannot be None Value")
+            return key

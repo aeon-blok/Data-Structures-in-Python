@@ -206,7 +206,7 @@ class TreeUtils:
         self.validate_datatype(node_type)
 
         # store tree in a deque
-        tree_nodes = tree_nodes = CircularArrayDeque(node_type)
+        tree_nodes = CircularArrayDeque(node_type)
         tree_nodes.add_rear(self.obj.root)
         current_level = 0
         infostring_stack = ArrayStack(str)
@@ -226,6 +226,9 @@ class TreeUtils:
                 for i in node.children:
                     tree_nodes.add_rear(i)
             # generate level string.
+            # ! Bug: level_node_elements is a stack of nodes, then ', '.join(level_node_elements) will fail
+            # ! because ArrayStack does not implement __iter__ returning strings. You likely need:
+            # ! ', '.join(str(n) for n in level_node_elements)
             bfs_level_string = f"Level: {current_level}: {', '.join(level_node_elements)}"
             infostring_stack.push(bfs_level_string)
             current_level += 1

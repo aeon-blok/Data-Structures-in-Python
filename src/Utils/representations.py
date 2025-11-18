@@ -502,6 +502,16 @@ class BinaryHeapRepr:
 
 
 # Maps
+class OAHashTableRepr:
+    def __init__(self, map_obj) -> None:
+        self.obj = map_obj
+        self._ansi = Ansi()
+    
+    def str_oa_hashtable(self):
+        pass
+
+    def repr_oa_hashtable(self):
+        pass
 
 
 # Trees
@@ -509,7 +519,6 @@ class TreeNodeRepr:
     def __init__(self, tree_node_obj) -> None:
         self.obj = tree_node_obj
         
-
     def repr_tnode(self):
         """Displays the memory address and other useful info"""
         class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
