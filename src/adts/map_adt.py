@@ -28,6 +28,7 @@ from pprint import pprint
 from utils.custom_types import T, K, Key
 if TYPE_CHECKING:
     from adts.collection_adt import CollectionADT
+    from ds.primitives.arrays.dynamic_array import VectorArray
 
 
 # endregion
@@ -48,25 +49,27 @@ Axioms:
 
 
 # Interfaces
-class MapADT(ABC, Generic[T]):
+class MapADT(ABC, Generic[T, K]):
     """Contains the Canonical Operations defined by the Map ADT"""
 
     # ----- Canonical ADT Operations -----
+
+    # ----- Mutators -----
     @abstractmethod
-    def put(self, key: str, value: T):
+    def put(self, key: K, value: T) -> Optional[T]:
         """Insert a key value pair into the hash table: if the key already exists we return the existing value"""
         pass
 
     @abstractmethod
-    def get(self, key: str, default: Optional[T]) -> Optional[T]:
+    def get(self, key: K, default: Optional[T]) -> Optional[T]:
         """retrieves a key value pair from the hash table, with an optional default if the key is not found."""
         pass
 
     @abstractmethod
-    def remove(self, key: str) -> Optional[T]:
+    def remove(self, key: K) -> Optional[T]:
         """removes a key value pair from the hash table."""
         pass
-
+    # ----- Accessors -----
     @abstractmethod
     def keys(self) -> Optional["VectorArray"]:
         """Return a set of all the keys in the hash table"""

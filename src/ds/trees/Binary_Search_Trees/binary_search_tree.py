@@ -131,16 +131,6 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
         """find the number of edges from the root to the furthest leaf"""
         return self._utils.binary_tree_height()
 
-    def search(self, key: K):
-        """searches for a node that matches a key. -- returns None if key not found -- O(H)"""
-        self._utils.check_empty_binary_tree()
-        self._utils.validate_binary_search_key(key)
-        # returns none if key not found
-        return self._utils.bst_descent(self._root, iBSTNode, key)
-
-    def search_by_key(self, key):
-        pass
-
     def minimum(self, node):
         """
         find the minimum key in the specified node subtree
@@ -201,6 +191,16 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
             current_node = parent_node
             parent_node = parent_node.parent
         return parent_node  # can be none.
+
+    def search(self, key: K):
+        """searches for a node that matches a key. -- returns None if key not found -- O(H)"""
+        self._utils.check_empty_binary_tree()
+        self._utils.validate_binary_search_key(key)
+        # returns none if key not found
+        return self._utils.bst_descent(self._root, iBSTNode, key)
+
+    def search_by_key(self, key):
+        pass
 
     # ----- Mutators -----
     def insert(self, key, value):

@@ -13,6 +13,7 @@ from typing import (
     Generator,
     Iterable,
     TYPE_CHECKING,
+    Literal,
 )
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
@@ -20,6 +21,7 @@ import numpy
 import ctypes
 import random
 from collections.abc import Sequence
+import math
 
 # endregion
 
@@ -36,6 +38,8 @@ if TYPE_CHECKING:
     from adts.sequence_adt import SequenceADT
 
 from ds.primitives.arrays.dynamic_array import VectorArray
+from ds.maps.hash_functions import *
+from ds.maps.probing_functions import *
 
 # endregion
 
@@ -45,16 +49,30 @@ class MapUtils:
     def __init__(self, map_obj) -> None:
         self.obj = map_obj
 
-        # composed objects
-        self._hashfunc = None
-        self._probefunc = None
 
-    def select_hash_function(self):
-        pass
+    # -------------------------------- Utilities   --------------------------------
+    def _is_prime_number(self, number):
+        """Boolean Check if number is a prime."""
+        if number < 2:
+            return False
+        for i in range(2, int(math.isqrt(number)) + 1):
+            if number % i == 0:
+                return False
+        return True
 
-    def select_probe_function(self):
-        pass
+    def find_next_prime_number(self, table_capacity):
+        """Finds the next prime number larger than the current table capacity."""
+        candidate = table_capacity + 1
+        while True:
+            if self._is_prime_number(candidate):
+                return candidate
+            candidate += 1
 
-    
+    # -------------------------------- Table Rehashing   --------------------------------
+
+    def calculate_load_factor(self, total_elements, table_capacity) -> float:
+        """calculates the load factor of the current hashtable"""
+        return total_elements / table_capacity
+
 
 

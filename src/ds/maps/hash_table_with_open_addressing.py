@@ -1086,7 +1086,7 @@ def main():
 
     input_data = preset_dynamic_objects
 
-    input_values = [*input_data * 10]
+    input_values = [*input_data * 2]
     random.shuffle(input_values)
 
     # --- Initialize Hash Table ---

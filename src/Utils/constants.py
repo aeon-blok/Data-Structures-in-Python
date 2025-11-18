@@ -27,6 +27,9 @@ SHRINK_CAPACITY_RATIO: int = 4  # divide capacity by this number   capacity // 4
 SLL_SEPERATOR = " ->> "
 DLL_SEPERATOR = " <-> "
 
+MIN_HASHTABLE_CAPACITY: int = 10
+
+
 CTYPES_DATATYPES = {
     int: ctypes.c_int,
     float: ctypes.c_double,
