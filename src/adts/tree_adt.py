@@ -28,7 +28,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from utils.custom_types import T
+from types.custom_types import T
 # endregion
 
 

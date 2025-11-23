@@ -25,7 +25,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.custom_types import T
+from types.custom_types import T
 from adts.collection_adt import CollectionADT
 
 

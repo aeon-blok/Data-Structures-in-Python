@@ -23,7 +23,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.custom_types import T
+from types.custom_types import T
 from utils.exceptions import *
 
 from adts.deque_adt import DequeADT

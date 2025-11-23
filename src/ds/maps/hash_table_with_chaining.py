@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from utils.custom_types import T, K, Key, HashCode, CompressFunc
+from types.custom_types import T, K, iKey, HashCode, CompressFunc
 from utils.constants import MIN_HASHTABLE_CAPACITY
 from utils.validation_utils import DsValidation
 from utils.representations import BinaryHeapRepr
@@ -104,6 +104,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self.max_load_factor = max_load_factor # prevents the table from exceeding this capacity
         self._hash_code = hash_code
         self._compress_func = compress_func
+
         # initialize each bucket as None.
         for i in range(self.table_capacity):
             self.buckets.array[i] = None

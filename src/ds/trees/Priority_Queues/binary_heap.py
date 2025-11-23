@@ -24,7 +24,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.custom_types import T
+from types.custom_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import BinaryHeapRepr
 from utils.helpers import RandomClass

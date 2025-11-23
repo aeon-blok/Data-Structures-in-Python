@@ -27,7 +27,7 @@ import random
 # endregion
 
 # region custom imports
-from utils.custom_types import T, K, Key, HashCode, CompressFunc
+from types.custom_types import T, K, iKey, HashCode, CompressFunc
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi
@@ -65,7 +65,7 @@ If you create new hash code generators, or new compression functions, you will h
 
 @dataclass
 class HashFuncConfig:
-    """Configuration Class for HashFunctions Director Class. -- Stores all the necessary attributes for the various methods to operate."""
+    """Configuration Class for HashFuncGen Strategy Class. -- Stores all the necessary attributes for the various methods to operate."""
     table_capacity: int # size of the hashtable capacity.
     # polynomial hash code
     polynomial_prime_weighting: int = 33 # small prime number: commonly 33, 37, 39, 41
@@ -98,7 +98,7 @@ class HashFuncGen():
     Requires a Config Object - this is a dataclass that holds the attributes required for the succesful generation of the codes and functions.
     The Hash Code and Compress Function Inputs require ENUM TYPES - they can be found in the custom_types module
     """
-    def __init__(self, key: Key, config: 'HashFuncConfig', hash_code: HashCode = HashCode.CYCLIC_SHIFT, compress_func: CompressFunc = CompressFunc.MAD) -> None:
+    def __init__(self, key: iKey, config: 'HashFuncConfig', hash_code: HashCode = HashCode.CYCLIC_SHIFT, compress_func: CompressFunc = CompressFunc.MAD) -> None:
         self._config = config
         self._key = key
         self._hash_code = hash_code

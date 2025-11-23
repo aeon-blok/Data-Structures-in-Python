@@ -28,7 +28,7 @@ from utils.exceptions import *
 
 
 if TYPE_CHECKING:
-    from utils.custom_types import T
+    from types.custom_types import T
     from adts.queue_adt import QueueADT
     from adts.collection_adt import CollectionADT
 

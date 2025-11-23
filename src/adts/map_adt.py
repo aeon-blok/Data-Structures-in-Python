@@ -25,7 +25,7 @@ from pprint import pprint
 
 
 # region custom imports
-from utils.custom_types import T, K, Key
+from types.custom_types import T, K, iKey
 if TYPE_CHECKING:
     from adts.collection_adt import CollectionADT
     from ds.primitives.arrays.dynamic_array import VectorArray

@@ -27,7 +27,7 @@ import math
 
 
 # region custom imports
-from utils.custom_types import T, K, Key
+from types.custom_types import T, K, iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi

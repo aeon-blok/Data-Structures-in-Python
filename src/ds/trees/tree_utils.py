@@ -25,7 +25,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.custom_types import T, K, Key
+from types.custom_types import T, K, iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi
@@ -60,7 +60,7 @@ class TreeNodeUtils:
 
     def validate_node_binary_search_key(self, key):
             """ensures the the input key, is a valid key."""
-            if not isinstance(key, Key):
+            if not isinstance(key, iKey):
                 raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
             elif key is None:
                 raise KeyInvalidError("Error: Key cannot be None Value")
@@ -388,7 +388,7 @@ class TreeUtils:
     # region BST
     def validate_binary_search_key(self, key):
             """ensures the the input key, is a valid key."""
-            if not isinstance(key, Key):
+            if not isinstance(key, iKey):
                 raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
             elif key is None:
                 raise KeyInvalidError("Error: Key cannot be None Value")

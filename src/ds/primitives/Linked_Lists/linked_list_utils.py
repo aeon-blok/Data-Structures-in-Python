@@ -28,7 +28,7 @@ from utils.exceptions import *
 
 
 if TYPE_CHECKING:
-    from utils.custom_types import T
+    from types.custom_types import T
     from adts.linked_list_adt import LinkedListADT, iNode
 # endregion
 
