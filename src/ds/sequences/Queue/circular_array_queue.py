@@ -23,7 +23,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from types.custom_types import T
+from user_defined_types.custom_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import CircArrayQueueRepr
 from utils.helpers import RandomClass
@@ -156,7 +156,6 @@ class CircularQueue(QueueADT[T], CollectionADT[T], Generic[T]):
         return old_value
 
 
-
 # Main --- Client Facing Code ---
 
 
@@ -287,4 +286,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

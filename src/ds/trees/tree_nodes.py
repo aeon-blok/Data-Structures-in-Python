@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from types.custom_types import T, K
+from user_defined_types.custom_types import T, K
 from utils.validation_utils import DsValidation
 from utils.representations import TreeNodeRepr, BinaryNodeRepr
 from utils.exceptions import *
@@ -410,8 +410,6 @@ class BSTNode(iBSTNode[T, K], Generic[T, K]):
 
     def is_internal(self) -> bool:
         return self.num_children() > 0
-
-    
 
 
 # -------------- Testing Node Solo Functionality -----------------

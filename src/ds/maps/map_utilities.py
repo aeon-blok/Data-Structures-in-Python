@@ -27,7 +27,7 @@ import math
 
 
 # region custom imports
-from types.custom_types import T, K, iKey
+from user_defined_types.custom_types import T, K, iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi
@@ -73,6 +73,3 @@ class MapUtils:
     def calculate_load_factor(self, total_elements, table_capacity) -> float:
         """calculates the load factor of the current hashtable"""
         return total_elements / table_capacity
-
-
-

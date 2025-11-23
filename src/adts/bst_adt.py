@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from types.custom_types import T, K
+from user_defined_types.custom_types import T, K
 
 # endregion
 
@@ -187,8 +187,3 @@ class iBSTNode(ABC, Generic[T, K]):
     def is_internal(self) -> bool:
         """returns True if the node has children nodes."""
         pass
-
-
-
-
-

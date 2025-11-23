@@ -28,11 +28,9 @@ from utils.exceptions import *
 
 
 if TYPE_CHECKING:
-    from types.custom_types import T
+    from user_defined_types.custom_types import T
     from adts.linked_list_adt import LinkedListADT, iNode
 # endregion
-
-
 
 
 class LinkedListUtils:
@@ -104,16 +102,6 @@ class LinkedListUtils:
                 break
 
     # endregion
-
-
-
-
-
-
-
-
-
-
 
 
 # def validate_node(ll_obj: "LinkedListADT[T]", node: "iNode[T]", node_type: Type["iNode[T]"]):

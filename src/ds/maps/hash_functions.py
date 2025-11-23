@@ -27,7 +27,7 @@ import random
 # endregion
 
 # region custom imports
-from types.custom_types import T, K, iKey, HashCode, CompressFunc
+from user_defined_types.custom_types import T, K, iKey, HashCode, CompressFunc
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi

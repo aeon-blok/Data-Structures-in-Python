@@ -5,7 +5,7 @@
 
 
 Import Hierarchy
-utils → adts → (primitives → sequences → maps → trees → graphs) → algorithms
+user_defined_types → utils → adts → (primitives → sequences → maps → trees → graphs) → algorithms
 make sure not to go backwards, will have to code around circular imports...
 
 

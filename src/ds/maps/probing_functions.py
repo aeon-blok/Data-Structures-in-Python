@@ -26,7 +26,7 @@ import math
 
 
 # region custom imports
-from types.custom_types import T, K, iKey
+from user_defined_types.custom_types import T, K, iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 
@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 
 
 # endregion
-
 
 
 class ProbingFunctions:

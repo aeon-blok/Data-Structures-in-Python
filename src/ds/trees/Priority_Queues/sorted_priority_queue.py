@@ -23,7 +23,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from types.custom_types import T
+from user_defined_types.custom_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import PQueueRepr
 from utils.helpers import RandomClass
@@ -169,7 +169,6 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
         
         # reinsert match at the correct position
         self._utils.add_kv_pair_to_max_sorted_list(element, priority)
-
 
 
 # Main ---- Client Facing Code -----

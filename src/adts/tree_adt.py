@@ -28,7 +28,8 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from types.custom_types import T
+from user_defined_types.custom_types import T
+
 # endregion
 
 
@@ -148,8 +149,6 @@ class TreeADT(ABC, Generic[T]):
     def level_order(self) -> Optional[list[T]]:
         """Breadth First Search: (BFS) --- visiting nodes level by level, - starts from left -> right, and traverses the entire tree top -> bottom"""
         pass
-
-
 
 
 # Node interface

@@ -28,7 +28,7 @@ from utils.exceptions import *
 
 
 if TYPE_CHECKING:
-    from types.custom_types import T
+    from user_defined_types.custom_types import T
     from adts.queue_adt import QueueADT
     from adts.collection_adt import CollectionADT
 
@@ -44,7 +44,3 @@ class QueueUtils:
         """if the queue is empty raises an error."""
         if self.obj.is_empty():
             raise DsUnderflowError(f"Error: The Queue is empty.")
-
-
-        
-        

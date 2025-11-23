@@ -20,7 +20,7 @@ from abc import ABC, ABCMeta, abstractmethod
 
 # region custom imports
 from utils.helpers import RandomClass
-from types.custom_types import T
+from user_defined_types.custom_types import T
 from utils.constants import DLL_SEPERATOR
 from utils.representations import PNodeRepr, PositionRepr
 
@@ -28,7 +28,6 @@ from adts.positional_list_adt import iNode, iPosition
 
 if TYPE_CHECKING:
     from adts.positional_list_adt import PositionalListADT
-
 
 
 class PNode(iNode[T]):

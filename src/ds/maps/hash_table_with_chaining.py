@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from types.custom_types import T, K, iKey, HashCode, CompressFunc
+from user_defined_types.custom_types import T, K, iKey, HashCode, CompressFunc
 from utils.constants import MIN_HASHTABLE_CAPACITY
 from utils.validation_utils import DsValidation
 from utils.representations import BinaryHeapRepr
@@ -45,19 +45,6 @@ from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 
 
 # endregion
-"""
-A Hash Table is a data structure that stores key-value pairs via a hash function which computes an index into an underlying bucket array.
-This allows for fast insertion, lookup & deletion (O(1) average, O(N) worst)
-Hash Collisions are handled via approaches like chaining or Open addressing
-
-Axioms:
-- Unique Keys: Each key in the map can store at most one value.
-- Put & Get Consistency: If you `put(k, v)` into the map, a subsequent `get(k)` must return the same value `v`.
-- Remove & Get Consistency: If you `remove(k)` from the map, a subsequent `get(k)` must return "undefined" (⊥)
-- Contains & Get Equivalence: `contains(k)` returns true if and only if `get(k)` returns a value, not undefined.
-- Invariant Keys: The set returned by 'keys()' always equals the entire domain of the map. That is - All keys that have values.
-- Invariant Size: 'size()' always returns the total number of stored key-value pairs.
-"""
 
 
 class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):

@@ -15,7 +15,7 @@ from typing import (
 from abc import ABC, ABCMeta, abstractmethod
 
 # region custom imports
-from types.custom_types import T
+from user_defined_types.custom_types import T
 
 
 # endregion
@@ -88,7 +88,6 @@ class LinkedListADT(ABC, Generic[T]):
         pass
 
 
-
 class iNode(ABC, Generic[T]):
     """Node Interface for linked list"""
 
@@ -109,4 +108,3 @@ class iNode(ABC, Generic[T]):
     @abstractmethod
     def next(self, value) -> None:
         pass
-

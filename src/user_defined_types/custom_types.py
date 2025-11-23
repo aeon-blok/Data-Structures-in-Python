@@ -48,7 +48,6 @@ class CompressFunc(StrEnum):
     DOUBLE_HASH = "doublehash"
 
 
-@runtime_checkable  # ? allows the protocol to be used with isinstance() at runtime. (not automatic)
 class iKey(ABC):
     """
     Enforces that the type:

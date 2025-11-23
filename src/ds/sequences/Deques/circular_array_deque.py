@@ -23,7 +23,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from types.custom_types import T
+from user_defined_types.custom_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import CircDequeRepr
 from utils.helpers import RandomClass
@@ -38,7 +38,6 @@ from ds.sequences.Deques.deque_utils import DequeUtils
 
 
 # endregion
-
 
 
 """
@@ -177,8 +176,6 @@ class CircularArrayDeque(DequeADT[T], CollectionADT[T], Generic[T]):
         self._utils.check_empty_deque()
         return self._utils.remove_rear_element()
 
-
-    
 
 # main ---- client facing code ----
 

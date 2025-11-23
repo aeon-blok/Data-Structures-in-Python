@@ -19,7 +19,7 @@ from abc import ABC, ABCMeta, abstractmethod
 
 # region custom imports
 from utils.helpers import RandomClass
-from types.custom_types import T
+from user_defined_types.custom_types import T
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.representations import DllNodeRepr, LinkedListRepr

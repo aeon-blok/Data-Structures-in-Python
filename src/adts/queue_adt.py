@@ -23,7 +23,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from types.custom_types import T
+from user_defined_types.custom_types import T
 
 
 # endregion
@@ -68,4 +68,3 @@ class QueueADT(ABC, Generic[T]):
     def peek(self) -> T:
         """return (but not remove) the first element of the Queue"""
         pass
-

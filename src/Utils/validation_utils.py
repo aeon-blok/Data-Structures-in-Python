@@ -21,7 +21,7 @@ import ctypes
 # endregion
 
 from utils.exceptions import *
-from types.custom_types import iKey
+from user_defined_types.custom_types import T, K, iKey
 
 
 class DsValidation:
