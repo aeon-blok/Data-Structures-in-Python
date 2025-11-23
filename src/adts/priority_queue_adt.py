@@ -23,7 +23,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from user_defined_types.custom_types import T
+from user_defined_types.generic_types import T
 
 
 # endregion

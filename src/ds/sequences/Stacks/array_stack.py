@@ -24,7 +24,7 @@ from collections.abc import Sequence
 
 # region custom imports
 from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
-from user_defined_types.custom_types import T
+from user_defined_types.generic_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import ArrayStackRepr
 from utils.exceptions import *

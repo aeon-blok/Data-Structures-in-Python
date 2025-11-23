@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from user_defined_types.custom_types import T, K
+from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
 from utils.representations import TreeNodeRepr, BinaryNodeRepr
 from utils.exceptions import *

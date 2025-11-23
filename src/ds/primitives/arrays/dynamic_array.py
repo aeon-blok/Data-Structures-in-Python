@@ -23,8 +23,16 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
-from user_defined_types.custom_types import T, K, iKey
+from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, ARRAY_MIN_CAPACITY, SHRINK_CAPACITY_RATIO
+from user_defined_types.generic_types import (
+    T,
+    K,
+    iKey,
+    ValidDatatype,
+    ValidIndex,
+    Index,
+    TypeSafeElement,
+)
 from utils.validation_utils import DsValidation
 from utils.representations import ArrayRepr, ViewRepr
 from utils.exceptions import *
@@ -132,16 +140,16 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     """Dynamic Array — automatically resizes as elements are added."""
     def __init__(self, capacity: int, datatype: type, datatype_map: dict = CTYPES_DATATYPES, is_static: bool = False) -> None:
         # composed objects
-        self._utils = ArrayUtils(self)
-        self._validators = DsValidation()
-        self._desc = ArrayRepr(self)
+        self._utils: ArrayUtils = ArrayUtils(self)
+        self._validators: DsValidation = DsValidation()
+        self._desc: ArrayRepr = ArrayRepr(self)
 
         # datatype
-        self.datatype = datatype
+        self.datatype = ValidDatatype(datatype)
         self.datatype_map = datatype_map
 
         # Core Array Properties
-        self.min_capacity = max(4, capacity)  # min size for array
+        self.min_capacity = max(ARRAY_MIN_CAPACITY, capacity)  # min size for array
         self.capacity = capacity  # sets total amount of spaces for the array (# todo same change to private)
         self.size = 0  # tracks number of elements in the array (# todo change to protected with property)
         # creates a new ctypes/numpy array with a specified capacity
@@ -154,7 +162,6 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     def is_static(self):
         return self._is_static
 
-
     def __str__(self) -> str:
         """a list of strings representing all the elements in the array"""
         return self._desc.str_array()
@@ -163,7 +170,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         """ returns memory address and info"""
         return self._desc.repr_array()
 
-    def __getitem__(self, index: int | slice) -> T | VectorView:
+    def __getitem__(self, index: Index | slice) -> T | VectorView:
         """Built in override - adds indexing, & slicing but for views instead of copies (like python slice)"""
         # convert python slice parameters to view logic and return a view obj instance.
         if isinstance(index, slice):
@@ -172,25 +179,26 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
             view_length = (index.stop - (index.start or 0)) if index.stop is not None else None
             slice_step = index.step or 1
             return VectorView(self.datatype, view, slice_start, view_length, slice_step)
-        return self.get(index)
+        valid_index = ValidIndex(index, self.capacity, array_insert=False)
+        return self.get(valid_index)
 
     def __setitem__(self, index, value: T):
         """Built in override - adds indexing."""
+        value = TypeSafeElement(value, self.datatype)
         self.set(index, value)
-
-    # todo Add traverse method here - calls function on every item in the array. (raise an error if the function is not a function (type enforcement))
 
     # ----- Canonical ADT Operations -----
     def get(self, index):
         """Return element at index i"""
-        self._validators.index_boundary_check(index, self.capacity)
+        index = ValidIndex(index, self.capacity, array_insert=False)
         result = self.array[index]
         return cast(T, result)
 
     def set(self, index, value):
         """Replace element at index i with x"""
+        value = TypeSafeElement(value, self.datatype)
         self._validators.enforce_type(value, self.datatype)
-        self._validators.index_boundary_check(index, self.capacity)
+        index = ValidIndex(index, self.capacity, array_insert=False)
         self.array[index] = value
 
     def insert(self, index, value):
@@ -201,15 +209,14 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         Step 3: Now the target index will contain a duplicate value - which we will overwrite with the new value
         Step 4: Increment Array Size Tracker
         """
-
-        self._validators.enforce_type(value, self.datatype)
-        self._validators.index_boundary_check(index, self.capacity,is_insert=True)
+        value = TypeSafeElement(value, self.datatype)
+        index = ValidIndex(index, self.capacity, array_insert=True)
 
         # dynamically resize the array if capacity full.
         if self.size == self.capacity and self._is_static == False:
             self.array = self._utils.grow_array()
         elif self.size == self.capacity and self._is_static == True:
-            raise OverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
+            raise DsOverflowError(f"Error: Array is currently at max capacity. {self.size}/{self.capacity}")
 
         # if index value is the end of the array - utilize O(1) append
         if index == self.size:
@@ -235,7 +242,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         if self.is_empty():
             raise DsUnderflowError("Error: Array is Empty.")
 
-        self._validators.index_boundary_check(index, self.capacity)
+        index = ValidIndex(index, self.capacity, array_insert=False)
 
         # dynamically shrink array if capacity at 25% and greater than min capacity
         if self.size == self.capacity // SHRINK_CAPACITY_RATIO and self.capacity > self.min_capacity and self._is_static == False:
@@ -251,7 +258,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     def append(self, value):
         """Add x at end -- O(1)"""
 
-        self._validators.enforce_type(value, self.datatype)
+        value = TypeSafeElement(value, self.datatype)
 
         # dynamically resize the array if capacity full.
         if self.size == self.capacity and self._is_static == False:
@@ -270,7 +277,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     def prepend(self, value):
         """Insert x at index 0 -- O(N) - Same logic as insert, shift elems right"""
 
-        self._validators.enforce_type(value, self.datatype)
+        value = TypeSafeElement(value, self.datatype)
 
         # dynamically resize the array if capacity full.
         if self.size == self.capacity and self._is_static == False:
@@ -283,6 +290,7 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
     def index_of(self, value):
         """Return index of first x (if exists)"""
+        value = TypeSafeElement(value, self.datatype)
         for i in range(self.size):
             if self.array[i] == value:
                 return i

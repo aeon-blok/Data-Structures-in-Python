@@ -22,9 +22,12 @@ Have their own module -- they sit in the utils hierarchy
 
 
 representations.py - __str__ for all data structures
-validation_utils.py - validation logic for all data structures?
+validation_utils.py - validation logic for all data structures? -- replace this with validation in types.
+User_Defined_Types/
+  generic_types.py
+  
+
 exceptions.py
-custom_types.py
 hash_utils/
   hash_functions.py
   compression.py
@@ -34,6 +37,8 @@ linked_list_utils.py
 tree_utils.py
 
 
+All keys - should be the Key(input) class. This allows for validation of the keys.
+base class is extendable.
 
 
 

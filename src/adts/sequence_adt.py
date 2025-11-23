@@ -19,7 +19,7 @@ import ctypes
 # endregion
 
 # region custom imports
-from user_defined_types.custom_types import T
+from user_defined_types.generic_types import T, Index
 
 # endregion
 
@@ -67,32 +67,32 @@ class SequenceADT(ABC, Generic[T]):
 
     # ----- Canonical ADT Operations -----
     @abstractmethod
-    def get(self, index) -> T:
+    def get(self, index: Index) -> T:
         """Return element at index i"""
         pass
 
     @abstractmethod
-    def set(self, index, value: T):
+    def set(self, index: Index, value: T) -> None:
         """Replace element at index i with value"""
         pass
 
     @abstractmethod
-    def insert(self, index, value: T):
+    def insert(self, index: Index, value: T) -> None:
         """Insert value at index i, shift elements right"""
         pass
 
     @abstractmethod
-    def delete(self, index: int) -> T:
+    def delete(self, index: Index) -> T:
         """Remove element at index i, shift elements left"""
         pass
 
     @abstractmethod
-    def append(self, value: T):
+    def append(self, value: T) -> None:
         """Add value at end N-1"""
         pass
 
     @abstractmethod
-    def prepend(self, value: T):
+    def prepend(self, value: T) -> None:
         """Insert value at index 0"""
         pass
 

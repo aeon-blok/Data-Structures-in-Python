@@ -27,7 +27,9 @@ import random
 # endregion
 
 # region custom imports
-from user_defined_types.custom_types import T, K, iKey, HashCode, CompressFunc
+from user_defined_types.generic_types import T, K
+from user_defined_types.hashtable_types import HashCode, CompressFunc, BitMask
+from user_defined_types.key_types import iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi
@@ -70,7 +72,7 @@ class HashFuncConfig:
     # polynomial hash code
     polynomial_prime_weighting: int = 33 # small prime number: commonly 33, 37, 39, 41
     # cyclic shift hash code
-    cyclic_bit_mask: int = 2**64-1  # This creates a 64-bit mask
+    cyclic_bit_mask: BitMask = BitMask(2**64-1)  # This creates a 64-bit mask
     cyclic_shift_amount: int = 7    # used for cyclic shift hash code, shifts the bits by this much
     # MAD compress function
     mad_prime: int = field(init=False)  # used for MAD compression. 

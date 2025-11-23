@@ -23,7 +23,7 @@ import ctypes
 
 # region custom imports
 from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, ARRAY_GROWTH_FACTOR, ARRAY_SHRINK_FACTOR
-from user_defined_types.custom_types import T
+from user_defined_types.generic_types import T
 
 if TYPE_CHECKING:   # does not run at runtime - avoids circular imports.
     from ds.primitives.arrays.dynamic_array import VectorArray

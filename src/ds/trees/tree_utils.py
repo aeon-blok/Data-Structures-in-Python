@@ -25,7 +25,7 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from user_defined_types.custom_types import T, K, iKey
+from user_defined_types.generic_types import T, K, iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
 from utils.helpers import Ansi

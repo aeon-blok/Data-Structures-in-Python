@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from adts.sequence_adt import SequenceADT
     from adts.linked_list_adt import LinkedListADT
     from adts.positional_list_adt import PositionalListADT
-    from user_defined_types.custom_types import T
+    from user_defined_types.generic_types import T
 
 from ds.primitives.Positional_Lists.positional_list_utils import PositionalListUtils
 from ds.primitives.Linked_Lists.linked_list_utils import LinkedListUtils

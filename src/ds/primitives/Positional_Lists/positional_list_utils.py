@@ -26,7 +26,7 @@ import ctypes
 # region custom imports
 
 if TYPE_CHECKING:
-    from user_defined_types.custom_types import T
+    from user_defined_types.generic_types import T
     from adts.positional_list_adt import PositionalListADT, iNode, iPosition
 
 

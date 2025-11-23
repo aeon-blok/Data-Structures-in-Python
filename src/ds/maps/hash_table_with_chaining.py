@@ -29,8 +29,10 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from user_defined_types.custom_types import T, K, iKey, HashCode, CompressFunc
-from utils.constants import MIN_HASHTABLE_CAPACITY
+from user_defined_types.generic_types import T, K, ValidDatatype, ValidIndex, TypeSafeElement, Index
+from user_defined_types.hashtable_types import ValidateLoadFactor, LoadFactor, HashCode, CompressFunc
+from user_defined_types.key_types import iKey, Key
+from utils.constants import MIN_HASHTABLE_CAPACITY, BUCKET_CAPACITY, HASHTABLE_RESIZE_FACTOR, DEFAULT_HASHTABLE_CAPACITY, MAX_LOAD_FACTOR
 from utils.validation_utils import DsValidation
 from utils.representations import BinaryHeapRepr
 from utils.helpers import RandomClass
@@ -56,23 +58,23 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     has controls for max load factor and resize factor.
     """
     def __init__(
-            self, 
-            datatype: type, 
-            table_capacity: int = 20, 
-            hash_code: HashCode = HashCode.CYCLIC_SHIFT, 
-            compress_func: CompressFunc = CompressFunc.MAD, 
-            max_load_factor: float = 0.6, 
-            resize_factor: int = 2
-            ) -> None:
+        self,
+        datatype: type,
+        table_capacity: int = DEFAULT_HASHTABLE_CAPACITY,
+        hash_code: HashCode = HashCode.CYCLIC_SHIFT,
+        compress_func: CompressFunc = CompressFunc.MAD,
+        max_load_factor: LoadFactor = ValidateLoadFactor(MAX_LOAD_FACTOR),
+        resize_factor: int = HASHTABLE_RESIZE_FACTOR,
+    ) -> None:
 
         # composed objects:
-        self._utils = MapUtils(self)
-        self._validators = DsValidation()
+        self._utils: MapUtils = MapUtils(self)
+        self._validators: DsValidation = DsValidation()
         self._desc = None
 
-        # values datatype enforcement.
-        self.datatype = datatype
-        self._validators.validate_datatype(self.datatype)
+        # homogenous type safety
+        self.datatype = ValidDatatype(datatype)
+        self._keytype: type | None = None
 
         # trackers
         self.total_elements: int = 0   # number of key-value pairs
@@ -85,9 +87,9 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         # core attributes
         self.resize_factor = resize_factor
         self.table_capacity = max(MIN_HASHTABLE_CAPACITY, self._utils.find_next_prime_number(table_capacity))    # number of slots in hash table
-        self.bucket_capacity = self._utils.find_next_prime_number(10) # initializes each bucket with this number of slots.
-        self.buckets = VectorArray(self.table_capacity, object)  # this is the array object - with all the attributes and methods.
-        self.current_load_factor = self._utils.calculate_load_factor(self.total_elements, self.table_capacity)  # log attribute - displays current load factor
+        self.bucket_capacity: int = self._utils.find_next_prime_number(BUCKET_CAPACITY) # initializes each bucket with this number of slots.
+        self.buckets: VectorArray = VectorArray(self.table_capacity, object)  # this is the array object - with all the attributes and methods.
+        self.current_load_factor: LoadFactor = self._utils.calculate_load_factor(self.total_elements, self.table_capacity)  # log attribute - displays current load factor
         self.max_load_factor = max_load_factor # prevents the table from exceeding this capacity
         self._hash_code = hash_code
         self._compress_func = compress_func
@@ -96,13 +98,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         for i in range(self.table_capacity):
             self.buckets.array[i] = None
 
-        # MAD attributes - fixed after initialization (until table rehashing)
-        # self.prime = self._utils.find_next_prime_number(self.table_capacity)  # just slightly above table size.
-        # # must be smaller than prime attribute. (and cannot be a cofactor so cannot be 1)
-        # self.scale = random.randint(2, self.prime-1)
-        # self.shift = random.randint(2, self.prime-1)
-
-        self._hashconfig = HashFuncConfig(self.table_capacity)
+        self._hashconfig: HashFuncConfig = HashFuncConfig(self.table_capacity)
 
     # ----- Utility -----
 
@@ -166,75 +162,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def visualize_table(self, columns: int=16, cell_width:int = 11, row_padding: int = 3):
         """Visualizes the hash table as a console cell grid. contains the index number and number of keys in each bucket for clarity."""
-        # ANSI color codes for fun.
-        BLUE = "\033[1;36m"
-        RED = "\033[31m"
-        GREEN = "\033[32m"
-        YELLOW = "\033[33m"
-        RESET = "\033[0m"
-        INVERT = "\033[7m"
-
-        def color(input, color):
-            string = f"{RESET}{color}{input}{RESET}"
-            return string
-
-        # profile stats
-        # load factor - with color that changes to warn end user.
-        load_factor_number = color(f"{self.current_load_factor:.2f}", GREEN) if self.current_load_factor < 0.65 else color(f"{self.current_load_factor:.2f}", RED)
-        load_factor_string = f"Load Factor: {load_factor_number}"
-        # total collisions - with color change
-        collision_threshold: float = 0.13  # percentage boundary (13%)
-        collisions_number = color(f"{self.total_collisions}", GREEN) if self.total_collisions / self.table_capacity < collision_threshold else color(f"{self.total_collisions}", RED)
-        total_coll_string = f"Total Collisions: {collisions_number}"
-
-        table = self.buckets.array
-        table_container = []
-
-        # table creation.
-        columns = columns
-        cell_width = cell_width
-        row_seperator = "-" * (columns * (cell_width + row_padding))
-
-        # loops through every bucket in the table. appends the index number and count of keys for each bucket with items.
-        # otherwise appends an empty list. (we will fill this in later with placeholder text.)
-        for idx, bucket in enumerate(table):
-            bucket_container = []
-            if bucket is None:
-                table_container.append([])
-            if bucket is not None:
-                count = len(bucket) if bucket else 0 # type: ignore
-                stats = f"i:{idx} k:{count}"
-                bucket_container.append(stats)  # append found items to the bucket container
-                table_container.append(bucket_container)    # append buckets to the table container.
-
-        # rows logic --
-        table_size = len(table_container)
-
-        # title
-        print(row_seperator)
-        hashtable_type_string = (f"{RESET}{BLUE}(Type: [{self.datatype.__name__}]){RESET}")
-        rehash_stats = f"Total Rehashes: {self.total_rehashes}, Rehash Time (total): {self.total_rehash_time:.1f} secs, Rehash Time (latest): Completed in {self.current_rehash_time:.2f} secs,"
-        stats = f"{load_factor_string}, {total_coll_string}, Current Capacity: {self.total_elements}/{self.table_capacity}, Total Buckets Created: {self.total_buckets}"
-        title = f"{RESET}{YELLOW}Hash Table Visualization{RESET} {hashtable_type_string}"
-        print(title.center(len(row_seperator)))
-        print(row_seperator)
-        print(stats.center(len(row_seperator)))
-        print(rehash_stats.center(len(row_seperator)))
-        print(row_seperator)
-
-        # create rows and populate
-        print(row_seperator)
-        for i in range(0, table_size, columns):
-            row = table_container[i:i+columns]  # slices table container to create a sublist for each row of size columns.
-            row_display = []
-            # for every bucket in the sliced part of the table - if its empty append a placeholder, otherwise append the stats text
-            for bucket in row:
-                if not bucket:  # if the bucket is empty (the list representation of a bucket)
-                    row_display.append("[]".center(cell_width))
-                else:
-                    row_display.append(", ".join(str(f"{stats}") for stats in bucket).center(cell_width))
-            print(f"{' | '.join(row_display)}")
-            print(row_seperator)
+        return self._utils.view_chaining_table(columns, cell_width, row_padding)
 
     # ----- Python Built in Overrides -----
     def __str__(self) -> str:
@@ -266,16 +194,11 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
         # new array & capacity
         new_capacity = self._utils.find_next_prime_number(old_capacity * self.resize_factor)
-
+        # recompute the config file (for MAD compress func prime etc)
         self._hashconfig.recompute(new_capacity)
-        # # new MAD modifiers
-        # new_prime = self._utils.find_next_prime_number(new_capacity) # self.table_capacity
-        # new_scale = random.randint(2, new_prime - 1)
-        # new_shift = random.randint(2, new_prime - 1)
 
         # create new array and capacity
         new_buckets = VectorArray(new_capacity, object)
-
         for i in range(new_capacity):
             new_buckets.array[i] = None
 
@@ -283,9 +206,6 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self.total_elements = 0
         # update to new table
         self.buckets = new_buckets
-        # self.prime = new_prime
-        # self.scale = new_scale
-        # self.shift = new_shift
         self.table_capacity = new_capacity
         self.total_buckets = 0
 
@@ -302,13 +222,16 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
         self.total_rehashes += 1    # update total rehashes
         end_time = time.perf_counter()
+
+        # performance tracking
         rehash_time = end_time - start_time
         self.current_rehash_time = rehash_time  # updates current rehash time
         self.total_rehash_time += rehash_time   # updates lifetime tracker of rehash time.
 
     def _internal_put(self, key, value):
         """Internal put() method - does not have rehash condition"""
-        key = self._validators.validate_key(key)
+
+        # key = self._validators.validate_key(key)
         self._validators.enforce_type(value, self.datatype)
 
         # collect index via hash function
@@ -353,9 +276,10 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Step 4: Increment size tracker
         Step 5: Check load factor → call _rehash_table if exceeded.
         """
+        self._utils.check_key_type(key) # ensures the input matches table key type.
+        key = Key(key).value
 
-        key = self._validators.validate_key(key)
-        self._validators.enforce_type(value, self.datatype)
+        value = TypeSafeElement(value, self.datatype)
 
         # rehash table if exceed max load factor (+1 for future insertion)
         if (self.total_elements + 1) / self.table_capacity > self.max_load_factor:
@@ -399,10 +323,11 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Check the bucket array for the key.
         Return the value if found. If not found, optionally return a default value.
         """
-        self._validators.validate_key(key)
+        self._utils.check_key_type(key)  # ensures the input matches table key type.
+        key = Key(key).value
 
         if default is not None:
-            self._validators.enforce_type(default, self.datatype)
+            default = TypeSafeElement(default, self.datatype)
 
         # compute index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
@@ -417,6 +342,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                 k, v = target_bucket.array[i]
                 if k == key:
                     return v
+
         return default if default is not None else None
 
     def remove(self, key):
@@ -425,7 +351,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Check the bucket array for the key.
         Remove the key-value pair if found & return the value
         """
-        key = self._validators.validate_key(key)
+        self._utils.check_key_type(key) # ensures the input matches table key type.
+        key = Key(key).value
 
         # compute index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
@@ -500,8 +427,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     # ----- Meta Collection ADT Operations -----
     def __contains__(self, key):
         """Does the Hash table contain an item with the specified key?"""
-        key = self._validators.validate_key(key)
-
+        self._utils.check_key_type(key)  # ensures the input matches table key type.
+        key = Key(key).value
         # compute index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
         index = hashgen.hash_function()
@@ -560,9 +487,11 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     # Main ---- Client Facing Code -----
 
-    # todo custom dependency injected hash functions per instance.
     # todo add batch insert, batch update, batch delete
     # todo merge hash tables together.
+    # todo clean up test harness. (utilize random sample etc.)
+    # todo clean up visualization and reporting
+    # todo check __contains__ logic.
 
 
 class StressTestHashTable():
@@ -692,7 +621,7 @@ class StressTestHashTable():
         test_key = key if key is not None else random.choice(keys)
         print(f"Testing if Hash table contains {test_key} == {test_key in self.hashtable}")
         try:
-            assert test_key in self.hashtable == True, f"Error: Assertion for Contains({test_key}) failed!"
+            assert test_key in self.hashtable.buckets.array == True, f"Error: Assertion for Contains({test_key}) failed!"
         except AssertionError as error:
             print(f"{error}")
 
@@ -705,7 +634,6 @@ class StressTestHashTable():
 
         assert len(keys) == len(values) == len(items), f"Error: mismatch between the length of {keys}, {values} & {items}"
         print(f"Checking that the elements in items() are found in keys() & values()")
-        print(self.hashtable.performance_profile_report())
 
     def test_clear(self):
         print(f"\n=== Testing Clear() ===")
@@ -814,7 +742,6 @@ def main():
     test = StressTestHashTable(preset_dynamic_objects, stress_number_of_items, Person, table_size=stress_number_of_items // 6)
     test.stress_test()
 
-    
     # items_list = [preset_list[i % len(preset_list)] for i in range(max_number_of_items)]
 
 

@@ -28,7 +28,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from user_defined_types.custom_types import T
+from user_defined_types.generic_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import GenTreeRepr
 from utils.helpers import RandomClass

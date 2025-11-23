@@ -29,7 +29,7 @@ from utils.exceptions import *
 
 
 if TYPE_CHECKING:
-    from user_defined_types.custom_types import T
+    from user_defined_types.generic_types import T
     from adts.linked_list_adt import LinkedListADT, iNode
     from adts.stack_adt import StackADT
     from adts.collection_adt import CollectionADT

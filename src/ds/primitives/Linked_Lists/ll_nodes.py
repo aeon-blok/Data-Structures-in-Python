@@ -20,7 +20,7 @@ from abc import ABC, ABCMeta, abstractmethod
 
 # region custom imports
 from utils.helpers import RandomClass
-from user_defined_types.custom_types import T
+from user_defined_types.generic_types import T
 from utils.constants import DLL_SEPERATOR
 from utils.representations import DllNodeRepr, SllNodeRepr
 
