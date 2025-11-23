@@ -102,7 +102,7 @@ class HashFuncGen():
     """
     def __init__(self, key: iKey, config: 'HashFuncConfig', hash_code: HashCode = HashCode.CYCLIC_SHIFT, compress_func: CompressFunc = CompressFunc.MAD) -> None:
         self._config = config
-        self._key = key
+        self._key = key.value   # this is part of the key class interface (iKey)
         self._hash_code = hash_code
         self._compress_func = compress_func
 

@@ -66,11 +66,16 @@ class iKey(ABC):
 class Key(iKey):
     """Base Key class - validates that a key is hashable and the same type for comparisons. can be subclassed for further logic"""
     def __init__(self, value) -> None:
-        if value is None: raise DsInputValueError(f"Error: Key cannot be a None value")
-        try: hash(value)
-        except TypeError as e: raise DsTypeError("Error: Key Type Must be Hashable.")
-        self._value = value
-        self._datatype = type(value)    # gets the datatype of the value for validation checks.
+        # if its already a key value - just update.
+        if isinstance(value, Key): 
+            self._value = value.value 
+            self._datatype = value.datatype
+        else:
+            if value is None: raise DsInputValueError(f"Error: Key cannot be a None value")
+            try: hash(value)
+            except TypeError as e: raise DsTypeError("Error: Key Type Must be Hashable.")
+            self._value = value
+            self._datatype = type(value)    # gets the datatype of the value for validation checks.
 
     @property
     def value(self):
@@ -91,7 +96,7 @@ class Key(iKey):
         return other
 
     def __repr__(self) -> str:
-        return f"Key: {self._value!r}"
+        return f"Key({self._value!r})"
     
     def __lt__(self, other) -> bool:
         other = self._assert_key_type(other)

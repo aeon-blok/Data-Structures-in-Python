@@ -15,6 +15,27 @@ from utils.helpers import Ansi
 
 # where we add console visualizations for the different data structure types - usually use these in __str__ or __repr__ or a utility function.
 
+# todo create a base class for inheriting common attributes from.
+
+class BaseRepr:
+    """Holds all the common descriptors that are used by every representation."""
+    def __init__(self, obj) -> None:
+        self.obj = obj
+        self._ansi = Ansi()
+
+    @property
+    def class_name(self):
+        return f"{self.obj.__class__.__qualname__}"
+    
+    @property
+    def class_address(self):
+        return f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>"
+    
+    @property
+    def datatype(self):
+        return f"{self.obj.datatype.__name__}"
+
+
 # region arrays
 class ArrayRepr:
     def __init__(self, array_obj) -> None:
@@ -506,12 +527,29 @@ class OAHashTableRepr:
     def __init__(self, map_obj) -> None:
         self.obj = map_obj
         self._ansi = Ansi()
-    
+
     def str_oa_hashtable(self):
         pass
 
     def repr_oa_hashtable(self):
         pass
+
+
+class ChainHashTableRepr:
+    def __init__(self, map_obj) -> None:
+        self.obj = map_obj
+        self._ansi = Ansi()
+
+    def str_chain_hashtable(self):
+        items = self.obj.items()
+        infostring = f"[{self.obj.datatype.__name__}]{{{{{str(', '.join(f'{k}: {v}' for k, v in items))}}}}}"
+        return infostring
+
+    def repr_chain_hashtable(self):
+        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
+        datatype = self.obj.datatype.__name__
+        capacity = f"{self.obj.total_elements}/{self.obj.table_capacity}"
+        return f"{class_address}, Type: {datatype}, Capacity: {capacity}"
 
 
 # Trees

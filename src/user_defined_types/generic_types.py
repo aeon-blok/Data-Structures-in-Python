@@ -33,7 +33,6 @@ from user_defined_types.key_types import iKey
 # endregion
 
 
-
 # region Atomic Types
 
 T = TypeVar("T")  # generic type
@@ -42,7 +41,7 @@ V = TypeVar("V")  # Values can be anything.
 
 
 # New Types
-Index = NewType("Index", int)   # operates essentially as an alias - to fix type hint errors
+Index = int   # alias for int
 
 class ValidDatatype:
     """validates that a datatype is a valid type, and is not None."""
@@ -64,7 +63,7 @@ class ValidIndex(int):
         else:
             if index < 0 or index >= capacity:
                 raise IndexError("Error: Index is out of bounds.")
-        return Index(index)
+        return index
 
 class TypeSafeElement:
     """ensures that the element matches the specified datatype."""
@@ -72,9 +71,8 @@ class TypeSafeElement:
         if value is None:
             raise DsInputValueError("Error: Element must not be None at creation.")
         if not isinstance(value, datatype):
-            raise DsTypeError(f"Error: Invalid Type: Expected: [{datatype.__name__}] Got: [{type(value)}]")
+            raise DsTypeError(f"Error: Invalid Type: Expected: [{datatype.__name__}] Got: [{type(value).__name__}]")
         return value
-
 
 
 

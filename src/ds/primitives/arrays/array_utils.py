@@ -107,7 +107,6 @@ class ArrayUtils:
         """shift elements left -- Starts from the deleted index (Goes Backwards) -- aka delete -- O(N)"""
         for i in range(index, self.obj.size - 1):  
             self.obj.array[i] = self.obj.array[i + 1]  # (elem4 = elem5)
-
         # looks through datatype map to see specific type that the array is using
         # (can be a special ctype or numpy type. Defaults to ctypes.py_object - which aligns 100% with a python object.)
         specific_type = self.obj.datatype_map.get(self.obj.datatype, ctypes.py_object)

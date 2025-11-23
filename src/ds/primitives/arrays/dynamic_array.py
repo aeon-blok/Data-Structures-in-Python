@@ -77,13 +77,13 @@ class VectorView(Generic[T]):
         self._start = start # start of the view.
         self._length = length if length is not None else len(array) - start  # length of view
         self._stride = stride   # step value
-        self._datatype = datatype
+        self._datatype = ValidDatatype(datatype)
 
         # composed objects
-        self._utils = ArrayUtils(self)
-        self._validators = DsValidation()
-        self._desc = ViewRepr(self)
-    
+        self._utils: ArrayUtils = ArrayUtils(self)
+        self._validators: DsValidation = DsValidation()
+        self._desc: ViewRepr = ViewRepr(self)
+
     @property
     def datatype(self):
         return self._datatype
@@ -99,29 +99,14 @@ class VectorView(Generic[T]):
             view_start_index = self._start + start * self._stride
             view_length = (stop - start + (step - 1)) // step
             view_stride = self._stride * step
-
             return VectorView(self._datatype, self._view, view_start_index, view_length, view_stride)
-
-        # idx < 0: convert negative index to positive.
-        if index < 0:
-            index += self._length
-
-        # Bounds check: make sure idx is within the view.
-        self._validators.index_boundary_check(index, self._length, is_insert=True)
-
-        # access index
-        return self._view[self._start + index * self._stride]
+        index = ValidIndex(index, self._length, array_insert=True)
+        return self._view[self._start + index * self._stride]  # access index
 
     def __setitem__(self, index: int, value: Any):
         """replaces a value of the view."""
-        # idx < 0: convert negative index to positive.
-        if index < 0:
-            index += self._length
-
-        self._validators.enforce_type(value, self._datatype)
-
-        # Bounds check: make sure idx is within the view.
-        self._validators.index_boundary_check(index, self._length, is_insert=True)
+        index = ValidIndex(index, self._length, array_insert=True)
+        value = TypeSafeElement(value, self.datatype)
         self._view[self._start + index * self._stride] = value
 
     def __iter__(self) -> Generator[Any , None, None]:

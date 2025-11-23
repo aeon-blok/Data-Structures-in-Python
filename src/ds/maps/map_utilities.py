@@ -52,7 +52,7 @@ class MapUtils:
         self.obj = map_obj
         self._ansi = Ansi()
 
-    # -------------------------------- Utilities   --------------------------------
+    # -------------------------------- Utilities --------------------------------
     def _is_prime_number(self, number):
         """Boolean Check if number is a prime."""
         if number < 2:
@@ -73,8 +73,8 @@ class MapUtils:
     def check_key_type(self, key):
         """Checks the input key type with the stored hash table key type."""
         if self.obj._keytype is None:
-            self.obj._keytype = type(key)
-        elif type(key) != self.obj._keytype:
+            self.obj._keytype = key.datatype
+        elif key.datatype != self.obj._keytype:
             raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj._keytype.__name__}, Got: {key.datatype.__name__}")
 
     # -------------------------------- Chaining Hash Table Visualization  --------------------------------
@@ -161,9 +161,11 @@ class MapUtils:
             print(row_seperator)
 
 
-    # -------------------------------- Table Rehashing   --------------------------------
-
+    # -------------------------------- Table Rehashing --------------------------------
     def calculate_load_factor(self, total_elements: int, table_capacity: int) -> LoadFactor:
         """calculates the load factor of the current hashtable"""
         load = total_elements / table_capacity
         return ValidateLoadFactor(load)
+
+
+

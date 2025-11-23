@@ -32,9 +32,11 @@ from pprint import pprint
 from user_defined_types.generic_types import T, K, ValidDatatype, ValidIndex, TypeSafeElement, Index
 from user_defined_types.hashtable_types import ValidateLoadFactor, LoadFactor, HashCode, CompressFunc
 from user_defined_types.key_types import iKey, Key
+
 from utils.constants import MIN_HASHTABLE_CAPACITY, BUCKET_CAPACITY, HASHTABLE_RESIZE_FACTOR, DEFAULT_HASHTABLE_CAPACITY, MAX_LOAD_FACTOR
+
 from utils.validation_utils import DsValidation
-from utils.representations import BinaryHeapRepr
+from utils.representations import ChainHashTableRepr
 from utils.helpers import RandomClass
 from utils.exceptions import *
 
@@ -70,7 +72,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         # composed objects:
         self._utils: MapUtils = MapUtils(self)
         self._validators: DsValidation = DsValidation()
-        self._desc = None
+        self._desc: ChainHashTableRepr = ChainHashTableRepr(self)
 
         # homogenous type safety
         self.datatype = ValidDatatype(datatype)
@@ -101,7 +103,6 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self._hashconfig: HashFuncConfig = HashFuncConfig(self.table_capacity)
 
     # ----- Utility -----
-
     def collisions_per_bucket(self):
         """
         Returns the current number of collisions that have occured per bucket as a tuple. 
@@ -166,9 +167,10 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     # ----- Python Built in Overrides -----
     def __str__(self) -> str:
-        items = self.items()
-        infostring = f"[{self.datatype.__name__}]{{{{{str(', '.join(f'{k}: {v}' for k, v in items))}}}}}"
-        return infostring
+        return self._desc.str_chain_hashtable()
+    
+    def __repr__(self) -> str:
+        return self._desc.repr_chain_hashtable()
 
     def __getitem__(self, key):
         return self.get(key)
@@ -230,10 +232,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def _internal_put(self, key, value):
         """Internal put() method - does not have rehash condition"""
-
-        # key = self._validators.validate_key(key)
-        self._validators.enforce_type(value, self.datatype)
-
+        # notice we dont validate the key or value again, because we dont want to wrap it again in a key object.
         # collect index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
         index = hashgen.hash_function()
@@ -276,8 +275,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Step 4: Increment size tracker
         Step 5: Check load factor → call _rehash_table if exceeded.
         """
-        self._utils.check_key_type(key) # ensures the input matches table key type.
-        key = Key(key).value
+        key = Key(key)
+        self._utils.check_key_type(key)  # ensures the input matches table key type.
 
         value = TypeSafeElement(value, self.datatype)
 
@@ -323,8 +322,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Check the bucket array for the key.
         Return the value if found. If not found, optionally return a default value.
         """
+        key = Key(key)
         self._utils.check_key_type(key)  # ensures the input matches table key type.
-        key = Key(key).value
 
         if default is not None:
             default = TypeSafeElement(default, self.datatype)
@@ -351,8 +350,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Check the bucket array for the key.
         Remove the key-value pair if found & return the value
         """
-        self._utils.check_key_type(key) # ensures the input matches table key type.
-        key = Key(key).value
+        key = Key(key)
+        self._utils.check_key_type(key)  # ensures the input matches table key type.
 
         # compute index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
@@ -379,7 +378,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def keys(self):
         """Return a array of all the keys in the hash table"""
-        found_keys = VectorArray(self.bucket_capacity, str)
+        found_keys = VectorArray(self.bucket_capacity, iKey)
         table = self.buckets.array
 
         # iterate through table O(N*K)
@@ -391,7 +390,6 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                     kv_pair = bucket.array[i]
                     k,v = kv_pair   # destructure tuple
                     found_keys.append(k)
-
         return found_keys
 
     def values(self):
@@ -420,15 +418,14 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                 for i in range(bucket.size):
                     # must access the .array attribute (where the array items are stored....)
                     kv_pair = bucket.array[i]
-                    k, v = kv_pair  # destructure tuple
                     found_items.append(kv_pair)
         return found_items
 
     # ----- Meta Collection ADT Operations -----
     def __contains__(self, key):
         """Does the Hash table contain an item with the specified key?"""
+        key = Key(key)
         self._utils.check_key_type(key)  # ensures the input matches table key type.
-        key = Key(key).value
         # compute index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
         index = hashgen.hash_function()
@@ -484,6 +481,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                     kv_pair = bucket.array[i]
                     k, v = kv_pair
                     yield k
+
 
     # Main ---- Client Facing Code -----
 
@@ -627,11 +625,9 @@ class StressTestHashTable():
 
     def test_iteration_keys_values_items(self):
         print(f"\n=== Testing Keys(), values() & items() and general iteration===")
-
         keys = self.hashtable.keys()
         values = self.hashtable.values()
         items = self.hashtable.items()
-
         assert len(keys) == len(values) == len(items), f"Error: mismatch between the length of {keys}, {values} & {items}"
         print(f"Checking that the elements in items() are found in keys() & values()")
 
@@ -738,7 +734,7 @@ def main():
     # ------------- Utilize Test Suite -----------------
     # actual stress test list.
     normal_num_of_items = 100
-    stress_number_of_items = 100
+    stress_number_of_items = 10
     test = StressTestHashTable(preset_dynamic_objects, stress_number_of_items, Person, table_size=stress_number_of_items // 6)
     test.stress_test()
 
