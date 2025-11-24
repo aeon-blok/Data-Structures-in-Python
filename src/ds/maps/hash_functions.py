@@ -28,7 +28,7 @@ import random
 
 # region custom imports
 from user_defined_types.generic_types import T, K
-from user_defined_types.hashtable_types import HashCode, CompressFunc, BitMask
+from user_defined_types.hashtable_types import HashCodeType, CompressFuncType, BitMask
 from user_defined_types.key_types import iKey
 from utils.validation_utils import DsValidation
 from utils.exceptions import *
@@ -42,9 +42,6 @@ if TYPE_CHECKING:
 
 
 # endregion
-
-
-
 
 
 # ------------------- Code Interface -----------------------
@@ -100,7 +97,7 @@ class HashFuncGen():
     Requires a Config Object - this is a dataclass that holds the attributes required for the succesful generation of the codes and functions.
     The Hash Code and Compress Function Inputs require ENUM TYPES - they can be found in the custom_types module
     """
-    def __init__(self, key: iKey, config: 'HashFuncConfig', hash_code: HashCode = HashCode.CYCLIC_SHIFT, compress_func: CompressFunc = CompressFunc.MAD) -> None:
+    def __init__(self, key: iKey, config: 'HashFuncConfig', hash_code: HashCodeType = HashCodeType.CYCLIC_SHIFT, compress_func: CompressFuncType = CompressFuncType.MAD) -> None:
         self._config = config
         self._key = key.value   # this is part of the key class interface (iKey)
         self._hash_code = hash_code
@@ -108,11 +105,11 @@ class HashFuncGen():
 
     def create_hash_code(self):
         """generate a hash code with the provided inputs"""
-        if self._hash_code == HashCode.POLYNOMIAL:
+        if self._hash_code == HashCodeType.POLYNOMIAL:
             return HashCodesLib.polynomial_hash_code(self._key, self._config.polynomial_prime_weighting)
-        elif self._hash_code == HashCode.CYCLIC_SHIFT:
+        elif self._hash_code == HashCodeType.CYCLIC_SHIFT:
             return HashCodesLib.cyclic_shift_hash_code(self._key, self._config.cyclic_shift_amount, self._config.cyclic_bit_mask)
-        elif self._hash_code == HashCode.POLYCYCLIC:
+        elif self._hash_code == HashCodeType.POLYCYCLIC:
             return HashCodesLib.cyclic_polynomial_combo_hash_code(self._key, self._config.cyclic_shift_amount, self._config.cyclic_bit_mask)
         else:
             raise KeyInvalidError("Error: Invalid Hash Code Type input. Check Enum Library for Valid Hash Code Types")
@@ -120,13 +117,12 @@ class HashFuncGen():
     def hash_function(self):
         """Generate an index value for a hash table (uses a hash code.) -- this is the compression function selector"""
         hash_code = self.create_hash_code()
-        if self._compress_func == CompressFunc.MAD:
+        if self._compress_func == CompressFuncType.MAD:
             return CompressFunctionsLib.mad_compression_function(hash_code, self._config.mad_scale, self._config.mad_shift, self._config.mad_prime, self._config.table_capacity)
-        elif self._compress_func == CompressFunc.KMOD:
+        elif self._compress_func == CompressFuncType.KMOD:
             return CompressFunctionsLib.k_mod_compression_function(hash_code, self._config.table_capacity)
         else:
             raise KeyInvalidError("Error: Invalid Hash Code Type input. Check Enum Library for Valid Hash Code Types")
-
 
 
 # ------------------ Underlying Logic ---------------------
@@ -217,13 +213,4 @@ class CompressFunctionsLib:
         index = divide % table_capacity  # finally mod by table capacity
         return index
 
-    # ! move to probe functions
-    @staticmethod
-    def second_hash_function(key, table_capacity, hash_code_function: Callable):
-        """creates a simple second hash function for step size for double hashing"""
-        second_hash_code = hash_code_function(key)
-        return 1 + (second_hash_code % (table_capacity - 1))
-
-
-
-
+    

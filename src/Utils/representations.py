@@ -522,17 +522,20 @@ class BinaryHeapRepr:
         return f"{class_address}, Type: {datatype}, Heap Type: {heap_type}, Size: {size}/{capacity}, Priority Element: {priority_element}"
 
 
-# Maps
+# region Maps
 class OAHashTableRepr:
     def __init__(self, map_obj) -> None:
         self.obj = map_obj
         self._ansi = Ansi()
 
     def str_oa_hashtable(self):
-        pass
+        infostring = f"{self.obj.datatype_string}{self.obj.capacity_string}{{{{{self.obj.table_items}}}}}"
+        return infostring
 
     def repr_oa_hashtable(self):
-        pass
+        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
+        stats = f"{class_address}{self.obj.datatype_string}{self.obj.capacity_string}[{self.obj.loadfactor_string}, {self.obj.probes_string}, {self.obj.tombstone_string}, {self.obj.total_collisions_string}, {self.obj.rehashes_string}, {self.obj.avg_probes_string}]"
+        return stats
 
 
 class ChainHashTableRepr:
@@ -550,6 +553,8 @@ class ChainHashTableRepr:
         datatype = self.obj.datatype.__name__
         capacity = f"{self.obj.total_elements}/{self.obj.table_capacity}"
         return f"{class_address}, Type: {datatype}, Capacity: {capacity}"
+
+# endregion
 
 
 # Trees
@@ -641,7 +646,6 @@ class BinaryNodeRepr:
         left_child = self.obj.left
         right_child = self.obj.right
         return f"{class_address}, Type: {datatype}, Node Data: {self.obj.element}, Children: L: {left_child} R: {right_child} Node Alive?: {node_status}"
-
 
 class BinaryTreeRepr:
     def __init__(self, tree_obj) -> None:

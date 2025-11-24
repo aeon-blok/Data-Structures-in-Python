@@ -30,7 +30,7 @@ from pprint import pprint
 
 # region custom imports
 from user_defined_types.generic_types import T, K, ValidDatatype, ValidIndex, TypeSafeElement, Index
-from user_defined_types.hashtable_types import ValidateLoadFactor, LoadFactor, HashCode, CompressFunc
+from user_defined_types.hashtable_types import NormalizedFloat, LoadFactor, HashCodeType, CompressFuncType
 from user_defined_types.key_types import iKey, Key
 
 from utils.constants import MIN_HASHTABLE_CAPACITY, BUCKET_CAPACITY, HASHTABLE_RESIZE_FACTOR, DEFAULT_HASHTABLE_CAPACITY, MAX_LOAD_FACTOR
@@ -43,7 +43,7 @@ from utils.exceptions import *
 from adts.collection_adt import CollectionADT
 from adts.map_adt import MapADT
 
-from ds.maps.map_utilities import MapUtils
+from ds.maps.map_utils import MapUtils
 from ds.maps.hash_functions import HashFuncConfig, HashFuncGen
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 
@@ -63,9 +63,9 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self,
         datatype: type,
         table_capacity: int = DEFAULT_HASHTABLE_CAPACITY,
-        hash_code: HashCode = HashCode.CYCLIC_SHIFT,
-        compress_func: CompressFunc = CompressFunc.MAD,
-        max_load_factor: LoadFactor = ValidateLoadFactor(MAX_LOAD_FACTOR),
+        hash_code: HashCodeType = HashCodeType.CYCLIC_SHIFT,
+        compress_func: CompressFuncType = CompressFuncType.MAD,
+        max_load_factor: LoadFactor = NormalizedFloat(MAX_LOAD_FACTOR),
         resize_factor: int = HASHTABLE_RESIZE_FACTOR,
     ) -> None:
 
@@ -76,7 +76,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
         # homogenous type safety
         self.datatype = ValidDatatype(datatype)
-        self._keytype: type | None = None
+        # its the key specified type for the entire table. the first key to be entered defines the type.
+        self._table_keytype: type | None = None   
 
         # trackers
         self.total_elements: int = 0   # number of key-value pairs
@@ -168,7 +169,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     # ----- Python Built in Overrides -----
     def __str__(self) -> str:
         return self._desc.str_chain_hashtable()
-    
+
     def __repr__(self) -> str:
         return self._desc.repr_chain_hashtable()
 
@@ -481,7 +482,6 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                     kv_pair = bucket.array[i]
                     k, v = kv_pair
                     yield k
-
 
     # Main ---- Client Facing Code -----
 
