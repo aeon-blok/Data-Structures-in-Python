@@ -12,6 +12,7 @@ from typing import (
     Iterator,
     Generator,
 )
+
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
@@ -23,7 +24,6 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from user_defined_types.generic_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import PQueueRepr
 from utils.helpers import RandomClass
@@ -36,7 +36,10 @@ from adts.sequence_adt import SequenceADT
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 from ds.trees.Priority_Queues.priority_queue_utils import PriorityQueueUtils
+from ds.trees.Priority_Queues.priority_entry import PriorityEntry
 
+from user_defined_types.generic_types import ValidDatatype, ValidIndex, TypeSafeElement, Index, T, K
+from user_defined_types.key_types import iKey, Key
 # endregion
 
 
@@ -47,61 +50,68 @@ Finding/removing the extreme (max or min, depending on the priority) is slow: O(
 """
 
 
-class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic[T]):
+class UnsortedMinPriorityQueue(MinPriorityQueueADT[T, K], CollectionADT[T], Generic[T, K]):
     """
     Unsorted Array Based Min Priority Queue:
     Priority Value (int): Min = top priority
     Items stored as tuples
     """
     def __init__(self, datatype: type, capacity: int = 10) -> None:
-        self._datatype = datatype
+        self._datatype = ValidDatatype(datatype)
         self._capacity = max(4, capacity)
-        self._data = VectorArray(self._capacity, tuple)
-        self._key = lambda x: x[1]  # for tuples - compares priority element.
+        self._data = VectorArray(self._capacity, PriorityEntry)
+        self._pqueue_keytype: None | type = None
         # composed objects
         self._utils = PriorityQueueUtils(self)
         self._validators = DsValidation()
         self._desc = PQueueRepr(self)
 
     @property
-    def datatype(self):
+    def keytype(self) -> Optional[type]:
+        return self._pqueue_keytype
+    @property
+    def datatype(self) -> type:
         return self._datatype
 
     @property
-    def capacity(self):
+    def capacity(self) -> int:
         return self._data.capacity
 
     @property
-    def size(self):
+    def pqueue_size(self) -> int:
         return self._data.size
 
     @property
-    def priority(self):
+    def priority(self) -> T:
         return self.find_min()
+
+    @property
+    def data(self) -> VectorArray[PriorityEntry]:
+        return self._data
 
     # ----- Meta Collection ADT Operations -----
     def __contains__(self, value: T) -> bool:
-        for i in range(self.size):
-            element = self._data.array[i]
+        for i in range(self.pqueue_size):
+            priority, element = self._data.array[i]
             if element == value:
                 return True
         return False
 
     def __len__(self) -> int:
-        return self.size
+        return self.pqueue_size
 
     def clear(self) -> None:
         self._data.clear()
-        self._data = VectorArray(self._capacity, tuple)
+        self._data = VectorArray(self._capacity, PriorityEntry)
 
     def __iter__(self):
-        for i in range(self.size):
+        for i in range(self.pqueue_size):
             kv_pair = self._data.array[i]
-            element, priority = kv_pair
+            priority, element = kv_pair
             yield element
 
     def is_empty(self) -> bool:
-        return self.size == 0
+        return self.pqueue_size == 0
 
     # ------------ Utilities ------------
 
@@ -118,23 +128,22 @@ class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic
         """retrives the current priority element (value). (doesnt remove.) -- O(n) linear time."""
         # empty pq Case:
         self._utils.check_empty_pq()
-
         # Main Case: if a candidate element's priority is less than every other item in the array - it becomes the priority element.
         priority_index = self._utils.linear_scan_min(self._data)
         kv_pair = self._data.array[priority_index]
-        element, priority = kv_pair
+        priority, element = kv_pair
         return element
 
     # ----- Mutator ADT Operations -----
 
-    def insert(self, element: T, priority: int) -> None:
+    def insert(self, element, priority) -> None:
         """inserts a kv pair into the priority queue"""
         self._utils.check_element_already_exists(element)
-        self._validators.enforce_type(element, self._datatype)
-        self._validators.enforce_type(priority, int)
-
-        kv_pair = (element, priority)   # pack storage tuple
-        self._data.append(kv_pair)  # append to array
+        element = TypeSafeElement(element, self.datatype)
+        priority = Key(priority)
+        self._utils.check_key_is_same_type(priority)
+        kv_pair = PriorityEntry(priority, element) 
+        self._data.append(kv_pair) 
         # should update size automatically.
 
     def extract_min(self) -> Optional[T]:
@@ -142,30 +151,28 @@ class UnsortedMinPriorityQueue(MinPriorityQueueADT[T], CollectionADT[T], Generic
         self._utils.check_empty_pq()
         priority_index = self._utils.linear_scan_min(self._data)
         kv_pair = self._data.array[priority_index]
-        element, priority = kv_pair
+        priority, element = kv_pair
         self._data.delete(priority_index)   # handles size decrement auto
         return element
 
-    def decrease_key(self, element: T, priority: int) -> None:
+    def decrease_key(self, element, priority) -> None:
         """
         intended to lower the priority of an element.
         Many algorithms (Dijkstra, Prim, A*) assume that once an element is in the PQ, its priority can only improve, i.e., get smaller.
         """
         self._utils.check_empty_pq()
-        self._validators.enforce_type(element, self._datatype)
-        self._validators.enforce_type(priority, int)
+        element = TypeSafeElement(element, self.datatype)
+        priority = Key(priority)
 
         # find element.
-        for i in range(self.size):
-            # unpack tuple.
-            stored_element, stored_priority = self._data.array[i]
+        for i in range(self.pqueue_size):
+            stored_priority, stored_element = self._data.array[i]
             if element == stored_element:
                 # ensure new priority is lower.
                 self._utils.check_new_min_priority(priority, stored_priority)
                 # replace stored priority with new value
-                self._data.array[i] = (element, priority)
+                self._data.array[i] = PriorityEntry(priority, element)
                 return
-            
         raise KeyInvalidError("Error: Element not found in priority queue.")
 
 
@@ -198,15 +205,16 @@ def main():
     print(pq.find_min())
     print(pq.extract_min())
     print(pq)
+    print(repr(pq))
 
     pq.decrease_key("clean room", 1)
     print(pq)
+    print(repr(pq))
 
     try:
         pq.decrease_key(" ", 1)    
     except Exception as e:
         print(e)
-
     print(pq)
 
     try:
@@ -220,11 +228,9 @@ def main():
         print(e)
 
     print(f"Total Number of Items in Priority Queue: {len(pq)}")
-    print(f"{'dildo' in pq}")
-    print(f"{pq.is_empty()}")
-
-    for i in pq:
-        print(i)
+    print(f"random value in Pqueue?: {'dildo' in pq}")
+    print(f"Is pqueue empty?: {pq.is_empty()}")
+    print(repr(pq))
 
     print(pq)
     print(pq.priority)

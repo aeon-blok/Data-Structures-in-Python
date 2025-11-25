@@ -47,7 +47,8 @@ Circular Buffer / Ring Buffer or Circular Array. Fixed sized queue with rotating
 class CircularQueue(QueueADT[T], CollectionADT[T], Generic[T]):
     """
     A Queue Data Structure based on a Static Array
-    some implementations overwrite old data when full, others raise an error.
+    Can choose between overwriting old data when full, or raise an error.
+
     """
     def __init__(self, datatype, capacity: int = 10, overwrite: bool = False) -> None:
         self._datatype = datatype
@@ -64,23 +65,27 @@ class CircularQueue(QueueADT[T], CollectionADT[T], Generic[T]):
         self._desc = CircArrayQueueRepr(self)
 
     @property
-    def datatype(self):
+    def overwrite(self) -> bool:
+        return self._overwrite
+    
+    @property
+    def datatype(self) -> type:
         return self._datatype
 
     @property
-    def front(self):
+    def front(self) -> Optional[T]:
         if self.is_empty():
             return None
         return self._buffer.array[self._front]
 
     @property
-    def rear(self):
+    def rear(self) -> Optional[T]:
         if self.is_empty():
             return None
         return self._buffer.array[(self._front + self._queue_size - 1) % self._capacity]
 
     @property
-    def queue_size(self):
+    def queue_size(self) -> int:
         return self._queue_size
 
     # ----- Meta Collection ADT Operations -----
@@ -166,6 +171,7 @@ def main():
     print("--- Testing Integer Queue ---")
     int_queue = CircularQueue(int, capacity=5)
     print(int_queue)  # should be empty
+    print(repr(int_queue))
 
     try:
         int_queue.dequeue()
@@ -175,6 +181,7 @@ def main():
     for val in [1, 2, 3]:
         int_queue.enqueue(val)
         print(int_queue)
+        print(repr(int_queue))
 
     print(f"Front: {int_queue.front}, Rear: {int_queue.rear}, Size: {int_queue.queue_size}")
 
@@ -188,6 +195,7 @@ def main():
         except Exception as e:
             print(f"Overflow test: {e}")
     print(int_queue)
+    print(repr(int_queue))
 
     # --- Overwrite behavior ---
     print("\n--- Testing Overwrite Enabled Queue ---")
@@ -195,9 +203,9 @@ def main():
     for val in [10, 20, 30, 40, 50]:
         overwrite_queue.enqueue(val)
     print("Full queue:", overwrite_queue)
-
     overwrite_queue.enqueue(60)  # should overwrite oldest element
     print("After overwrite:", overwrite_queue)
+    print(repr(overwrite_queue))
 
     # --- STRING Queue ---
     print("\n--- Testing String Queue ---")
@@ -205,6 +213,7 @@ def main():
     for s in ["apple", "banana", "cherry"]:
         str_queue.enqueue(s)
         print(str_queue)
+    print(repr(str_queue))
 
     print(f"Front: {str_queue.front}, Rear: {str_queue.rear}")
 
@@ -254,35 +263,42 @@ def main():
     for i in range(capacity):
         cq.enqueue(i)
         print(f"Enqueued {i}:", cq)
+    print(repr(cq))
 
     # Overwrite elements repeatedly
     for i in range(100, 110):
         cq.enqueue(i)
         print(f"Enqueued {i} (overwrite):", cq)
         print(f"Front: {cq.front}, Rear: {cq.rear}, Size: {cq.queue_size}")
+    print(repr(cq))
 
     # Dequeue all elements to check final order
     print("\nDequeuing all elements:")
     while not cq.is_empty():
         val = cq.dequeue()
         print(f"Dequeued {val}:", cq)
+    print(repr(cq))
 
     # Fill and partially dequeue to test wrap-around
     for i in range(200, 205):
         cq.enqueue(i)
     print("\nQueue filled again:", cq)
+    print(repr(cq))
 
     for _ in range(2):
         cq.dequeue()
     print("After 2 dequeues:", cq)
+    print(repr(cq))
 
     for i in range(300, 303):
         cq.enqueue(i)
         print(f"Enqueued {i}:", cq)
+    print(repr(cq))
 
     # Final queue state
     print("\nFinal queue state:")
     print(cq)
+    print(repr(cq))
 
 if __name__ == "__main__":
     main()

@@ -8,7 +8,7 @@ Most libraries implement CLLs with singly circular links; doubly circular is les
 """
 
 # TODO: Convert __iter__ and search all into generators for use with iterators.... use break to break the while loop
-
+# todo update this module to use standard nodes and adt. refactor the whole module.
 
 T = TypeVar('T')
 

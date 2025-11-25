@@ -67,6 +67,10 @@ class CircularArrayDeque(DequeADT[T], CollectionADT[T], Generic[T]):
     # ----- Accessor ADT Operations -----
 
     @property
+    def deque_capacity(self):
+        return self._capacity
+    
+    @property
     def datatype(self):
         return self._datatype
     
@@ -187,60 +191,70 @@ def main():
     deque = CircularArrayDeque(int, capacity=4)
     print("Initial deque:", deque)
     print(repr(deque))
-    
+
     # --- Test 1: Add rear ---
     print("\n-- Adding to rear --")
     for val in [10, 20, 30]:
         deque.add_rear(val)
         print(f"Added {val} to rear:", deque)
+        print(repr(deque))
 
     # --- Test 2: Add front ---
     print("\n-- Adding to front --")
     deque.add_front(5)
     print("Added 5 to front:", deque)
-    
+    print(repr(deque))
+
     # --- Test 3: Wraparound ---
     print("\n-- Trigger wraparound --")
     deque.remove_front()  # remove 5, front moves
     deque.add_rear(40)
     print("Removed front and added 40 to rear (wraparound):", deque)
+    print(repr(deque))
 
     # --- Test 4: Dynamic resizing ---
     print("\n-- Trigger dynamic resizing --")
     deque.add_rear(50)  # triggers resize
     print("Added 50 to rear (resize should happen):", deque)
-    
+    print(repr(deque))
+
     # --- Test 5: Remove front and rear ---
     print("\n-- Removing front and rear --")
     front_val = deque.remove_front()
     rear_val = deque.remove_rear()
     print(f"Removed front: {front_val}, rear: {rear_val}")
     print("Deque after removals:", deque)
+    print(repr(deque))
 
     # --- Test 6: Iteration ---
     print("\n-- Iteration test --")
     print("Deque elements:", list(deque))
+    print(repr(deque))
 
     print(f"\n Testing peek front and rear")
     print(f"Front: {deque.front}, Rear: {deque.rear}")
+    print(repr(deque))
 
     # --- Test 7: __contains__ check ---
     print("\n-- __contains__ test --")
     print("Contains 20?", 20 in deque)
     print("Contains 999?", 999 in deque)
+    print(repr(deque))
 
     # --- Test 8: Clear test ---
     print("\n-- Clear test --")
     deque.clear()
     print("Deque after clear:", deque)
     print("Is empty?", deque.is_empty())
+    print(repr(deque))
 
     # --- Test 9: Type safety ---
     print("\n-- Type safety test --")
     try:
         deque.add_rear(RandomClass("EEEOOOT"))
-    except TypeError as e:
+    except Exception as e:
         print("Caught type error as expected:", e)
+    print(repr(deque))
 
     # --- Test 10: Underflow errors ---
     print("\n-- Underflow test --")
@@ -248,6 +262,7 @@ def main():
         deque.remove_front()
     except DsUnderflowError as e:
         print("Caught underflow error as expected:", e)
+    print(repr(deque))
 
     try:
         deque.remove_rear()
@@ -255,6 +270,7 @@ def main():
         print("Caught underflow error as expected:", e)
 
     print("\n=== Test Suite Complete ===")
+    print(repr(deque))
 
 
 if __name__ == "__main__":

@@ -77,10 +77,13 @@ from enum import Flag, auto
 # popo = heapq.heapreplace(newlist, 1000)
 # print(newlist)
 
+
 # todo refactor whole package to use custom domain logic types. (via newtype)
 # todo refactor tree nodes to use inheritance.
-# todo refactor hash tables.
 # todo implement __next__ for generators
+# todo refactor stacks, queues, deques, priority queues, trees to use new key logic.
+# todo refactor representations module - use base class and inherit to reduce code duplication.
+
 
 # todo Solve problems: balanced parentheses, LRU cache, two-sum problem using hash tables
 # todo trees -- Solve problems: heap sort, k largest elements, lowest common ancestor

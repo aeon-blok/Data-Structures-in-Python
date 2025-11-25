@@ -54,20 +54,25 @@ class LlQueue(QueueADT[T], CollectionADT[T], Generic[T]):
 
     @property
     def front(self):
-        self._utils.check_empty_queue()
+        if self.is_empty(): return None
         result = self._ll.head.element
         return result
     @property
     def rear(self):
-        self._utils.check_empty_queue()
+        if self.is_empty():
+            return None
         result = self._ll.tail.element
         return result
     @property
     def datatype(self):
         return self._datatype
     @property
-    def size(self):
+    def queue_size(self):
         return self._ll.total_nodes
+    
+    @property
+    def linkedlist(self)->LinkedList:
+        return self._ll
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self) -> int:
@@ -121,12 +126,15 @@ def main():
     # --- Empty queue ---
     print("Initial empty queue:")
     print(queue, "\n")
+    print(repr(queue))
 
     # --- Enqueue operations ---
     print("Enqueue Operations:")
-    for val in [10, 20, 30, 40]:
+    random_numbers = [random.randint(0, 300) for i in range(20)]
+    for val in random_numbers:
         queue.enqueue(val)
         print(queue)
+        print(repr(queue))
 
     # --- Peek operation ---
     print("\nPeek front:")
@@ -140,6 +148,7 @@ def main():
     while not queue.is_empty():
         queue.dequeue()
         print(queue)
+        print(repr(queue))
 
     # --- Type Safety Test ---
     print("\nType Safety Test:")
@@ -161,5 +170,6 @@ def main():
             method()
         except Exception as e:
             print("Caught error:", e)
+            
 if __name__ == "__main__":
     main()

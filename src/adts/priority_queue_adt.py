@@ -23,7 +23,8 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from user_defined_types.generic_types import T
+from user_defined_types.generic_types import T, K, Index
+from user_defined_types.key_types import iKey, Key
 
 
 # endregion
@@ -61,7 +62,7 @@ how CLRS and Kleinberg/Tardos define it: one orientation per PQ instance.
 """
 
 
-class MinPriorityQueueADT(ABC, Generic[T]):
+class MinPriorityQueueADT(ABC, Generic[T, K]):
     """
     Min Priority Queue ADT Interface: Canonical operations
     """
@@ -75,7 +76,7 @@ class MinPriorityQueueADT(ABC, Generic[T]):
 
     # ----- Mutator ADT Operations -----
     @abstractmethod
-    def insert(self, element: T, priority: int) -> None:
+    def insert(self, element: T, priority: K) -> None:
         """add a key value pair to the Priority queue, while maintaining the order."""
         pass
 
@@ -85,12 +86,12 @@ class MinPriorityQueueADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def decrease_key(self, element: T, priority: int) -> None:
+    def decrease_key(self, element: T, priority: K) -> None:
         """Updates a specific elements - priority value."""
         pass
 
 
-class MaxPriorityQueueADT(ABC, Generic[T]):
+class MaxPriorityQueueADT(ABC, Generic[T, K]):
     """
     Max Priority Queue ADT Interface: Canonical operations
     """
@@ -104,7 +105,7 @@ class MaxPriorityQueueADT(ABC, Generic[T]):
 
     # ----- Mutator ADT Operations -----
     @abstractmethod
-    def insert(self, element: T, priority: int) -> None:
+    def insert(self, element: T, priority: K) -> None:
         """add a key value pair to the Priority queue, while maintaining the order."""
         pass
 
@@ -114,12 +115,12 @@ class MaxPriorityQueueADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def increase_key(self, element: T, priority: int) -> None:
+    def increase_key(self, element: T, priority: K) -> None:
         """Updates a specific elements - priority value."""
         pass
 
 
-class PriorityQueueADT(ABC, Generic[T]):
+class PriorityQueueADT(ABC, Generic[T, K]):
     """
     Generic Priority Queue ADT Interface:
     Can utilize a custom key to determine priority sorting behaviour
@@ -136,7 +137,7 @@ class PriorityQueueADT(ABC, Generic[T]):
 
     # ----- Mutator ADT Operations -----
     @abstractmethod
-    def insert(self, element: T, priority: int) -> None:
+    def insert(self, element: T, priority: K) -> None:
         """add a key value pair to the Priority queue, while maintaining the order."""
         pass
 
@@ -146,6 +147,6 @@ class PriorityQueueADT(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def change_priority(self, element: T, priority: int) -> None:
+    def change_priority(self, element: T, priority: K) -> None:
         """Updates a specific elements - priority value."""
         pass

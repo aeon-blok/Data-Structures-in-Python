@@ -63,6 +63,10 @@ class DllDeque(DequeADT[T], CollectionADT[T], Generic[T]):
     @property
     def rear(self):
         return self._dll.tail.element
+    
+    @property
+    def dll(self) -> DoublyLinkedList:
+        return self._dll
 
     # ----- Meta Collection ADT Operations -----
 
@@ -156,7 +160,7 @@ def main():
     # --- Mixed type error check ---
     try:
         str_deque.add_front(RandomClass("5436543534534"))  # wrong type
-    except TypeError as e:
+    except Exception as e:
         print("Caught type error (mixed type):", e)
 
     # --- Empty deque check ---

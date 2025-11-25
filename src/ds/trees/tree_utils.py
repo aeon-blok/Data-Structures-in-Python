@@ -47,13 +47,13 @@ class TreeNodeUtils:
     def __init__(self, tree_node_obj) -> None:
         self.obj = tree_node_obj
 
-    def validate_node(self, node, node_type: type):
+    def validate_tnode(self, node, node_type: type):
         """ensures the specified child belongs to this node."""
         if node is None:
             raise NodeEmptyError("Error: Node is None.")
         if not isinstance(node, node_type):
             raise DsTypeError("Error: Node is not a valid Node Type.")
-        if node.deleted:
+        if not node.alive:
             raise NodeDeletedError(f"Error: Node has already been deleted.")
         if node not in self.obj.children:  # existence check
             raise NodeOwnershipError(f"Error: Node {node} is not a child of this node.")
@@ -80,9 +80,9 @@ class TreeUtils:
             raise NodeEmptyError("Error: Node is None.")
         elif not isinstance(node, node_type):
             raise DsTypeError("Error: Node is not a valid Node Type.")
-        elif node.deleted:
+        elif not node.alive:
             raise NodeDeletedError("Error: This Node has been deleted and cannot be utilized in tree networks.")
-        if node.tree_owner is not self.obj:
+        elif node.tree_owner is not self.obj:
             raise NodeOwnershipError("Error: Node Belongs to a different Tree...")
 
     def validate_datatype(self, datatype):
@@ -108,13 +108,12 @@ class TreeUtils:
                 tree_nodes.push(i)
         return total_nodes
 
-    def _dfs_depth_first_search(self, target_node, node_type: type):
+    def dfs_depth_first_search(self, target_node, node_type: type):
         """
         Depth First Search: (DFS) -- travels from root to last child 
         First goes (top -> bottom) then (left -> right)
         """
         self.validate_datatype(node_type)
-
         self.validate_tree_node(target_node, node_type)  # validate input
 
         # empty case:
@@ -132,7 +131,7 @@ class TreeUtils:
             for i in reversed(node.children):
                 tree_nodes.push(i)
 
-    def _reverse_dfs_postorder_search(self, target_node, node_type: type):
+    def reverse_dfs_postorder_search(self, target_node, node_type: type):
         """
         generator for postorder traversal 
         goes bottom to top, left to right.
@@ -159,7 +158,7 @@ class TreeUtils:
             node = reverse_stack.pop()
             yield node.element
 
-    def _bfs_breadth_first_search(self, target_node, node_type: type):
+    def bfs_breadth_first_search(self, target_node, node_type: type):
         """
         generator for BFS - Breadth First Search
         goes level by level, left to right.

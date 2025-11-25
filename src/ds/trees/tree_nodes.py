@@ -46,41 +46,29 @@ if TYPE_CHECKING:
 
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
+from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.trees.tree_utils import TreeNodeUtils
+
+from user_defined_types.generic_types import ValidDatatype, TypeSafeElement
 # endregion
 
-
-class TNode(iTNode[T], Generic[T]):
-    """Node for general tree implementaiton"""
-    def __init__(self, datatype: type, element: T, tree_owner: "TreeADT[T]" | iTNode[T] | None = None) -> None:
-
-        self._datatype = datatype
-        self._element: T = element
-        self._parent: Optional[iTNode[T]] = None
-        self._children: List[iTNode[T]] = []
-        self._tree_owner: "TreeADT[T]" | iTNode[T] | None = tree_owner
-        self._deleted: bool = False
-
-        # composed objects
-        self._utils = TreeNodeUtils(self)
-        self._validators = DsValidation()
-        self._desc = TreeNodeRepr(self)
-
-        self._validators.check_input_value_exists(self._element)
-        self._validators.validate_datatype(self._datatype)
-
-    @property
-    def deleted(self) -> bool:
-        return self._deleted
-
-    @deleted.setter
-    def deleted(self, value: bool):
-        self._deleted = value
+class BaseTreeNode(Generic[T]):
+    """Base Tree Node Class to be inherited by other classes."""
+    def __init__(self, datatype: type, element: T, tree_owner) -> None:
+        self._datatype = ValidDatatype(datatype)
+        self._element = TypeSafeElement(element, self.datatype)
+        self._parent = None
+        self._tree_owner = tree_owner
+        self._alive: bool = True
 
     @property
     def alive(self) -> bool:
-        return not self._deleted
-
+        return self._alive
+    
+    @alive.setter
+    def alive(self, value):
+        self._alive = value
+        
     @property
     def tree_owner(self):
         return self._tree_owner
@@ -108,6 +96,19 @@ class TNode(iTNode[T], Generic[T]):
     @parent.setter
     def parent(self, value):
         self._parent = value
+
+
+class TNode(BaseTreeNode[T], iTNode[T], Generic[T]):
+    """Node for general tree implementaiton"""
+    def __init__(self, datatype, element, tree_owner = None) -> None:
+        super().__init__(datatype, element, tree_owner) # base class inheritance
+
+        self._children: List[iTNode[T]] = []
+
+        # composed objects
+        self._utils = TreeNodeUtils(self)
+        self._validators = DsValidation()
+        self._desc = TreeNodeRepr(self)
 
     @property
     def children(self):
@@ -141,13 +142,18 @@ class TNode(iTNode[T], Generic[T]):
         Step 3: traverse child node subtree - and dereference all nodes
         Step 4: return node value
         """
-        self._utils.validate_node(node, iTNode)
+        self._utils.validate_tnode(node, iTNode)
+
+        # store node for return
         deleted_node = node
         deleted_value = node._element
-        node._tree_owner = None
-        node._deleted = True
 
-        subtree = [node]  # reference subtree in a list(stack)
+        # dereference node trackers
+        node._tree_owner = None
+        node._alive = False
+
+        subtree = ArrayStack(iTNode)
+        subtree.push(node)
 
         # removes node from children list.
         self._children.remove(node)
@@ -156,13 +162,13 @@ class TNode(iTNode[T], Generic[T]):
         # By the end of this loop, the entire subtree is disconnected and ready for garbage collection.
         while subtree:
             current_node = subtree.pop()
-            subtree.extend(current_node.children)
+            for i in current_node.children:
+                subtree.push(i)
             # dereference nodes - both children and parent
             current_node.children = []
             current_node._tree_owner = None
-            current_node.parent = None
-            current_node._deleted = True
-
+            current_node._parent = None
+            current_node._alive = False
         return deleted_value
 
     # ----- Accessors -----

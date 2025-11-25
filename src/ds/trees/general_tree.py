@@ -28,7 +28,6 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from user_defined_types.generic_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import GenTreeRepr
 from utils.helpers import RandomClass
@@ -42,12 +41,13 @@ from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 from ds.trees.tree_nodes import TNode
 from ds.trees.tree_utils import TreeUtils
 
-
+from user_defined_types.generic_types import T, K, Index, ValidDatatype, TypeSafeElement, ValidIndex
+from user_defined_types.key_types import iKey, Key
+from user_defined_types.tree_types import Traversal
 # endregion
 
 """
-General Tree Implementation: N-ary Tree.
-using nodes.
+General Tree Implementation: N-ary Tree using nodes.
 """
 
 
@@ -60,26 +60,23 @@ class GeneralTree(TreeADT[T]):
     def __init__(
             self,
             datatype: type, 
-            iteration_type: Literal['pre order', 'post order', 'level order']='pre order',
+            iteration_type: Traversal = Traversal.PREORDER,
             ) -> None:
 
         self._root: Optional[iTNode[T]] = None
         self.iteration_type = iteration_type
-        self._datatype = datatype
+        self._datatype = ValidDatatype(datatype)
 
         # composed objects
         self._utils = TreeUtils(self)
         self._validators = DsValidation()
         self._desc = GenTreeRepr(self)
 
-        self._validators.validate_datatype(self._datatype)
-
     @property
     def datatype(self):
         return self._datatype
 
     # ----- Utilities -----
-
 
     def flattened_view(self):
         # utilizes __iter__ which has 3 different traversal algos
@@ -168,20 +165,21 @@ class GeneralTree(TreeADT[T]):
         # 2. Unlink from parent (remove from children list) BEFORE deleting parent pointers
         parent = node.parent
         node.tree_owner = None
-        node.deleted = True
+        node.alive = False
         if parent is not None:
-            parent.children.remove(node)
-
+            parent.children.remove(node)    # remove from children list.
         # 3. Iteratively dereference Node & subtree using stack
-        subtree = [node]    # note its the actual node input not a variable.
+        subtree = ArrayStack(iTNode)  # note its the actual node input not a variable.
+        subtree.push(node)
         while subtree:
             node = subtree.pop()
-            subtree.extend(node.children)
+            for i in node.children:
+                subtree.push(i)
             node.children = []  # empties list of children
             # dereferences parent node so it no longer points to the node. (becomes a leaf node)
             node.parent = None
             node.tree_owner = None
-            node.deleted = True
+            node.alive = False
         return deleted_node
 
     def replace(self, node, element):
@@ -196,15 +194,15 @@ class GeneralTree(TreeADT[T]):
     # ----- Traversals -----
     def preorder(self):
         """Depth First Search: (DFS)"""
-        return [i for i in self._utils._dfs_depth_first_search(self._root, iTNode)]
+        return [i for i in self._utils.dfs_depth_first_search(self._root, iTNode)]
 
     def postorder(self):
         """Reversed Depth First Search: (RDFS) travels from last child to root - returns a list of values"""
-        return [i for i in self._utils._reverse_dfs_postorder_search(self._root, iTNode)]
+        return [i for i in self._utils.reverse_dfs_postorder_search(self._root, iTNode)]
 
     def level_order(self):
         """Breadth First Search: (BFS) -- traverses the tree horizontally a level at a time."""
-        return [i for i in self._utils._bfs_breadth_first_search(self._root, iTNode)]
+        return [i for i in self._utils.bfs_breadth_first_search(self._root, iTNode)]
 
     # ----- Meta Collection ADT Operations -----
     def is_empty(self):
@@ -216,36 +214,40 @@ class GeneralTree(TreeADT[T]):
 
     def clear(self):
         """The tree is completely emptied and all children nodes are dereferenced."""
-        tree = [self.root]
+        tree = ArrayStack(iTNode)
+        tree.push(self.root)
         while tree:
             node = tree.pop()
-            tree.extend(node.children)  # add children to the processing line.
+            for i in node.children:  # add children to the processing line.
+                tree.push(i)
             # dereference node
             node.children = []
             node.parent = None
-        self.root = None
+        self.root = None    # finally dereference the root node.
 
     def __contains__(self, value):
         """checks to see if any nodes in the tree contain the value."""
         self._validators.enforce_type(value, self._datatype)
         if not self.root:
             return False
-        tree = [self.root]  # change to custom stack later....
+        tree = ArrayStack(iTNode)
+        tree.push(self.root)
         while tree:
             node = tree.pop()
             if node.element == value:
                 return True
-            tree.extend(reversed(node.children))
+            for i in reversed(node.children):
+                tree.push(i)
         return False
 
     def __iter__(self):
         """iterates over the tree via 3 traversal methods, DFS, DFS reversed & BFS"""
-        if self.iteration_type == 'pre order':
-            return self._utils._dfs_depth_first_search(self._root, iTNode)
-        elif self.iteration_type == 'post order':
-            return self._utils._reverse_dfs_postorder_search(self._root, iTNode)
-        elif self.iteration_type == 'level order':
-            return self._utils._bfs_breadth_first_search(self._root, iTNode)
+        if self.iteration_type == Traversal.PREORDER:
+            return self._utils.dfs_depth_first_search(self._root, iTNode)
+        elif self.iteration_type == Traversal.POSTORDER:
+            return self._utils.reverse_dfs_postorder_search(self._root, iTNode)
+        elif self.iteration_type == Traversal.LEVELORDER:
+            return self._utils.bfs_breadth_first_search(self._root, iTNode)
         else:
             raise KeyInvalidError(f"Error: Iteration Type: {self.iteration_type} is Invalid.")
 
@@ -258,7 +260,7 @@ class GeneralTree(TreeADT[T]):
 
 def main():
     # -------------- Testing Tree Functionality -----------------
-    tree = GeneralTree[str](str, iteration_type="pre order")
+    tree = GeneralTree[str](str)
     print(repr(tree))
     # print(f"Testing is_empty: {tree.is_empty()}")
     root = tree.createTree("wales")

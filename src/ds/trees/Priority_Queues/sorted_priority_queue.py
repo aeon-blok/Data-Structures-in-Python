@@ -23,7 +23,6 @@ from collections.abc import Sequence
 
 
 # region custom imports
-from user_defined_types.generic_types import T
 from utils.validation_utils import DsValidation
 from utils.representations import PQueueRepr
 from utils.helpers import RandomClass
@@ -40,21 +39,24 @@ from adts.sequence_adt import SequenceADT
 
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 from ds.trees.Priority_Queues.priority_queue_utils import PriorityQueueUtils
+from ds.trees.Priority_Queues.priority_entry import PriorityEntry
+from user_defined_types.generic_types import T, K, ValidDatatype, TypeSafeElement
+from user_defined_types.key_types import Key, iKey
 
 # endregion
 
 
-class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
+class SortedPriorityQueue(MaxPriorityQueueADT[T, K], CollectionADT[T], Generic[T, K]):
     """
     Sorted Priority Queue:
     Array Based
     Sorted by Max Priority value.
     """
     def __init__(self, datatype: type, capacity: int) -> None:
-        self._datatype = datatype
+        self._datatype = ValidDatatype(datatype)
         self._capacity = min(4, capacity)
-        self._key = lambda x: x[1]  # for tuples - compares priority element
-        self._data = VectorArray(self._capacity, tuple)
+        self._pqueue_keytype: None | type = None
+        self._data = VectorArray(self._capacity, PriorityEntry)
 
         # composed objects
         self._utils = PriorityQueueUtils(self)
@@ -62,46 +64,50 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
         self._desc = PQueueRepr(self)
 
     @property
-    def datatype(self):
+    def data(self) -> VectorArray[PriorityEntry]:
+        return self._data
+
+    @property
+    def datatype(self) -> type:
         return self._datatype
 
     @property
-    def key(self):
-        return self._key
+    def keytype(self) -> Optional[type]:
+        return self._pqueue_keytype
 
     @property
-    def size(self):
+    def pqueue_size(self) -> int:
         return self._data.size
 
     @property
-    def capacity(self):
+    def capacity(self) -> int:
         return self._data.capacity
 
     @property
-    def priority(self):
+    def priority(self) -> T:
         return self.find_max() 
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self) -> int:
-        return self.size
+        return self.pqueue_size
 
     def __contains__(self, value: T) -> bool:
-        for i in range(self.size):
-            element, priority = self._data.array[i]
+        for i in range(self.pqueue_size):
+            priority, element = self._data.array[i]
             if element == value:
                 return True
         return False
 
     def clear(self) -> None:
         self._data.clear()
-        self._data = VectorArray(self._capacity, tuple)
+        self._data = VectorArray(self._capacity, PriorityEntry)
 
     def is_empty(self) -> bool:
         return self._data.is_empty()
 
     def __iter__(self):
-        for i in range(self.size):
-            element, priority = self._data.array[i]
+        for i in range(self.pqueue_size):
+            priority, element = self._data.array[i]
             yield element
 
     # ------------ Utilities ------------
@@ -116,31 +122,39 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
     def find_max(self) -> T:
         """retrieve but dont remove the priority element of the priority queue"""
         self._utils.check_empty_pq()
-        element, priority = self._data.array[0]
+        priority, element = self._data.array[0]
         return element
 
     # ----- Mutator ADT Operations -----
-    def insert(self, element: T, priority: int) -> None:
+    def insert(self, element, priority) -> None:
         """insert a key value pair into the priority queue."""
-        self._validators.enforce_type(element, self._datatype)
-        self._validators.enforce_type(priority, int)
         self._utils.check_element_already_exists(element)
-        new_element = (element, priority)
+        element = TypeSafeElement(element, self.datatype)
+        priority = Key(priority)
+        self._utils.check_key_is_same_type(priority)
+        kv_pair = PriorityEntry(priority, element)
         # empty case
         if self.is_empty():
-            self._data.append(new_element)
+            self._data.append(kv_pair)
             return
-        self._utils.add_kv_pair_to_max_sorted_list(element, priority)
-       
+        # traverse through items.
+        for i in range(self.pqueue_size):
+            current_priority, current_element = self._data.array[i]
+            if priority > current_priority:
+                self._data.insert(i, kv_pair)
+                return
+        # lowest priority case: -- if priority is the lowest - add to the end of the array
+        self._data.append(kv_pair)
+
     def extract_max(self) -> T:
         """retrieve and remove the priority element"""
         # always element 0? since its a sorted list
         self._utils.check_empty_pq()
-        element, priority = self._data.array[0]
+        priority, element = self._data.array[0]
         self._data.delete(0)
         return element
 
-    def increase_key(self, element: T, priority: int) -> None:
+    def increase_key(self, element, priority) -> None:
         """
         increase the priority level for a user specified element
         In a sorted array, you must: 
@@ -149,26 +163,36 @@ class SortedPriorityQueue(MaxPriorityQueueADT[T], CollectionADT[T], Generic[T]):
         """
         # empty case:
         self._utils.check_empty_pq()
-        self._validators.enforce_type(element, self._datatype)
-        self._validators.enforce_type(priority, int)
+        element = TypeSafeElement(element, self.datatype)
+        priority = Key(priority)
+        self._utils.check_key_is_same_type(priority)
+        kv_pair = PriorityEntry(priority, element)
 
-        found_match = False
-
-        # main case:
-        # traverse - remove match if found
-        for i in range(self.size):
-            stored_element, stored_priority = self._data.array[i]
+        found_match = False # checks if a match is found in loop (used for exception logic also)
+        # main case: traverse - remove match if found
+        for i in range(self.pqueue_size):
+            stored_priority, stored_element = self._data.array[i]
             if element == stored_element:
                 self._utils.check_new_max_priority(priority, stored_priority)
                 self._data.delete(i)    # remove element
                 found_match = True
                 break
-
         if not found_match:
             raise KeyInvalidError("Error: Element not found in priority queue.")
-        
+
         # reinsert match at the correct position
-        self._utils.add_kv_pair_to_max_sorted_list(element, priority)
+        # empty case
+        if self.is_empty():
+            self._data.append(kv_pair)
+            return
+        # traverse through items.
+        for i in range(self.pqueue_size):
+            current_priority, current_element = self._data.array[i]
+            if priority > current_priority:
+                self._data.insert(i, kv_pair)
+                return
+        # lowest priority case: -- if priority is the lowest - add to the end of the array
+        self._data.append(kv_pair)
 
 
 # Main ---- Client Facing Code -----
@@ -203,10 +227,14 @@ def main():
     print(pq)
     print(pq.find_max())
     print(pq.priority)
+    print(f"extracted: {pq.extract_max()}")
+    print(repr(pq))
+
+    print(pq)
+    print(repr(pq))
     print(pq.extract_max())
     print(pq)
-    print(pq.extract_max())
-    print(pq)
+    print(repr(pq))
 
     print(pq.is_empty())
     print(len(pq))
@@ -214,6 +242,8 @@ def main():
     print("studying" in pq)
     print("thinking" in pq)
     print(pq)
+    print(repr(pq))
+
     try:
         pq.insert(RandomClass("whyyyrtgr"), 22)
     except Exception as e:
@@ -226,6 +256,8 @@ def main():
 
     pq.increase_key("typing", 25)
     print(pq)
+    print(repr(pq))
+
 
     print(pq.priority)
     pq.clear()

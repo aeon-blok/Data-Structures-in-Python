@@ -56,12 +56,20 @@ class PositionalList(PositionalListADT[T], CollectionADT):
     @property
     def datatype(self):
         return self._datatype
+    
     @property
     def total_nodes(self):
         return self._total_nodes
+    
+    @property
+    def head(self):
+        return self.first()
+    
+    @property
+    def tail(self):
+        return self.last()
 
     # ----- Utilities -----
-
     def __getitem__(self, key: Optional[iPosition[T]]) -> T:
         # if the key is a node - just return the element. (o(1))
         if isinstance(key, iPosition):
@@ -297,6 +305,7 @@ def main():
     print(f"List length: {len(plist)}")
     print(f"Is '10' in PositionalList? {'10' in plist}")
     print(f"Is '200' in PositionalList? {'200' in plist}")
+    print(repr(plist))
 
     print("\n--- Testing Error Cases ---")
     plist_b = PositionalList(str)
@@ -343,6 +352,7 @@ def main():
     plist.clear()
     print(plist)
     print(f"Is empty after clear? {plist.is_empty()}")
+    print(repr(plist))
 
 if __name__ == "__main__":
     main()

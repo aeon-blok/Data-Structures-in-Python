@@ -48,11 +48,18 @@ class PriorityQueueUtils:
         if element in self.obj:
             raise DsDuplicationError("Error: Element already exists. Use 'Decrease Key()' to modify priority level.")
 
-    def check_new_min_priority(self, new_priority: int, stored_priority: int):
+    def check_key_is_same_type(self, key):
+        """Checks the input key type with the stored hash table key type."""
+        if self.obj._pqueue_keytype is None:
+            self.obj._pqueue_keytype = key.datatype
+        elif key.datatype != self.obj._pqueue_keytype:
+            raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj._pqueue_keytype.__name__}, Got: {key.datatype.__name__}")
+
+    def check_new_min_priority(self, new_priority, stored_priority):
         if new_priority > stored_priority:
             raise PriorityInvalidError("Error: Priority input must be lower than currently stored priority value.")
 
-    def check_new_max_priority(self, new_priority: int, stored_priority: int):
+    def check_new_max_priority(self, new_priority, stored_priority):
         if new_priority < stored_priority:
             raise PriorityInvalidError("Error: Priority input must be higher than currently stored priority value.")
 
@@ -60,9 +67,9 @@ class PriorityQueueUtils:
         """Linear Scan: compare to all other elements in the array."""
         candidate = input_array.array[0]
         priority_index = 0
-        for i in range(self.obj.size):
+        for i in range(self.obj.pqueue_size):
             kv_pair = self.obj._data.array[i]
-            if self.obj._key(kv_pair) < self.obj._key(candidate):
+            if kv_pair < candidate:
                 candidate = kv_pair
                 priority_index = i
         return priority_index
@@ -71,34 +78,22 @@ class PriorityQueueUtils:
         """Linear Scan: compare to all other elements in the array."""
         candidate = input_array.array[0]
         priority_index = 0
-        for i in range(self.obj.size):
+        for i in range(self.obj.pqueue_size):
             kv_pair = self.obj._data.array[i]
-            if self.obj._key(kv_pair) > self.obj._key(candidate):
+            if kv_pair > candidate:
                 candidate = kv_pair
                 priority_index = i
         return priority_index
 
-    def add_kv_pair_to_max_sorted_list(self, element, priority):
-        """Automatically adds the item to the correct spot in the list."""
-        kv_pair = (element, priority)
-        found = False
-        # traverse through items.
-        for i in range(self.obj.size):
-            current_element, current_priority = self.obj._data.array[i]
-            if priority > current_priority:
-                self.obj._data.insert(i, kv_pair)
-                return
-        # lowest priority case: -- if priority is the lowest - add to the end of the array
-        self.obj._data.append(kv_pair)
-
+    # ----- Binary Heap Utility Methods-----
     def compare_heap_nodes(self, child, parent) -> bool:
         """compares child and parent nodes - returns true or false
         - choose betwee min and max heap. can choose custom key if so desired
         """
-        if self.obj.min_heap:
-            return self.obj.key(child) < self.obj.key(parent)
+        if self.obj.heap_type:  # boolean for min or max heap
+            return child < parent
         else:
-            return self.obj.key(child) > self.obj.key(parent)
+            return child > parent
 
     def bubble_up_heap(self, index: int):
         """
@@ -107,20 +102,20 @@ class PriorityQueueUtils:
         repeats process until heap-order is restored
         O(log n) - due to complete tree property.
         """
-        # Step 1: compute parent index
+        # Step 1: compute parent index (-1 inverts heap child formula.)
         parent_index = (index - 1) // 2  
         # Step 2: loop through tree structure.
         while index > 0:
             # Step 3: define child and parent nodes
-            child = self.obj._heap.array[index]
-            parent = self.obj._heap.array[parent_index]
+            child = self.obj.data.array[index]
+            parent = self.obj.data.array[parent_index]
 
             # Step 4: Exit Condition: heap order is satisified
             if self.compare_heap_nodes(child, parent) == False:
                 break
 
             # Step 5: (if heap order still violated) swap node positions.
-            self.obj._heap.array[index], self.obj._heap.array[parent_index] = parent, child
+            self.obj.data.array[index], self.obj.data.array[parent_index] = parent, child
 
             # Step 6: move up to next node
             index = parent_index    # move to parent index position.
@@ -130,20 +125,19 @@ class PriorityQueueUtils:
         """
         Compares a parent node to its children and swaps if the heap order is violated.
         """
-        while index < self.obj.size:
+        while index < self.obj.pqueue_size:
             left_child_index = 2 * index + 1
             right_child_index = 2 * index + 2
             parent_index = index
             # If left child violates heap-order, set selected = left.
-            if left_child_index < self.obj.size and self.compare_heap_nodes(self.obj._heap.array[left_child_index], self.obj._heap.array[parent_index]):
+            if left_child_index < self.obj.pqueue_size and self.compare_heap_nodes(self.obj.data.array[left_child_index], self.obj.data.array[parent_index]):
                 parent_index = left_child_index
             # If right child violates heap-order more, set selected = right.
-            if right_child_index < self.obj.size and self.compare_heap_nodes(self.obj._heap.array[right_child_index], self.obj._heap.array[parent_index]):
+            if right_child_index < self.obj.pqueue_size and self.compare_heap_nodes(self.obj.data.array[right_child_index], self.obj.data.array[parent_index]):
                 parent_index = right_child_index
             # exit condition: heap order satisfied
             if parent_index == index:
                 break
-            # After comparing, if selected != index,
-            # swap nodes - and move down tree.
-            self.obj._heap.array[index], self.obj._heap.array[parent_index] = self.obj._heap.array[parent_index], self.obj._heap.array[index]
+            # After comparing, if selected != index, swap nodes - and move down tree.
+            self.obj.data.array[index], self.obj.data.array[parent_index] = self.obj.data.array[parent_index], self.obj.data.array[index]
             index = parent_index

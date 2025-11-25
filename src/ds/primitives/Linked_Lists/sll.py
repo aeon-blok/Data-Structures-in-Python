@@ -351,6 +351,7 @@ def main():
     print(f"\nInsert Node at Head")
     node_a = sll.insert_head("Begninnings")
     print(sll)
+    print(f"Printing Node Reference: {node_a}")
 
     print(f"\nInsert Node at Tail")
     node_b = sll.insert_tail("Endings")

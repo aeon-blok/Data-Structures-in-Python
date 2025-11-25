@@ -56,9 +56,16 @@ class DsValidation:
             raise DsInputValueError("Error: Must have an Input Value")
 
     def validate_key(self, key):
-            """ensures the the input key, is a valid key."""
-            if not isinstance(key, iKey):
-                raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
-            elif key is None:
-                raise KeyInvalidError("Error: Key cannot be None Value")
-            return key
+        """ensures the the input key, is a valid key."""
+        if not isinstance(key, iKey):
+            raise KeyInvalidError("Error: Input Key is not valid. All keys must be hashable, immutable & comparable (<, >, ==, !=)")
+        elif key is None:
+            raise KeyInvalidError("Error: Key cannot be None Value")
+        return key
+
+
+
+
+
+
+

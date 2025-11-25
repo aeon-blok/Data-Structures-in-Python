@@ -40,7 +40,12 @@ class iKey(ABC):
     @abstractmethod
     def __lt__(self, other: "iKey") -> bool: ...
     @abstractmethod
+    def __le__(self, other: "iKey") -> bool: ...
+    @abstractmethod
     def __gt__(self, other: "iKey") -> bool: ...
+    @abstractmethod
+    def __ge__(self, other: "iKey") -> bool: ...
+
     @abstractmethod
     def __eq__(self, other: object) -> bool:
         """If two objects compare equal (__eq__), their hashes must also be equal."""
@@ -103,10 +108,20 @@ class Key(iKey):
         other = self._assert_same_key_type(other)
         return self._value < other.value
     
+    def __le__ (self, other) -> bool:
+        other = self._assert_key_type(other)
+        other = self._assert_same_key_type(other)
+        return self._value <= other.value
+    
     def __gt__(self, other) -> bool:
         other = self._assert_key_type(other)
         other = self._assert_same_key_type(other)
         return self._value > other.value
+    
+    def __ge__(self, other) -> bool:
+        other = self._assert_key_type(other)
+        other = self._assert_same_key_type(other)
+        return self._value >= other.value
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, iKey):

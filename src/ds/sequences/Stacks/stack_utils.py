@@ -51,13 +51,13 @@ class StackUtils:
             raise DsUnderflowError(f"Error: The Stack is empty.")
         if self.obj.is_empty():
             raise DsUnderflowError(f"Error: The Stack is empty.")
-        
+
     # region Min Max Avg
     def min_max_standard_comparison_lib(self):
         """Default Comparisons for major datatypes - required for the Min Max Stack. Also takes a custom key - a function for comparing the stack items."""
-        if issubclass(self.obj.datatype, (int, float)):
+        if issubclass(self.obj.datatype, (int, float, str, tuple)):
             return lambda x: x  # value is compared by numerical size.
-        elif issubclass(self.obj.datatype, (list, dict, set, str, tuple)):
+        elif issubclass(self.obj.datatype, (list, dict, set)):
             # Strings & tuples are iterable, but often you want lexicographical comparison (default) instead of length.
             return lambda x: len(x) # compare by number of elements
         elif issubclass(self.obj.datatype, complex):

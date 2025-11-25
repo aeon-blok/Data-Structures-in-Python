@@ -26,7 +26,7 @@ from collections.abc import Sequence
 from utils.constants import CTYPES_DATATYPES, NUMPY_DATATYPES, SHRINK_CAPACITY_RATIO
 from user_defined_types.generic_types import T
 from utils.validation_utils import DsValidation
-from utils.representations import ArrayStackRepr
+from utils.representations import MinMaxStackRepr
 from utils.exceptions import *
 from utils.helpers import RandomClass
 
@@ -47,7 +47,7 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
     def __init__(self, datatype: type, key: Optional[Callable[[T],T]] = None, capacity: int = 10) -> None:
         self._datatype = datatype
         self._capacity = capacity
-        self._stack = VectorArray(self._capacity, self._datatype)
+        self._data = VectorArray(self._capacity, self._datatype)
         self._min_stack = VectorArray(self._capacity, self._datatype)
         self._max_stack = VectorArray(self._capacity, self._datatype)
         self._totals_stack = VectorArray(self._capacity, object)
@@ -55,10 +55,13 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
         self._key_type: Optional[type] = None
         self._top: int = -1  # starts at -1 -- not a valid index.
         # Composed Objects
-        self._utils = StackUtils(self)
-        self._validators = DsValidation()
-        self._desc = ArrayStackRepr(self)
+        self._utils: StackUtils = StackUtils(self)
+        self._validators: DsValidation = DsValidation()
+        self._desc: MinMaxStackRepr = MinMaxStackRepr(self)
 
+    @property
+    def data(self)-> VectorArray:
+        return self._data
     @property
     def top(self):
         return self._top
@@ -86,7 +89,7 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
         return self._desc.str_min_max_avg_stack()
 
     def __repr__(self) -> str:
-        return self._desc.repr_array_stack()
+        return self._desc.repr_min_max_avg_stack()
 
     # ----- Meta Collection ADT Operations -----
     def __len__(self) -> int:
@@ -94,7 +97,7 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
 
     def __contains__(self, value: T) -> bool:
         for i in range(self.size):
-            if self._stack.array[i] == value:
+            if self._data.array[i] == value:
                 return True
         return False
 
@@ -102,18 +105,18 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
         return self.size == 0
 
     def clear(self) -> None:
-        self._stack = VectorArray(self._capacity, self._datatype)
+        self._data = VectorArray(self._capacity, self._datatype)
         self._min_stack = VectorArray(self._capacity, self._datatype)
         self._max_stack = VectorArray(self._capacity, self._datatype)
         self._top = -1
 
     def __iter__(self) -> Generator[T, None, None]:
         for i in range(self.size):
-            yield self._stack.array[i]
+            yield self._data.array[i]
 
     def __reversed__(self):
         for i in range(self.size - 1, -1, -1):
-            yield self._stack.array[i]
+            yield self._data.array[i]
 
     # ----- Canonical ADT Operations -----
     def push(self, element: T) -> None:
@@ -134,7 +137,7 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
         # ensures that the totals stack only contains numeric representations (needed for average math function...)
         avg_element = self._utils.validate_average_value(key_function, element)
 
-        self._stack.append(element)
+        self._data.append(element)
 
         # Empty Stack Case: if there are no elements - add the current element to the min max stacks - its the new min & max!
         if self._min_stack.is_empty():
@@ -173,10 +176,10 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
     def pop(self) -> T:
         """remove and return an element from the top"""
         self._utils.check_array_stack_underflow_error()
-        old_value = self._stack.array[self._top]
+        old_value = self._data.array[self._top]
         self._top -= 1
         if self._datatype in (object, ctypes.py_object):
-            self._stack.array[self._top + 1] = None
+            self._data.array[self._top + 1] = None
             self._min_stack.array[self._top + 1] = None
             self._max_stack.array[self._top + 1] = None
         return old_value
@@ -184,20 +187,23 @@ class MinMaxAvgStack(StackADT[T], CollectionADT[T], Generic[T]):
     def peek(self) -> T:
         """return but dont remove an element from the top"""
         self._utils.check_array_stack_underflow_error()
-        return self._stack.array[self._top]
+        return self._data.array[self._top]
 
 
 # main ---- client facing code ----
 def main():
     print("Integer Stack:")
     stack = MinMaxAvgStack(int)
+    print(repr(stack))
     for x in [3, 1, 4, 2]:
         stack.push(x)
         print(stack)
+        print(repr(stack))
 
     while not stack.is_empty():
         stack.pop()
         print(stack)
+        print(repr(stack))
 
     print("\nList Stack:")
     list_stack = MinMaxAvgStack(list)
@@ -205,12 +211,14 @@ def main():
     list_stack.push([4, 5])
     list_stack.push([6, 7, 8, 9])
     print(list_stack)
+    print(repr(list_stack))
 
     print("\nTuple Stack (lexicographic comparison):")
     tuple_stack = MinMaxAvgStack(tuple)
     for t in [(1, 2), (0, 5), (2, 1)]:
         tuple_stack.push(t)
     print(tuple_stack)
+    print(repr(tuple_stack))
 
     # ----- Custom Class Stack -----
     class MyObj:
@@ -224,8 +232,9 @@ def main():
     for o in [MyObj(10), MyObj(3), MyObj(7)]:
         obj_stack.push(o)
     print(obj_stack)
+    print(repr(obj_stack))
 
-    print("\nMulti Stack - Comparing iterables by number of elements")
+    print("\nMulti Stack - Comparing iterables of different TYPES... by number of elements. Uses custom key")
     key = lambda x: len(x)
     multi_stack = MinMaxAvgStack[Any](object, key=key)  # generic object stack
     multi_stack.push([1, 2, 3, 25, 50, 100])
@@ -234,6 +243,7 @@ def main():
     multi_stack.push({1,90})
 
     print(multi_stack)
+    print(repr(multi_stack))
 
     # Mixed classes
     print("\nMixed Classes Stack: Comparing different classes and different attrributes")
@@ -263,9 +273,10 @@ def main():
     multi_class_stack.push(RawMaterial(37))
     multi_class_stack.push(RawMaterial(98))
     print(multi_class_stack)
+    print(repr(multi_class_stack))
 
     # ----- Underflow Test -----
-    print("\nUnderflow Test:")
+    print("\nUnderflow Test: -- On an empty stack.")
     empty_stack = MinMaxAvgStack(int)
     try:
         empty_stack.pop()
@@ -282,6 +293,7 @@ def main():
     stack.push("Obelisk")
     stack.push("Scifi")
     print(stack)  # Shows all elements
+    print(repr(stack))
 
 
 if __name__ == "__main__":
