@@ -392,10 +392,18 @@ class TreeUtils:
             elif key is None:
                 raise KeyInvalidError("Error: Key cannot be None Value")
 
+    def check_key_is_same_type(self, key):
+        """Checks the input key type with the stored hash table key type."""
+        if self.obj._tree_keytype is None:
+            self.obj._tree_keytype = key.datatype
+        elif key.datatype != self.obj._tree_keytype:
+            raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj._pqueue_keytype.__name__}, Got: {key.datatype.__name__}")
+
+
     def bst_descent(self, node, node_type, key):
         """
         descent algorithm - traverses the bst
-        node - key matches? return match
+        node key & key matches? return match
         key < node key? traverse left (left keys are smaller than the parent.)
         key > node key? traverse right (right keys are lareger than the parent.)
         in both these cases traversal will continue until no more nodes are found (return None)
@@ -435,5 +443,115 @@ class TreeUtils:
             else: 
                 current_node = self.obj.right(current_node)
         return last_node, match_exists
+
+    # endregion
+
+
+    # region AVL Trees
+
+    def avl_rotate_left(self, grandparent):
+        """perform the trinode restructuring, then update the heights for the nodes."""
+        parent = grandparent.right
+        child_subtree = parent.left
+
+        # perform rotation
+        parent.left = grandparent
+        grandparent.right = child_subtree
+
+        # update parent links
+        parent.parent = grandparent.parent
+        if grandparent.parent:
+            if grandparent.parent.left == grandparent:
+                grandparent.parent.left = parent
+            else:
+                grandparent.parent.right = parent
+        grandparent.parent = parent
+        # link child subtree to grandparent
+        if child_subtree:
+            child_subtree.parent = grandparent
+        # update root
+        if self.obj.root == grandparent:
+            self.obj.root = parent
+
+        # update heights
+        grandparent.update_height()
+        parent.update_height()
+
+        return grandparent
+
+    def avl_rotate_right(self, grandparent):
+        """
+        x and y: the two main nodes involved in the rotation.
+        y = the node that is unbalanced (grandparent)
+        x = the child that will become the new root of the rotated subtree (parent)
+        T1, T2, T3: subtrees that must be preserved. (children)
+        They stay in the same relative order, so the BST property is maintained.
+        """
+        parent = grandparent.left
+        child_subtree = parent.right
+
+        # rotate
+        parent.right = grandparent
+        grandparent.left = child_subtree
+
+        # relink
+        parent.parent = grandparent.parent
+        if grandparent.parent:
+            if grandparent.parent.left == grandparent:
+                grandparent.parent.left = parent
+            else:
+                grandparent.parent.right = parent
+        grandparent.parent = parent
+
+        # relink to grandparent
+        if child_subtree:
+            child_subtree.parent = grandparent
+
+        # root case:
+        if self.obj.root == grandparent:
+            self.obj.root = parent
+
+        # update heights
+        grandparent.update_height()
+        parent.update_height()
+        
+        return parent
+    
+    def rebalance_avl_tree(self, node):
+        """
+        Rebalances the AVL tree based on the Balance Factor of the current node.
+        4 types of rotations
+        what we’re doing in AVL rotations is essentially trinode restructuring.
+        in Python, if a function reaches the end without a return, it returns None.
+        """
+        balance = node.balance_factor
+        # rotation types:
+
+        # LEFT HEAVY
+        if balance > 1:
+            # LL
+            if node.left.balance_factor >= 0: 
+                return self.avl_rotate_right(node)  
+            # LR
+            else: 
+                node.left = self.avl_rotate_left(node.left)
+                return self.avl_rotate_right(node)
+                
+        # RIGHT HEAVY
+        if balance < -1:
+            # RR
+            if node.right.balance_factor <=0: 
+                return self.avl_rotate_left(node)
+            # RL
+            else:
+                node.right = self.avl_rotate_right(node.right)
+                return self.avl_rotate_left(node)
+        # just return the node if everything fine.
+        return node
+
+
+
+
+
 
     # endregion

@@ -1,4 +1,5 @@
 # region standard imports
+from __future__ import annotations
 from typing import (
     Generic,
     TypeVar,
@@ -104,7 +105,7 @@ class BinarySearchTreeADT(ABC, Generic[T, K]):
 
     # ----- Mutators -----
     @abstractmethod
-    def insert(self, key: K, value: T) -> Optional["iBSTNode[T, K]"]:
+    def insert(self, key: K, value: T) -> "iBSTNode[T, K]":
         """
         Inserts a new node into the the Binary Search Tree. 
         The tree automatically determines the correct spot based on key comparisons.

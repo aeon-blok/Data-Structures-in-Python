@@ -29,7 +29,7 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from user_defined_types.generic_types import T
+from user_defined_types.generic_types import T, K, ValidDatatype, TypeSafeElement
 from utils.validation_utils import DsValidation
 from utils.representations import BinaryTreeRepr
 from utils.helpers import RandomClass
@@ -50,21 +50,19 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
     Basic Binary Tree: using linked nodes for the backbone.
     """
     def __init__(self, datatype:type) -> None:
-        self._datatype = datatype
+        self._datatype = ValidDatatype(datatype)
         self._root = None
 
         # composed objects
         self._utils = TreeUtils(self)
         self._validators = DsValidation()
         self._desc = BinaryTreeRepr(self)
-        self._validators.validate_datatype(self._datatype)
 
     @property
     def datatype(self):
         return self._datatype
     
     
-
     # ----- Meta Collection ADT Operations -----
     def is_empty(self) -> bool:
         return self._root is None
@@ -85,7 +83,7 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
             if current_node.left is not None:
                 tree_nodes.push(current_node.left)
         return False
-         
+
     def __len__(self) -> int:
         """counts the number of tree nodes"""
         return self._utils.binary_count_total_tree_nodes(iBNode)
@@ -242,7 +240,7 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
         
         # Step 2: now disconnect the node from the parent.
         node.parent = None
-        node.deleted = True
+        node.alive = False
         node.tree_owner = None
     
         # Step 3: traverse node subtree - delete every element.
@@ -266,7 +264,7 @@ class BinaryTree(BinaryTreeADT[T], CollectionADT[T], Generic[T]):
             i.left = None
             i.right = None
             i.parent = None
-            i.deleted = True
+            i.alive = False
             i.tree_owner = None
             
 
@@ -294,14 +292,16 @@ def main():
     print(repr(bt))
     print(bt)
     print(f"Is the binary tree empty?: {bt.is_empty()}")
-    print(f"is a random value in the tree?: {'2543' in bt}")
+    print(f"\nis a random value in the empty tree?: {'2543' in bt}")
 
     try:
+        print(f"\nTesting deleting from empty tree")
         bt.delete(bt.root)
     except Exception as e:
         print(e)
 
     try:
+        print(f"Testing Clear() from an Empty Tree")
         bt.clear()
     except Exception as e:
         print(e)
@@ -319,12 +319,16 @@ def main():
     level_4a = bt.add_left("new onager", level_3a)
     level_4b = bt.add_right("lorse", level_3a)
     print(bt)
+    print(repr(bt))
 
     print(f"\nTesting Deletion of items for binary tree")
     delete_random = bt.delete(level_3a)
     print(delete_random)
     print(bt)
+    print(repr(bt))
+
     try:
+        print(f"\nTesting referencing and printing an already deleted item.")
         test_deleted = bt.delete(level_4a)
         print(test_deleted)
     except Exception as e:
@@ -332,7 +336,7 @@ def main():
 
     print(f"\nTesting replace functionality")
     old_element = bt.replace("Elephant", level_2d)
-    print(old_element)
+    print(f"Old element: {old_element} changed to New Element: {level_2d}")
     print(bt)
     print(repr(bt))
 
@@ -348,19 +352,19 @@ def main():
     except Exception as e:
         print(e)
 
-    print(f"Testing DFS preorder traversal")
+    print(f"\nTesting DFS preorder traversal")
     preorder = [i for i in bt.preorder()]
     print(preorder)
 
-    print(f"Testing Postorder Traversal")
+    print(f"\nTesting Postorder Traversal")
     postorder = [i for i in bt.postorder()]
     print(postorder)
 
-    print(f"Testing BFS levelorder traversal")
+    print(f"\nTesting BFS levelorder traversal")
     levelorder = [i for i in bt.levelorder()]
     print(levelorder)
 
-    print(f"testing inorder")
+    print(f"\ntesting inorder")
     inorder = [i for i in bt.inorder()]
     print(inorder)
     parent_hinny = bt.parent(level_3b)

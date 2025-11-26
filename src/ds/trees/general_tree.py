@@ -60,11 +60,11 @@ class GeneralTree(TreeADT[T]):
     def __init__(
             self,
             datatype: type, 
-            iteration_type: Traversal = Traversal.PREORDER,
+            traversal_method: Traversal = Traversal.PREORDER,
             ) -> None:
 
         self._root: Optional[iTNode[T]] = None
-        self.iteration_type = iteration_type
+        self.traversal = traversal_method
         self._datatype = ValidDatatype(datatype)
 
         # composed objects
@@ -223,7 +223,7 @@ class GeneralTree(TreeADT[T]):
             # dereference node
             node.children = []
             node.parent = None
-        self.root = None    # finally dereference the root node.
+        self._root = None    # finally dereference the root node.
 
     def __contains__(self, value):
         """checks to see if any nodes in the tree contain the value."""
@@ -242,21 +242,21 @@ class GeneralTree(TreeADT[T]):
 
     def __iter__(self):
         """iterates over the tree via 3 traversal methods, DFS, DFS reversed & BFS"""
-        if self.iteration_type == Traversal.PREORDER:
+        if self.traversal == Traversal.PREORDER:
             return self._utils.dfs_depth_first_search(self._root, iTNode)
-        elif self.iteration_type == Traversal.POSTORDER:
+        elif self.traversal == Traversal.POSTORDER:
             return self._utils.reverse_dfs_postorder_search(self._root, iTNode)
-        elif self.iteration_type == Traversal.LEVELORDER:
+        elif self.traversal == Traversal.LEVELORDER:
             return self._utils.bfs_breadth_first_search(self._root, iTNode)
         else:
-            raise KeyInvalidError(f"Error: Iteration Type: {self.iteration_type} is Invalid.")
+            raise KeyInvalidError(f"Error: Iteration Type: {self.traversal} is Invalid.")
 
 
 # Main ---- Client Facing Code
 
 
 # todo create a size counter for tree. will mean O(1) for __len__ instead of O(N) - however delete will be O(H)
-# todo test adding deleted nodes to the tree - should be error
+# todo convert iter and traversal to return nodes not elements.
 
 def main():
     # -------------- Testing Tree Functionality -----------------
@@ -273,6 +273,7 @@ def main():
     # print(f"^ children: {child_b.children}")
 
     print(tree)
+    print(repr(tree))
 
     child_c = tree.addChild(child_a, "a child of spring")
     child_d = tree.addChild(root, "a child of autumn")
@@ -290,6 +291,7 @@ def main():
     child_de = tree.addChild(child_dd, "fall wind")
     child_c = tree.addChild(child_a, "a child of spring")
     print(tree)
+    print(repr(tree))
 
     # height
     print(f"Max Edges to the furthest Leaf Node: (Height) From:[{child_a.element}] {tree.height(child_a)}")
@@ -313,12 +315,12 @@ def main():
     print(f"\nReverse DFS Search: (Always goes bottom -> top, then left -> right)\n{tree.postorder()}")
     print(f"\nBFS Search: (go by levels - left to right, then down to the next level)\n{tree.level_order()}")
 
-   
     print(f"\n{tree.flattened_view()}")
     print(f"Testing __Contains__: {'fall colors' in tree}")
     print(f"Testing __Contains__: {'432432' in tree}")
 
     print(tree.bfs_view())
+    print(repr(tree))
 
 
 if __name__ == "__main__":

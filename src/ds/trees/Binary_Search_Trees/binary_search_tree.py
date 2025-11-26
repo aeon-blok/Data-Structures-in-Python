@@ -29,7 +29,8 @@ from pprint import pprint
 # endregion
 
 # region custom imports
-from user_defined_types.generic_types import T, K
+from user_defined_types.generic_types import T, K, ValidDatatype, TypeSafeElement, Index, ValidIndex
+from user_defined_types.key_types import iKey, Key
 from utils.validation_utils import DsValidation
 from utils.representations import BSTRepr
 from utils.helpers import RandomClass
@@ -57,6 +58,7 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
     def __init__(self, datatype) -> None:
         self._root = None
         self._datatype = datatype
+        self._tree_keytype: None | type = None
 
         # composed objects
         self._utils = TreeUtils(self)
@@ -64,12 +66,12 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
         self._desc = BSTRepr(self)
 
     @property
-    def datatype(self):
-        return self._datatype
+    def keytype(self):
+        return self._tree_keytype
 
     @property
-    def sibling(self):
-        pass
+    def datatype(self):
+        return self._datatype
 
     @property
     def root(self):
@@ -90,7 +92,6 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
         return self._utils.binary_count_total_tree_nodes(iBSTNode)
 
     def __contains__(self, key) -> bool:
-        self._utils.validate_binary_search_key(key)
         return self.search(key) is not None
 
     def __iter__(self):
@@ -104,10 +105,10 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
     def __repr__(self) -> str:
         return self._desc.repr_bst()
 
-    def __getitem__(self, key: K):
+    def __getitem__(self, key):
         pass
 
-    def __setitem__(self, key: K, value: T):
+    def __setitem__(self, key, value):
         pass
 
     def __delitem__(self, node: iBSTNode[T, K]):
@@ -192,33 +193,36 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
             parent_node = parent_node.parent
         return parent_node  # can be none.
 
-    def search(self, key: K):
+    def search(self, key):
         """searches for a node that matches a key. -- returns None if key not found -- O(H)"""
         self._utils.check_empty_binary_tree()
-        self._utils.validate_binary_search_key(key)
+        key = Key(key)
+        self._utils.check_key_is_same_type(key)
         # returns none if key not found
         return self._utils.bst_descent(self._root, iBSTNode, key)
 
     def search_by_key(self, key):
+        # todo add this functionality
         pass
 
     # ----- Mutators -----
-    def insert(self, key, value):
+    def insert(self, key, value) -> "iBSTNode[T, K]":
         """Inserts a new node into the binary search tree. - O(H)"""
-        self._validators.enforce_type(value, self._datatype)
-        self._utils.validate_binary_search_key(key)
-        new_node = BSTNode(self._datatype, key, value, tree_owner=self)
+        value = TypeSafeElement(value, self.datatype)
+        input_key= Key(key)
+        self._utils.check_key_is_same_type(input_key)
+        new_node = BSTNode(self._datatype, input_key, value, tree_owner=self)
         # empty tree case:
         if self._root is None:
             self._root = new_node
             return self._root
-        node, match_exists = self._utils.bst_parent_descent(self._root, iBSTNode, key)
+        node, match_exists = self._utils.bst_parent_descent(self._root, iBSTNode, input_key)
         # match case: replace element with new element value
         if match_exists:
             node.element = value
             return node
         # match not found case: - insert a new node as the child of last node found.
-        if key < node.key:
+        if input_key < node.key:
             node.left = new_node
             new_node.parent = node
             return node.left
@@ -229,13 +233,14 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
 
     def replace(self, node, value):
         """updates element value if found."""
-        self._validators.enforce_type(value, self._datatype)
+        value = TypeSafeElement(value, self.datatype)
         self._utils.validate_tree_node(node, iBSTNode)
         old_value = node.element
         node.element = value
         return old_value
 
     def replace_by_key(self, key, value):
+        # todo add this functionality
         pass
 
     def delete(self, node):
@@ -285,6 +290,7 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
         return old_value
 
     def delete_by_key(self, key):
+        # todo add this functionality
         pass       
 
     # ----- Traversals -----
@@ -330,18 +336,28 @@ def main():
         bst.insert(keys, data)
 
     print(bst)
-    inorder = [(i.key,i.element) for i in bst.inorder()]
-    dfs = [(i.key,i.element) for i in bst.preorder()]
-    postorder = [(i.key, i.element) for i in bst.postorder()]
-    levelorder = [(i.key, i.element) for i in bst.levelorder()]
+    print(repr(bst))
+
+    inorder = [str(i) for i in bst.inorder()]
+    dfs = [str(i) for i in bst.preorder()]
+    postorder = [str(i) for i in bst.postorder()]
+    levelorder = [str(i) for i in bst.levelorder()]
+
     print(f"\nInorder Traversal")
     print(inorder)
+    print(repr(bst))
+
     print(f"\nPreorder Traversal")
     print(dfs)
+    print(repr(bst))
+
     print(f"\nPostorder")
     print(postorder)
+    print(repr(bst))
+
     print(f"\nlevelorder")
     print(levelorder)
+    print(repr(bst))
 
     print(f"\nBST Min: {bst.minimum(bst.root)} and successor: {bst.successor(bst.minimum(bst.root))}")
     print(f"BST Maximum: {bst.maximum(bst.root)} and predecessor: {bst.predecessor(bst.maximum(bst.root))}")
@@ -356,6 +372,7 @@ def main():
     print(bst.successor(min))
     bst.replace(min, "NOT Tangerine")
     print(min)
+    print(repr(bst))
 
 
 if __name__ == "__main__":

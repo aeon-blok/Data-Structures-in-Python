@@ -31,7 +31,7 @@ from pprint import pprint
 # region custom imports
 from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr, BinaryNodeRepr
+from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr
 from utils.exceptions import *
 
 from adts.collection_adt import CollectionADT
@@ -50,6 +50,7 @@ from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.trees.tree_utils import TreeNodeUtils
 
 from user_defined_types.generic_types import ValidDatatype, TypeSafeElement
+from user_defined_types.key_types import iKey, Key
 # endregion
 
 class BaseTreeNode(Generic[T]):
@@ -189,43 +190,19 @@ class TNode(BaseTreeNode[T], iTNode[T], Generic[T]):
         return len(self._children) > 0
 
 
-class BinaryNode(iBNode[T], Generic[T]):
+class BinaryNode(BaseTreeNode[T], iBNode[T], Generic[T]):
     """Node for a Basic Binary Tree"""
-    def __init__(self, datatype: type, element: T, tree_owner=None) -> None:
-        self._datatype = datatype
-        self._element = element
-        self._parent = None
+    def __init__(self, datatype, element, tree_owner=None) -> None:
+        super().__init__(datatype, element, tree_owner)
+
+        # Binary Node Unique Attributes 
         self._left = None
         self._right = None
-        self._tree_owner = tree_owner
-        self._deleted: bool = False
 
         # composed objects
         self._utils = TreeNodeUtils(self)
         self._validators = DsValidation()
         self._desc = BinaryNodeRepr(self)
-
-        self._validators.check_input_value_exists(self._element)
-        self._validators.validate_datatype(self._datatype)
-        self._validators.enforce_type(self._element, self._datatype)
-
-    @property
-    def datatype(self):
-        return self._datatype
-
-    @property
-    def element(self):
-        return self._element
-    @element.setter
-    def element(self, value):
-        self._element = value
-
-    @property
-    def parent(self):
-        return self._parent
-    @parent.setter
-    def parent(self, value):
-        self._parent = value
 
     @property
     def left(self):
@@ -245,31 +222,13 @@ class BinaryNode(iBNode[T], Generic[T]):
     def sibling(self):
         """derived from the parent if it exists."""
         # no parent case:
-        if self._parent is None:
+        if self.parent is None:
             return None
         # check parent left child if its this node, its sibling must be right.
         if self.parent.left is self:
             return self.parent.right
         else:
             return self.parent.left
-
-    @property
-    def tree_owner(self):
-        return self._tree_owner
-    @tree_owner.setter
-    def tree_owner(self, value):
-        self._tree_owner = value
-
-    @property
-    def deleted(self):
-        return self._deleted
-    @deleted.setter
-    def deleted(self, value):
-        self._deleted = value
-
-    @property
-    def alive(self):
-        return not self._deleted
 
     # ----- Utilities -----
 
@@ -298,50 +257,27 @@ class BinaryNode(iBNode[T], Generic[T]):
         return self.num_children() > 0
 
 
-class BSTNode(iBSTNode[T, K], Generic[T, K]):
+class BSTNode(BaseTreeNode[T], iBSTNode[T, K], Generic[T, K]):
     """Node for a Basic Binary Tree"""
-
     def __init__(self, datatype: type, key: K, element: T, tree_owner=None) -> None:
-        self._key = key
-        self._datatype = datatype
-        self._element = element
-        self._parent = None
+        super().__init__(datatype, element, tree_owner)
+
+        # BST Unique Attributes
+        self._key = Key(key)
         self._left = None
         self._right = None
-        self._tree_owner = tree_owner
-        self._deleted: bool = False
 
         # composed objects
         self._utils = TreeNodeUtils(self)
         self._validators = DsValidation()
-        self._desc = BinaryNodeRepr(self)
-
-        self._validators.check_input_value_exists(self._element)
-        self._validators.validate_datatype(self._datatype)
-        self._validators.enforce_type(self._element, self._datatype)
+        self._desc: BSTNodeRepr = BSTNodeRepr(self)
 
     @property
     def key(self):
         return self._key
-
-    @property
-    def datatype(self):
-        return self._datatype
-
-    @property
-    def element(self):
-        return self._element
-    @element.setter
-    def element(self, value):
-        self._element = value
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, value):
-        self._parent = value
+    @key.setter
+    def key(self, value):
+        self._key = value
 
     @property
     def left(self):
@@ -363,7 +299,7 @@ class BSTNode(iBSTNode[T, K], Generic[T, K]):
     def sibling(self):
         """derived from the parent if it exists."""
         # no parent case:
-        if self._parent is None:
+        if self.parent is None:
             return None
         # check parent left child if its this node, its sibling must be right.
         if self.parent.left is self:
@@ -371,33 +307,12 @@ class BSTNode(iBSTNode[T, K], Generic[T, K]):
         else:
             return self.parent.left
 
-    @property
-    def tree_owner(self):
-        return self._tree_owner
-
-    @tree_owner.setter
-    def tree_owner(self, value):
-        self._tree_owner = value
-
-    @property
-    def deleted(self):
-        return self._deleted
-
-    @deleted.setter
-    def deleted(self, value):
-        self._deleted = value
-
-    @property
-    def alive(self):
-        return not self._deleted
-
     # ----- Utilities -----
-
     def __str__(self) -> str:
-        return self._desc.str_binary_node()
+        return self._desc.str_bst_node()
 
     def __repr__(self) -> str:
-        return self._desc.repr_binary_node()
+        return self._desc.repr_bst_node()
 
     # ----- Accessors -----
     def num_children(self) -> int:
@@ -416,6 +331,42 @@ class BSTNode(iBSTNode[T, K], Generic[T, K]):
 
     def is_internal(self) -> bool:
         return self.num_children() > 0
+
+
+class AvlNode(BSTNode[T, K], Generic[T, K]):
+    """Node for AVL trees - inherits from BST Node."""
+    def __init__(self, datatype: type, key: K, element: T, tree_owner=None) -> None:
+        super().__init__(datatype, key, element, tree_owner)
+        # drives the rebalancing avl property. (modified after insertion / Deletion)
+        self._height = 1
+        self._avldesc: AVLNodeRepr = AVLNodeRepr(self)
+
+    @property
+    def height(self):
+        return self._height
+
+    @height.setter
+    def height(self, value):
+        self._height = value
+
+    @property
+    def balance_factor(self) -> int:
+        """the balance factor property - must be -1, 0 or 1 -- key feature of AVL trees"""
+        left_height = self.left.height if self.left else 0
+        right_height = self.right.height if self.right else 0
+        return left_height - right_height
+
+    def update_height(self):
+        """Node has a self updating method. for the height property."""
+        left_height = self.left.height if self.left else 0
+        right_height = self.right.height if self.right else 0
+        self.height = 1 + max(left_height, right_height)
+
+    def __str__(self) -> str:
+        return self._avldesc.str_avl_node()
+
+    def __repr__(self) -> str:
+        return self._avldesc.repr_avl_node()
 
 
 # -------------- Testing Node Solo Functionality -----------------

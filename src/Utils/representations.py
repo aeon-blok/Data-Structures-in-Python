@@ -712,24 +712,18 @@ class BinaryHeapRepr(BaseRepr):
 
 
 # region Maps
-class OAHashTableRepr:
-    def __init__(self, map_obj) -> None:
-        self.obj = map_obj
-        self._ansi = Ansi()
+class OAHashTableRepr(BaseRepr):
 
     def str_oa_hashtable(self):
-        infostring = f"{self.obj.datatype_string}{self.obj.capacity_string}{{{{{self.obj.table_items}}}}}"
-        return infostring
+        return f"{self.ds_class}{self.obj.capacity_string}: {self.obj.table_items}"
 
     def repr_oa_hashtable(self):
-        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
-        stats = f"{class_address}{self.obj.datatype_string}{self.obj.capacity_string}[{self.obj.loadfactor_string}, {self.obj.probes_string}, {self.obj.tombstone_string}, {self.obj.total_collisions_string}, {self.obj.rehashes_string}, {self.obj.avg_probes_string}]"
+        stats = f"{self.ds_memory_address}{self.ds_datatype}{self.obj.capacity_string}[{self.obj.loadfactor_string}, {self.obj.probes_string}, {self.obj.tombstone_string}, {self.obj.total_collisions_string}, {self.obj.rehashes_string}, {self.obj.avg_probes_string}]"
         return stats
 
-class ChainHashTableRepr:
-    def __init__(self, map_obj) -> None:
-        self.obj = map_obj
-        self._ansi = Ansi()
+class ChainHashTableRepr(BaseRepr):
+
+    # todo refactor - add OA - type strings (for icons for repr.)
 
     def str_chain_hashtable(self):
         items = self.obj.items()
@@ -746,32 +740,83 @@ class ChainHashTableRepr:
 
 
 # Trees
-class TreeNodeRepr:
-    def __init__(self, tree_node_obj) -> None:
-        self.obj = tree_node_obj
-        
+class TreeNodeRepr(BaseRepr):
+
+    @property
+    def node_status(self):
+        if self.obj.alive:
+            status = self._ansi.color(f"alive", Ansi.GREEN)
+        else:
+            status = self._ansi.color(f"deleted", Ansi.RED)
+        return f"[status={status}]"
+
+    @property
+    def owner(self):
+        instance = self.obj.tree_owner
+        owner_class = instance.__class__.__name__
+        memory_address = hex(id(instance))
+        if instance is not None:
+            string = f"[owner={owner_class}: {memory_address}]"
+        else:
+            string = f"[owner=None]"
+        return string
+
+    @property
+    def parent(self):
+        parent = self.obj.parent
+        if parent is not None:
+            color_parent = self._ansi.color(f"{parent.element}", Ansi.GREEN)
+        else:
+            color_parent = self._ansi.color(f"None", Ansi.GREEN)
+        return f"[parent={color_parent}]"
+
+    @property
+    def element(self):
+        color_element = self._ansi.color(f"{self.obj.element}", Ansi.BLUE)
+        return f"{color_element}"
+
+    @property
+    def children(self):
+        children = self.obj.num_children()
+        return f"[children={children}]"
+
     def repr_tnode(self):
         """Displays the memory address and other useful info"""
-        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
-        datatype = self.obj.datatype.__name__
-        node_status = self.obj.alive
-        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.element}, Node Alive?: {node_status}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.node_status}{self.owner}{self.children}"
 
     def str_tnode(self):
-        datatype = self.obj.datatype.__name__
-        class_name = self.obj.__class__.__qualname__
-        return f"({class_name}: {datatype}) {self.obj.element}"
+        return f"{self.element}"
 
-class GenTreeRepr:
-    def __init__(self, tree_obj) -> None:
-        self.obj = tree_obj
-        self._ansi = Ansi()
+class GenTreeRepr(BaseRepr):
+
+    @property
+    def tree_height(self):
+        if self.obj.root is None:
+            return f"[height=0]"
+        else:
+            height = self.obj.height(self.obj.root)
+        return f"[height={height}]"
+
+    @property
+    def tree_depth(self):
+        if self.obj.root is None:
+            return f"[depth=0]"
+        else:
+            depth = self.obj.depth(self.obj.root)
+        return f"[depth={depth}]"
+
+    @property
+    def traversal_type(self):
+        traversal = self.obj.traversal
+        return f"[traversal={traversal}]"
+
+    @property
+    def total_nodes(self):
+        number = len(self.obj)
+        return f"[total_nodes={number}]"
 
     def repr_gen_tree(self):
-        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
-        datatype = self.obj.datatype.__name__
-        total_elements =  f"Total Nodes: {len(self.obj)}"
-        return f"{class_address}, Type: {datatype}, {total_elements}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}{self.traversal_type}"
 
     def str_gen_tree(self):
         """
@@ -780,14 +825,18 @@ class GenTreeRepr:
         every node adds either " " if parent is last child (no vertical bar needed) or "| " if parent is not last child (vertical bar continues)
         the node & its display symbols are appended to a list for the final string output.
         """
+
+        # todo add BFS as a flag option here. choose between dfs and bfs representation.
+
         total_tree_nodes = len(self.obj)
         tree_height = self.obj.height(self.obj.root)
+
         if self.obj.root is None:
-            return f"< 🌳 empty tree>"
+            return f"[🌳 empty tree]"
 
         hierarchy = []
         tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
-
+        # tree visualization construction loop (change to stack soon)
         while tree:
             # we traverse depth-first, which naturally fits a hierarchical print.
             node, prefix, is_last = tree.pop()
@@ -813,39 +862,69 @@ class GenTreeRepr:
         # final string:
         node_structure = "\n".join(hierarchy)
         title = self._ansi.color(f"Tree: Depth First Search (DFS):", Ansi.GREEN)
+        stats = f"{self.total_nodes}{self.tree_height}"
+        return f"\n{title}\n{stats}\n{node_structure}\n"
 
-        return f"\n{title}\nTotal Nodes: {total_tree_nodes}, Tree Height: {tree_height}\n{node_structure}\n"
+# Binary Trees
+class BinaryNodeRepr(TreeNodeRepr):
 
+    @property
+    def children(self):
+        if self.obj.left is not None:
+            left = self._ansi.color(f"{self.obj.left.element}", Ansi.GREEN)
+        else:
+            left = self._ansi.color(f"None", Ansi.GREEN)
+        if self.obj.right is not None:
+            right = self._ansi.color(f"{self.obj.right.element}", Ansi.RED)
+        else:
+            right = self._ansi.color(f"None", Ansi.RED)
+        return f"[children: L={left}, R={right}]"
 
-class BinaryNodeRepr:
-    def __init__(self, node_obj) -> None:
-        self.obj = node_obj
+    @property
+    def sibling(self):
+        if self.obj.sibling is not None:
+            sib = self.obj.sibling.element
+        else:
+            sib = "None"
+        return f"[sibling={sib}]"
 
     def str_binary_node(self):
-        datatype = self.obj.datatype.__name__
-        class_name = self.obj.__class__.__qualname__
-        return f"({class_name}: {datatype}) {self.obj.element}"
+        return f"{self.obj.element}"
 
     def repr_binary_node(self):
         """Displays the memory address and other useful info"""
-        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
-        datatype = self.obj.datatype.__name__
-        node_status = self.obj.alive
-        left_child = self.obj.left
-        right_child = self.obj.right
-        return f"{class_address}, Type: {datatype}, Node Data: {self.obj.element}, Children: L: {left_child} R: {right_child} Node Alive?: {node_status}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.sibling}{self.children}{self.node_status}{self.owner}"
 
-class BinaryTreeRepr:
-    def __init__(self, tree_obj) -> None:
-        self.obj = tree_obj
-        self._ansi = Ansi()
+class BinaryTreeRepr(BaseRepr):
+
+    @property
+    def tree_height(self):
+        if self.obj.root is None:
+            return f"[height=0]"
+        else:
+            height = self.obj.height()
+        return f"[height={height}]"
+
+    @property
+    def tree_depth(self):
+        if self.obj.root is None:
+            return f"[depth=0]"
+        else:
+            depth = self.obj.depth(self.obj.root)
+        return f"[depth={depth}]"
+
+    @property
+    def total_nodes(self):
+        number = len(self.obj)
+        return f"[total_nodes={number}]"
 
     def str_binary_tree(self):
         """binary tree __str__"""
         total_tree_nodes = len(self.obj)
         tree_height = self.obj.height()
+
         if self.obj.root is None:
-            return f"< 🌳 empty tree>"
+            return f"[🌳 empty tree]"
 
         hierarchy = []
         tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
@@ -854,7 +933,7 @@ class BinaryTreeRepr:
             # we traverse depth-first, which naturally fits a hierarchical print.
             node, prefix, is_last = tree.pop()
 
-            # root (depth = 0), we print 🌲
+            # root (depth = 0), we print nothing
             if node is self.obj.root:
                 indicator = ""
             # decides what connector symbol appears before the node value when printing the tree.
@@ -883,24 +962,57 @@ class BinaryTreeRepr:
         # final string:
         node_structure = "\n".join(hierarchy)
         title = self._ansi.color(f"Tree: Depth First Search (DFS):🌲", Ansi.GREEN)
-
-        return f"\n{title}\nTotal Nodes: {total_tree_nodes}, Tree Height: {tree_height}\n{node_structure}\n"
+        stats = f"{self.total_nodes}{self.tree_height}"
+        return f"\n{title}\n{stats}\n{node_structure}\n"
 
     def repr_binary_tree(self):
         """__repr__ for binary tree"""
-        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
-        datatype = self.obj.datatype.__name__
-        total_elements =  f"Total Nodes: {len(self.obj)}"
-        return f"{class_address}, Type: {datatype}, {total_elements}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}"
 
 
-class BSTRepr:
-    def __init__(self, tree_obj) -> None:
-        self.obj = tree_obj
-        self._ansi = Ansi()
+class BSTNodeRepr(TreeNodeRepr):
+
+    @property
+    def children(self):
+        if self.obj.left is not None:
+            left = self._ansi.color(f"{self.obj.left.element}", Ansi.GREEN)
+        else:
+            left = self._ansi.color(f"None", Ansi.GREEN)
+        if self.obj.right is not None:
+            right = self._ansi.color(f"{self.obj.right.element}", Ansi.RED)
+        else:
+            right = self._ansi.color(f"None", Ansi.RED)
+        return f"[children: L={left}, R={right}]"
+
+    @property
+    def element(self):
+        elem = self.obj.element
+        key_value = f"{self.obj.key.value}"
+        return f"{elem} [k:{key_value}]"
+
+    def str_bst_node(self):
+        return f"{self.element}"
+
+    def repr_bst_node(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.children}{self.node_status}{self.owner}"
+
+class BSTRepr(BaseRepr):
+
+    @property
+    def tree_height(self):
+        if self.obj.root is None:
+            return f"[height=0]"
+        else:
+            height = self.obj.height()
+        return f"[height={height}]"
+
+    @property
+    def total_nodes(self):
+        number = len(self.obj)
+        return f"[total_nodes={number}]"
 
     def str_bst(self):
-        """ __str__ for binary search tree"""
+        """ __str__ for binary search tree - slight modifications to the code used for other trees."""
         total_tree_nodes = len(self.obj)
         tree_height = self.obj.height()
         if self.obj.root is None:
@@ -918,10 +1030,11 @@ class BSTRepr:
                 indicator = ""
             # decides what connector symbol appears before the node value when printing the tree.
             else:
-                indicator = "" if prefix == "" else ("└─ " if is_last else "├─ ")
+                # ! this is the code that is modified for BST
+                indicator = "└─ " if not (node.left or node.right) else ("└─ " if is_last else "├─ ")
 
             # add to final string output
-            node_string = f"K:{node.key}: {node.element}"
+            node_string = f"{node.key}: {node.element}"
             hierarchy.append(f"{prefix}{indicator}{str(node_string)}")
 
             # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
@@ -942,15 +1055,87 @@ class BSTRepr:
         # final string:
         node_structure = "\n".join(hierarchy)
         title = self._ansi.color(f"Binary Search Tree: Inorder Traversal:🌲", Ansi.GREEN)
-
-        return f"\n{title}\nTotal Nodes: {total_tree_nodes}, Tree Height: {tree_height}\n{node_structure}\n"
+        stats = f"{self.total_nodes}{self.tree_height}"
+        return f"\n{title}\n{stats}\n{node_structure}\n"
 
     def repr_bst(self):
         """ __repr__ for binary search tree"""
-        class_address = (f"<{self.obj.__class__.__qualname__} object at {hex(id(self.obj))}>")
-        datatype = self.obj.datatype.__name__
-        total_elements =  f"Total Nodes: {len(self.obj)}"
-        return f"{class_address}, Type: {datatype}, {total_elements}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}"
+
+class AVLNodeRepr(BSTNodeRepr):
+
+    @property
+    def balance(self) -> str:
+        bal = self.obj.balance_factor
+        return f"[balance_factor={bal}]"
+    
+    @property
+    def node_height(self) -> str:
+        height = self.obj.height
+        return f"[height={height}]"
+    
+    def str_avl_node(self):
+        return f"{self.element}"
+
+    def repr_avl_node(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.balance}{self.node_height}{self.children}{self.node_status}{self.owner}"
+
+
+class AVLTreeRepr(BSTRepr):
+    def __init__(self, obj) -> None:
+        super().__init__(obj)
+
+    
+    def str_avl(self):
+        """ __str__ for binary search tree - slight modifications to the code used for other trees."""
+        total_tree_nodes = len(self.obj)
+        tree_height = self.obj.height()
+        if self.obj.root is None:
+            return f"[ 🌳 empty tree]"
+
+        hierarchy = []
+        tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
+
+        while tree:
+            # we traverse depth-first, which naturally fits a hierarchical print.
+            node, prefix, is_last = tree.pop()
+
+            # root (depth = 0), we print 🌲
+            if node is self.obj.root:
+                indicator = ""
+            # decides what connector symbol appears before the node value when printing the tree.
+            else:
+                # ! this is the code that is modified for BST
+                indicator = "└─ " if not (node.left or node.right) else ("└─ " if is_last else "├─ ")
+
+            # add to final string output
+            node_string = f"{node.key}: {node.element}"
+            hierarchy.append(f"{prefix}{indicator}{str(node_string)}")
+
+            # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
+            new_prefix = prefix + ("   " if is_last else "│  ")
+
+            # Iterates over the node’s children in reverse. (left to right) --- enumerate gives index i for calculating new prefix.
+            children = []
+            if node.right is not None:
+                children.append((node.right, True))
+            if node.left is not None:
+                children.append((node.left, False))
+
+            for child, last_flag in children:
+                # Update ancestor flags: current node's is_last boolean affects all its children
+                if child is not None:
+                    tree.append((child, new_prefix, last_flag))
+
+        # final string:
+        node_structure = "\n".join(hierarchy)
+        title = self._ansi.color(f"AVL Tree: Inorder Traversal:🌲", Ansi.GREEN)
+        stats = f"{self.total_nodes}{self.tree_height}"
+        return f"\n{title}\n{stats}\n{node_structure}\n"
+
+    def repr_avl(self):
+        """ __repr__ for AVL Tree"""
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}"
 
 
 # Graphs
