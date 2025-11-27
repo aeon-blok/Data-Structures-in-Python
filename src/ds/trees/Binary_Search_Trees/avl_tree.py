@@ -77,16 +77,31 @@ class AvlTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         self._desc = AVLTreeRepr(self)
 
     @property
-    def keytype(self):
+    def keytype(self) -> Optional[type]:
         return self._tree_keytype
 
     @property
-    def datatype(self):
+    def datatype(self) -> type:
         return self._datatype
 
     @property
     def root(self):
         return self._root
+
+    @property
+    def unbalanced_tree(self) -> bool:
+        return self._utils.avl_tree_check_unbalanced(AvlNode)
+
+    @property
+    def max_balance_factor(self):
+        return self._utils.avl_tree_max_balance_factor(AvlNode)
+
+    # ----- Utility Operations -----
+    def __str__(self) -> str:
+        return self._desc.str_avl()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_avl()
 
     # ----- Canonical ADT Operations -----
     def __len__(self) -> Index:
@@ -104,12 +119,6 @@ class AvlTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def is_empty(self) -> bool:
         return self._root is None
-
-    def __str__(self) -> str:
-        return self._desc.str_avl()
-
-    def __repr__(self) -> str:
-        return self._desc.repr_avl()
 
     # ----- Accessors -----
     def parent(self, node) -> iBSTNode[T, K] | None:
@@ -187,127 +196,96 @@ class AvlTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         return parent_node  # can be none.
 
     # ----- Mutators -----
-    def insert(self, key, value) -> iBSTNode[T, K]:
+    def _avl_recursive_insert(self, node, key, value):
         """
-        Insertion in an AVL tree is similar to BST trees. -- O(log N)
-        Step 1: Validate Inputs
-        Step 2: Empty Tree Case: Insert new node at Root and return
-        Step 3: Traverse Tree: We are searching for a key match.
-            if a match is found, replace the element with our new input element value
-            else recursively move left and right until we come to the end of the tree.
-            if the key is smaller = Move Left
-            if the key is larger = Move Right
-        Step 4: Create a New Node for the end of the tree.
-        Step 5: Attach the new node to its parent node. (which we stored earlier)
-        Step 6: Rebalance AVL Tree if necessary
-            Check the balance factor for the node.
-            depending on the value - execute rotation of the tree nodes.
-            there are 4 types of rotations
-            Once the height balance property of the AVL tree is restored, the node will be returned. 
+        Recursive Insertion in an AVL tree is similar to BST trees. -- O(log N)
         """
         value = TypeSafeElement(value, self.datatype)
         key = Key(key)
         self._utils.check_key_is_same_type(key)
 
-        # Empty Tree Case: new node is the root. (no rebalancing necessary)
-        if self._root is None:
-            self._root = AvlNode(self.datatype, key, value, self)
-            return self._root
-
-        # traverse tree
-        parent_node = self._root
-        current_node = self._root
-
-        while current_node:
-            # store previous node. (for attaching our new node to the tree later)
-            parent_node = current_node
-            # if the new key is smaller - move left.
-            if key < current_node.key:
-                current_node = current_node.left
-            # if the new key is larger - move right.
-            elif key > current_node.key:
-                current_node = current_node.right
-            # if the element already exists - replace with new element value and return node (no rebalance)
-            elif key == current_node.key:
-                current_node.element = value
-                return current_node
-
-        # Unoccupied Slot (None): at the end of the tree.
-        new_node = AvlNode(self.datatype, key, value, self)
-
-        # now we must attach it to the tree. -- we attach it to the parent node stored above.
-        if key < parent_node.key:
-            parent_node.left = new_node
+        # 1. If unoccupied - create and return new node.
+        if node is None:
+            return AvlNode(self.datatype, key, value, self)
+        # 1.b if there is a match - replace the value and return the node
+        elif key == node.key:
+            node.element = value
+            return node
+        # 2. recursively travel until either finding a match, or the end of the tree
+        if key < node.key:
+            node.left = self._avl_recursive_insert(node.left, key, value)
         else:
-            parent_node.right = new_node
+            node.right = self._avl_recursive_insert(node.right, key, value)
 
-        # rebalances the tree to maintain AVL height balance property.
-        return self._utils.rebalance_avl_tree(new_node)
+        # 3. Update height
+        node.update_height()
 
-    def delete(self, node) -> T:
+        # 5. Rebalance and rotate
+        node = self._utils.rebalance_avl_tree(node)
+        return node
+
+    def insert(self, key, value) -> iBSTNode[T, K]:
+        """public wrapper for inserting nodes into avl tree"""
+        self._root = self._avl_recursive_insert(self._root, key, value)
+        return self._root
+
+    def _avl_recursive_delete(self, current_node, target_node):
         """
-        Empty Tree Case: raise error
-        Step 2: Validate input
-        Node has two children → replace the node with in-order successor (or predecessor), then delete that node
-        Node has one child → replace the node with its child
-        After Deletion - we need to rebalance and rotate the tree
-        we need to reverse traverse from the deletion point - and rebalance each node.
-        we update the height for each node to check if we need to rebalance.
+        This is a recursive helper method that deletes the target node from the subtree(subtree_root= current_node)
+        Structural relinking is implicit in the return/assignment pattern.
         """
 
+        # Base Case: must be the first line of code - we got to the end of the tree
+        # the caller will assign none into its left or right child pointer.
+        if current_node is None:
+            return None
+
+        # --- BST descent ---
+        # If the target is smaller/larger, recursively traverse into the appropriate child and assign the result back to that child pointer.
+        if target_node.key < current_node.key:
+            current_node.left = self._avl_recursive_delete(current_node.left, target_node)
+            # update parent pointer
+            if current_node.left: current_node.left.parent = current_node
+        elif target_node.key > current_node.key:
+            current_node.right = self._avl_recursive_delete(current_node.right, target_node)
+            # update parent pointer
+            if current_node.right: current_node.right.parent = current_node
+        else:
+            # 1. Leaf Case: (0 children)
+            # Deleting a leaf -> replace this spot with None. The caller assigned that None into its left/right and the node is removed.
+            if current_node.left is None and current_node.right is None:
+                return None
+
+            # 2. 1 Child Case:
+            # If exactly one child exists, return that child. The caller will assign the returned child into its left/right pointer,
+            # effectively replacing the deleted node with its child (this is the relink)
+            elif current_node.left is None:
+                return current_node.right
+            elif current_node.right is None:
+                return current_node.left
+
+            # 3. 2 children Case: (swap contents with succ - then delete succ.)
+            else:
+                succ = self.successor(current_node)
+                current_node.key = succ.key
+                current_node.element = succ.element
+                current_node.right = self._avl_recursive_delete(current_node.right, succ)
+
+        # 4. Update Height
+        current_node.update_height()
+
+        # 5. Rebalance tree.
+        return self._utils.rebalance_avl_tree(current_node)
+
+    def delete(self, node):
+        """public wrapper for recursive deletion in AVL tree"""
         # Empty Case: raise error
-
+        self._utils.check_empty_binary_tree()
         # validate node
         self._utils.validate_tree_node(node, AvlNode)
-
-        # initialize variables
         old_value = node.element
-        parent = node.parent    # used to reconnect swapped nodes to the tree again
-
-        # 2 Children Case
-        if node.left and node.right:
-            succ = node.right
-            succ_parent = node
-            while succ.left:
-                succ_parent = succ
-                succ = succ.left
-
-            # swap successor with node (we logically swap, the nodes stay in place, but the contents are swapped)
-            node.key = succ.key
-            node.element = succ.element
-
-            # delete successor (move focus to the successor node - which now contains our target nodes items for deletion)
-            node = succ
-            parent = succ_parent
-
-        # 1 Child Case or leaf - 2 case has already ran, so we know the target node has 1 child at most.
-        # we aim to delete node (target node) - swap with its child (either left or right)
-        child = node.left if node.left else node.right
-
-        # root case - if the node is the root can just dereference it. (works for leaf and 1 child)
-        if parent is None:
-            self._root = child
-            # because its the new root - root has no parents so dereference parent
-            if child: 
-                child.parent = None
-        else:
-            # check if child is left or right child. swap with node
-            # this removes the node from the tree, while keeping the Sorted BST property intact.
-            if parent.left == node:
-                parent.left = child
-            else:
-                parent.right = child
-
-            # relink to tree - child must point to the parent.
-            if child:
-                child.parent = parent
-
-        # iteratively rebalance nodes starting from parent (which is now the succ node)
-        current_node = parent
-        while current_node:
-            current_node.update_height()
-            current_node = self._utils.rebalance_avl_tree(current_node)
-            current_node = current_node.parent
+        self._root = self._avl_recursive_delete(self._root, node)
+        if self._root: self._root.parent = None # update parent pointer
         return old_value
 
     def replace(self, node, value):
@@ -368,6 +346,15 @@ def main():
         "kumquat",
     ]
 
+    random_data_subset = [
+        "apple",
+        "orange",
+        "banana",
+        "grape",
+        "kiwi",
+        "mango",
+    ]
+
     avl = AvlTree(str)
     print(avl)
     print(repr(avl))
@@ -390,6 +377,11 @@ def main():
 
     for keys, data in zip(key_sample, random_data):
         avl.insert(keys, data)
+
+    keyhhs = [5, 3, 8, 3, 5, 7]
+    for k in keyhhs:
+        avl.insert(k, f"VALUE {k}")
+
     print(avl)
     print(repr(avl))
 
@@ -400,18 +392,33 @@ def main():
     print(f"new root value = {avl.root.element}")
     print(avl)
 
+    print(f"Inorder Traversal: {[i.element for i in avl.inorder()]}")
+
     print(f"\nTesting Deletion on a subset of items")
     keys_list = [i for i in avl.inorder()]
-    keys_subset = keys_list[:1]
+    keys_subset = keys_list[:10]
     print(f"items to delete: {len(keys_subset)}")
-    print(f"{', '.join([i.element for i in keys_subset])}")
+    print(f"Items: {', '.join([i.element for i in keys_subset])}")
     for i in keys_subset:
         avl.delete(i)
-    print(f"{[i.element for i in avl.inorder()]}")
     print(avl)
+    print(f"Is the item there?: {[i.element for i in avl.inorder()]}")
 
-    # for i in avl:
-    #     print(i)
+    max = avl.maximum(avl.root)
+    parent_of_max = avl.parent(max)
+    min = avl.minimum(avl.root)
+    left_child_of_min = avl.left(min)
+    pred = avl.predecessor(max)
+    succ = avl.successor(min)
+    right_child_of_root = avl.right(avl._root)
+
+    print(f"\nFinding max key: {max}")
+    print(f"Finding min key: {min}")
+    print(f"Finding Successor to minimum key: {succ}")
+    print(f"Finding Predecessor to max key: {pred}")
+    print(f"Finding Parent of max key: {parent_of_max}")
+    print(f"Finding left child of min key: (should be None!): {left_child_of_min}")
+    print(f"Finding right child of root: {right_child_of_root}")
 
 
 if __name__ == "__main__":

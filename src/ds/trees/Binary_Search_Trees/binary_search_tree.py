@@ -243,7 +243,7 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
         # todo add this functionality
         pass
 
-    def delete(self, node):
+    def avl_recursive_delete(self, node):
         """deletes a node from the binary search tree and reorganizes the tree."""
         self._utils.check_empty_binary_tree()
         self._utils.validate_tree_node(node, iBSTNode)
@@ -284,7 +284,7 @@ class BinarySearchTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K
 
         # dereference
         node.parent = node.left = node.right = None
-        node.deleted = None
+        node.alive = False
         node.tree_owner = None
 
         return old_value
@@ -364,7 +364,7 @@ def main():
 
     print(f"\ntesting __contains__: {324325 in bst}")
     max = bst.maximum(bst.root)
-    max_del = bst.delete(max)
+    max_del = bst.avl_recursive_delete(max)
     print(max_del)
     print(len(bst))
 

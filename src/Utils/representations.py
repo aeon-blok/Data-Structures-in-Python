@@ -1068,30 +1068,42 @@ class AVLNodeRepr(BSTNodeRepr):
     def balance(self) -> str:
         bal = self.obj.balance_factor
         return f"[balance_factor={bal}]"
-    
+
     @property
     def node_height(self) -> str:
         height = self.obj.height
         return f"[height={height}]"
-    
+
+    @property
+    def check_balance(self) -> str:
+        return f"[is_balanced?={self.obj.unbalanced}]"
+
     def str_avl_node(self):
         return f"{self.element}"
 
     def repr_avl_node(self):
-        return f"{self.ds_memory_address}{self.ds_datatype}{self.balance}{self.node_height}{self.children}{self.node_status}{self.owner}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.check_balance}{self.balance}{self.node_height}{self.children}{self.node_status}{self.owner}"
 
 
 class AVLTreeRepr(BSTRepr):
     def __init__(self, obj) -> None:
         super().__init__(obj)
 
+    @property
+    def unbalanced(self):
+        return f"[unbalanced?={self.obj.unbalanced_tree}]"
     
+    @property
+    def max_bf(self):
+        return f"[max_bf={self.obj.max_balance_factor}]"
+
+
     def str_avl(self):
         """ __str__ for binary search tree - slight modifications to the code used for other trees."""
         total_tree_nodes = len(self.obj)
         tree_height = self.obj.height()
         if self.obj.root is None:
-            return f"[ 🌳 empty tree]"
+            return f"< 🌳 empty tree>"
 
         hierarchy = []
         tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
@@ -1129,8 +1141,8 @@ class AVLTreeRepr(BSTRepr):
 
         # final string:
         node_structure = "\n".join(hierarchy)
-        title = self._ansi.color(f"AVL Tree: Inorder Traversal:🌲", Ansi.GREEN)
-        stats = f"{self.total_nodes}{self.tree_height}"
+        title = self._ansi.color(f"AVL Tree: 🌲", Ansi.GREEN)
+        stats = f"{self.total_nodes}{self.tree_height}{self.unbalanced}{self.max_bf}"
         return f"\n{title}\n{stats}\n{node_structure}\n"
 
     def repr_avl(self):

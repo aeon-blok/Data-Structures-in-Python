@@ -360,7 +360,15 @@ class AvlNode(BSTNode[T, K], Generic[T, K]):
         """Node has a self updating method. for the height property."""
         left_height = self.left.height if self.left else 0
         right_height = self.right.height if self.right else 0
-        self.height = 1 + max(left_height, right_height)
+        self._height = 1 + max(left_height, right_height)
+
+    @property
+    def unbalanced(self) -> bool:
+        """boolean - checks whether the node is unbalanced."""
+        return abs(self.balance_factor) > 1
+       
+
+    
 
     def __str__(self) -> str:
         return self._avldesc.str_avl_node()

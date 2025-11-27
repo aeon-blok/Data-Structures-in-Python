@@ -19,6 +19,7 @@ from array import array
 import numpy
 import ctypes
 import random
+import math
 from collections.abc import Sequence
 
 # endregion
@@ -449,105 +450,167 @@ class TreeUtils:
 
     # region AVL Trees
 
-    def avl_rotate_left(self, grandparent):
-        """perform the trinode restructuring, then update the heights for the nodes."""
-        parent = grandparent.right
-        child_subtree = parent.left
+    def avl_tree_max_balance_factor(self, node_type:type):
+        """checks all the nodes in the graph to ensure none are above the required balance factor or height property."""
+
+        max_balance = -math.inf
+        storage_stack = ArrayStack(int)
+
+        # main case: traverse tree - and count nodes
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(self.obj.root)
+        while tree_nodes:
+            current_node = tree_nodes.pop()
+            storage_stack.push(current_node.balance_factor)
+            # add children to the stack
+            if current_node.right is not None:
+                tree_nodes.push(current_node.right)
+            if current_node.left is not None:
+                tree_nodes.push(current_node.left)
+        
+        while storage_stack:
+            balance_factor = storage_stack.pop()
+            if balance_factor > max_balance:
+                max_balance = balance_factor
+        
+        return max_balance
+
+    def avl_tree_check_unbalanced(self, node_type:type):
+        """checks all the nodes in the graph to ensure none are above the required balance factor or height property."""
+        if self.obj.root is None: return False
+        # main case: traverse tree - and count nodes
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(self.obj.root)
+        while tree_nodes:
+            current_node = tree_nodes.pop()
+            if current_node.unbalanced:
+                return True
+            # add children to the stack
+            if current_node.right is not None:
+                tree_nodes.push(current_node.right)
+            if current_node.left is not None:
+                tree_nodes.push(current_node.left)
+        return False
+    
+    def avl_count_tree_nodes(self, node_type: type):
+        """binary tree variant for counting the nodes in a tree"""
+        self.validate_datatype(node_type)
+
+        # empty case:
+        if self.obj.root is None:
+            return 0
+
+        # main case: traverse tree - and count nodes
+        tree_nodes = ArrayStack(node_type)
+        tree_nodes.push(self.obj.root)
+        total_nodes = 0
+        while tree_nodes:
+            current_node = tree_nodes.pop()
+            total_nodes += 1
+            # add children to the stack
+            if current_node.right is not None:
+                tree_nodes.push(current_node.right)
+            if current_node.left is not None:
+                tree_nodes.push(current_node.left)
+        return total_nodes
+    
+
+    def _relink(self, unbalanced_node, child, sibling_subtree):
+        """relinks rotated nodes -- not used at the moment due to debug issues"""
+        child.parent = unbalanced_node.parent
+        unbalanced_node.parent = child
+        if sibling_subtree:
+            sibling_subtree.parent = unbalanced_node
+        
+
+    def avl_rotate_left(self, unbalanced_node):
+        """"""
+        if unbalanced_node is None or unbalanced_node.right is None:
+            raise NodeExistenceError(f"Error: Unbalanced Node doesnt exist")
+        
+        child = unbalanced_node.right
+        sibling_subtree = child.left    # T2 Subtree
 
         # perform rotation
-        parent.left = grandparent
-        grandparent.right = child_subtree
+        child.left = unbalanced_node
+        unbalanced_node.right = sibling_subtree
 
-        # update parent links
-        parent.parent = grandparent.parent
-        if grandparent.parent:
-            if grandparent.parent.left == grandparent:
-                grandparent.parent.left = parent
-            else:
-                grandparent.parent.right = parent
-        grandparent.parent = parent
-        # link child subtree to grandparent
-        if child_subtree:
-            child_subtree.parent = grandparent
-        # update root
-        if self.obj.root == grandparent:
-            self.obj.root = parent
+        # relink nodes
+        child.parent = unbalanced_node.parent
+        unbalanced_node.parent = child
+        if sibling_subtree:
+            sibling_subtree.parent = unbalanced_node
 
-        # update heights
-        grandparent.update_height()
-        parent.update_height()
+        # update height
+        unbalanced_node.update_height()
+        child.update_height()
 
-        return grandparent
+        return child
 
-    def avl_rotate_right(self, grandparent):
-        """
-        x and y: the two main nodes involved in the rotation.
-        y = the node that is unbalanced (grandparent)
-        x = the child that will become the new root of the rotated subtree (parent)
-        T1, T2, T3: subtrees that must be preserved. (children)
-        They stay in the same relative order, so the BST property is maintained.
-        """
-        parent = grandparent.left
-        child_subtree = parent.right
+    def avl_rotate_right(self, unbalanced_node):
+        """rotate right - used with LL and LR rotations"""
 
-        # rotate
-        parent.right = grandparent
-        grandparent.left = child_subtree
 
-        # relink
-        parent.parent = grandparent.parent
-        if grandparent.parent:
-            if grandparent.parent.left == grandparent:
-                grandparent.parent.left = parent
-            else:
-                grandparent.parent.right = parent
-        grandparent.parent = parent
-
-        # relink to grandparent
-        if child_subtree:
-            child_subtree.parent = grandparent
-
-        # root case:
-        if self.obj.root == grandparent:
-            self.obj.root = parent
-
-        # update heights
-        grandparent.update_height()
-        parent.update_height()
+        if unbalanced_node is None or unbalanced_node.left is None:
+            raise NodeExistenceError(f"Error: Unbalanced Node doesnt exist")
         
-        return parent
-    
+        child = unbalanced_node.left
+        sibling_subtree = child.right    # T2 Subtree
+
+        # perform rotation
+        child.right = unbalanced_node
+        unbalanced_node.left = sibling_subtree
+
+        # relink nodes
+        child.parent = unbalanced_node.parent
+        unbalanced_node.parent = child
+        if sibling_subtree:
+            sibling_subtree.parent = unbalanced_node
+
+        # update height
+        unbalanced_node.update_height()
+        child.update_height()
+
+        return child
+
     def rebalance_avl_tree(self, node):
         """
         Rebalances the AVL tree based on the Balance Factor of the current node.
-        4 types of rotations
+        There are 4 types of rotations
         what we’re doing in AVL rotations is essentially trinode restructuring.
         in Python, if a function reaches the end without a return, it returns None.
+        Never rotate until height is correct.
         """
         balance = node.balance_factor
-        # rotation types:
-
-        # LEFT HEAVY
+        
+        # Left Heavy Subtree
         if balance > 1:
-            # LL
-            if node.left.balance_factor >= 0: 
-                return self.avl_rotate_right(node)  
-            # LR
-            else: 
+            if not node.left: raise NodeExistenceError(f"Error: node.left is None")
+            # Left Left Rotation:
+            if node.left.balance_factor >= 0:
+                return self.avl_rotate_right(node)
+            # Left Right Rotation
+            else:
+                # first we rotate the left child left.
                 node.left = self.avl_rotate_left(node.left)
                 return self.avl_rotate_right(node)
-                
-        # RIGHT HEAVY
+
+        # Right Heavy Subtree
         if balance < -1:
-            # RR
-            if node.right.balance_factor <=0: 
+            if not node.right: raise NodeExistenceError(f"Error: node.right is None")
+            # Right Right Rotation:
+            if node.right.balance_factor <= 0:
                 return self.avl_rotate_left(node)
-            # RL
+            # Right Left Rotation
             else:
                 node.right = self.avl_rotate_right(node.right)
                 return self.avl_rotate_left(node)
-        # just return the node if everything fine.
+        
+        # if no balancing required - just return node
         return node
+
+
+
 
 
 
