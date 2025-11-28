@@ -31,7 +31,7 @@ from pprint import pprint
 # region custom imports
 from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr
+from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr
 from utils.exceptions import *
 
 from adts.collection_adt import CollectionADT
@@ -51,6 +51,7 @@ from ds.trees.tree_utils import TreeNodeUtils
 
 from user_defined_types.generic_types import ValidDatatype, TypeSafeElement
 from user_defined_types.key_types import iKey, Key
+from user_defined_types.tree_types import NodeColor
 # endregion
 
 class BaseTreeNode(Generic[T]):
@@ -375,6 +376,161 @@ class AvlNode(BSTNode[T, K], Generic[T, K]):
 
     def __repr__(self) -> str:
         return self._avldesc.repr_avl_node()
+
+
+class RedBlackNode(BSTNode[T, K], Generic[T, K]):
+
+    """
+    red black node - has a unique color property, 
+    otherwise same as BST node. (inherits from bst node)
+    Uses sentinel nodes (called NIL) to make the red black tree easier to construct.
+    """
+    def __init__(self, datatype: type, key: K, element: T, sentinel: 'RedBlackSentinel', node_colour=NodeColor.RED, tree_owner=None) -> None:
+        super().__init__(datatype, key, element, tree_owner)
+        self._color: NodeColor = node_colour
+        self.sentinel: RedBlackSentinel = sentinel
+        self.left = self.right = self.parent = sentinel # using sentinels
+
+        # composed objects
+        self._rbdesc: RedBlackNodeRepr = RedBlackNodeRepr(self)
+
+    @property
+    def black_height(self) -> int:
+        """returns the black height property"""
+        if self == self.sentinel: return 1
+        left_black_height = self.left.black_height if self.left else 0
+        right_black_height = self.right.black_height if self.right else 0
+        return max(left_black_height, right_black_height) + (1 if self.is_black else 0)
+
+    # ----- Color Properties -----
+    @property
+    def color(self) -> NodeColor:
+        return self._color
+
+    @color.setter
+    def color(self, value: NodeColor) -> None:
+        self._color = value
+
+    @property
+    def is_red(self) -> bool:
+        return self._color == NodeColor.RED
+
+    @property
+    def is_black(self) -> bool:
+        return self._color == NodeColor.BLACK
+
+    # ----- Child & Parent Properties -----
+    @property
+    def has_left_child(self) -> bool:
+        return self.left is not self.sentinel
+
+    @property
+    def has_right_child(self) -> bool:
+        return self.right is not self.sentinel
+
+    @property
+    def is_left_child(self) -> bool:
+        if self.parent == self.sentinel:
+            return False
+        return self.parent.left == self
+
+    @property
+    def is_right_child(self) -> bool:
+        if self.parent == self.sentinel:
+            return False
+        return self.parent.right == self
+
+    # ----- Family Properties -----
+    @property
+    def sibling(self) -> "RedBlackNode[T, K] | RedBlackSentinel":
+        if not self.parent:
+            return self.sentinel
+        return self.parent.right if self.is_left_child else self.parent.left
+
+    @property
+    def grandparent(self) -> "RedBlackNode[T, K] | RedBlackSentinel":
+        if self.parent:
+            return self.parent.parent
+        return self.sentinel
+
+    @property
+    def uncle(self) -> 'RedBlackNode[T, K] | RedBlackSentinel':
+        if self.grandparent is self.sentinel:
+            return self.sentinel
+        return self.grandparent.right if self.parent == self.grandparent.left else self.grandparent.left
+
+    # ----- Utilities -----
+
+    def __str__(self) -> str:
+        return self._rbdesc.str_redblack_node()
+
+    def __repr__(self) -> str:
+        return self._rbdesc.repr_redblack_node()
+
+    def set_red(self) -> None:
+        """change node color to red"""
+        self._color = NodeColor.RED
+
+    def set_black(self) -> None:
+        """change node color to black"""
+        self._color = NodeColor.BLACK
+
+    def is_leaf(self) -> bool:
+        return self.left == self.sentinel and self.right == self.sentinel
+
+class RedBlackSentinel(RedBlackNode):
+    """
+        Singleton Sentinel Object for Red Black Trees
+        in standard implementations: red-black tree sentinel nodes are mutable.
+    """
+    _singleton = None
+
+    def __new__(cls, datatype=None, tree_owner=None):
+        if cls._singleton is None:
+            cls._singleton = super().__new__(cls)
+        return cls._singleton
+
+    def __init__(self, datatype=None, tree_owner=None) -> None:
+
+        # already created check
+        if getattr(self, "_initialized", False): return
+        self._datatype = datatype
+        self._tree_owner = tree_owner
+        self._color = NodeColor.BLACK
+        self._left = self
+        self._right = self
+        self._parent = self
+        self._key = None
+        self._element = None
+        self._initialized = True    # prevent re-initialization
+
+    # sentinel invariants
+
+    def __bool__(self):
+        return False
+
+    @property
+    def color(self):
+        return NodeColor.BLACK 
+
+    @color.setter
+    def color(self, value: NodeColor) -> None:
+        raise DsInputValueError(f"Error: Cannot change the color of a sentinel Node. must always be black.")
+
+    @property
+    def is_sentinel(self) -> bool:
+        return True
+
+    @property
+    def is_left_child(self) -> bool:
+        return self.parent.left == self
+
+    @property
+    def is_right_child(self) -> bool:
+        return self.parent.right == self
+
+    def __repr__(self):
+        return "NIL"
 
 
 # -------------- Testing Node Solo Functionality -----------------

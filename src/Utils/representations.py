@@ -969,7 +969,7 @@ class BinaryTreeRepr(BaseRepr):
         """__repr__ for binary tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}"
 
-
+# region BST
 class BSTNodeRepr(TreeNodeRepr):
 
     @property
@@ -1062,6 +1062,7 @@ class BSTRepr(BaseRepr):
         """ __repr__ for binary search tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}"
 
+
 class AVLNodeRepr(BSTNodeRepr):
 
     @property
@@ -1083,7 +1084,6 @@ class AVLNodeRepr(BSTNodeRepr):
 
     def repr_avl_node(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.check_balance}{self.balance}{self.node_height}{self.children}{self.node_status}{self.owner}"
-
 
 class AVLTreeRepr(BSTRepr):
     def __init__(self, obj) -> None:
@@ -1148,6 +1148,102 @@ class AVLTreeRepr(BSTRepr):
     def repr_avl(self):
         """ __repr__ for AVL Tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}"
+
+
+class RedBlackNodeRepr(BSTNodeRepr):
+
+    @property
+    def black_height(self) -> str:
+        return f"[black_height={self.obj.black_height}]"
+    
+    @property
+    def node_color(self) -> str:
+        return f"[color={self.obj.color}]"
+    
+    @property
+    def is_leaf(self) -> str:
+        return f"[is_leaf?={self.obj.is_leaf()}]"
+    
+    @property
+    def uncle(self) -> str:
+        return f"[uncle={self.obj.uncle.element}]" if self.obj.grandparent is not None else "[uncle=None]"
+
+    def str_redblack_node(self):
+        return f"{self.ds_class}{self.node_color}{self.element}"
+    
+    def repr_redblack_node(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.black_height}{self.node_color}{self.is_leaf}{self.uncle}"
+
+class RedBlackTreeRepr(BSTRepr):
+    def __init__(self, obj) -> None:
+        super().__init__(obj)
+
+    @property
+    def black_property(self):
+        result = self.obj.is_black_property
+        return f"[black_property={result}]"
+    
+    @property
+    def red_property(self):
+        result = self.obj.is_red_property
+        return f"[red_property={result}]"
+
+    def str_redblack_tree(self):
+        """ __str__ for binary search tree - slight modifications to the code used for other trees."""
+        total_tree_nodes = len(self.obj)
+        tree_height = self.obj.height()
+        if self.obj.root == self.obj.NIL:
+            return f"[🌳 empty Red Black Tree]"
+
+        hierarchy = []
+        tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
+
+        while tree:
+            # we traverse depth-first, which naturally fits a hierarchical print.
+            node, prefix, is_last = tree.pop()
+
+            # root (depth = 0), we print 🌲
+            if node is self.obj.root:
+                indicator = ""
+
+            # ! skip sentinels (in red black tree)
+            if node == self.obj.NIL:
+                continue
+
+            # decides what connector symbol appears before the node value when printing the tree.
+            else:
+                # ! this is the code that is modified for BST
+                indicator = "└─ " if not (node.left or node.right) else ("└─ " if is_last else "├─ ")
+
+            # add to final string output
+            node_string = f"{node.key}: {node.element} ({f'r' if node.is_red else 'b'})"
+            hierarchy.append(f"{prefix}{indicator}{str(node_string)}")
+
+            # Build prefix for children - Vertical bars "│" are inherited from ancestors that are not last children
+            new_prefix = prefix + ("   " if is_last else "│  ")
+
+            # Iterates over the node’s children in reverse. (left to right) --- enumerate gives index i for calculating new prefix.
+            children = []
+            if node.right is not None:
+                children.append((node.right, True))
+            if node.left is not None:
+                children.append((node.left, False))
+
+            for child, last_flag in children:
+                # Update ancestor flags: current node's is_last boolean affects all its children
+                if child is not None:
+                    tree.append((child, new_prefix, last_flag))
+
+        # final string:
+        node_structure = "\n".join(hierarchy)
+        title = self._ansi.color(f"Red Black Tree: ", Ansi.RED)
+        stats = f"{self.total_nodes}{self.tree_height}{self.black_property}{self.red_property}"
+        return f"\n{title}\n{stats}\n{node_structure}\n"
+    
+    def repr_redblack_tree(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.black_property}{self.red_property}"
+
+# endregion
 
 
 # Graphs

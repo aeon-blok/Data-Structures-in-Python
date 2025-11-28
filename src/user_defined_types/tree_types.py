@@ -31,6 +31,11 @@ from utils.exceptions import *
 from user_defined_types.generic_types import T, K
 from user_defined_types.key_types import Key, iKey
 
+class NodeColor(Enum):
+    """Node Coloring Enum for Red Black Trees"""
+    RED = "red"
+    BLACK = "black"
+
 
 class Traversal(StrEnum):
     """Tree Traversal Methods as Enum Types for Type Safety."""

@@ -117,6 +117,11 @@ class BinarySearchTreeADT(ABC, Generic[T, K]):
         """replaces the element value of the specified node. (no reorder necessary, the KEY didnt change)"""
         pass
 
+    @abstractmethod
+    def delete(self, node: iBSTNode[T, K]) -> T:
+        """deletes a node from the BST tree. and returns the old element value"""
+        pass
+
 
 class iBSTNode(ABC, Generic[T, K]):
     """
