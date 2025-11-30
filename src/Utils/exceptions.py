@@ -85,6 +85,11 @@ class NodeNotFoundError(DsError):
     DEFAULT_ERROR_MESSAGE = f"Error: Node was not found in the list..."
 
 
+class NodeColorError(DsError):
+    """Error when Node reference doesnt belong to the instantiated list."""
+    DEFAULT_ERROR_MESSAGE = f"Error: Node is not the right color."
+
+
 class KeyInvalidError(DsError):
     """Error when the key provided to the list or dictionary is of an invalid type."""
     DEFAULT_ERROR_MESSAGE = f"Error: Invalid Key Provided. Please use a Node or an Index Number."

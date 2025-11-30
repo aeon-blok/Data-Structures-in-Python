@@ -47,7 +47,7 @@ from adts.bst_adt import BinarySearchTreeADT, iBSTNode
 
 from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
-from ds.trees.tree_nodes import BSTNode, AvlNode, RedBlackNode, RedBlackSentinel
+from ds.trees.tree_nodes import BSTNode, AvlNode, RedBlackSentinel, RedBlackNode
 from ds.trees.tree_utils import TreeUtils
 
 from user_defined_types.key_types import iKey, Key
@@ -107,6 +107,35 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
 
     @property
     def is_red_property(self) -> bool:
+        """returns True if there are no red red violations in the tree - O(N) - iteratively traverses the entire tree"""
+        # * root case
+        if self._root == self.NIL:
+            return True
+        
+        # init stack
+        tree = ArrayStack(RedBlackNode, 5000)
+        tree.push(self._root)
+
+        # * traverse tree and check for red red violations.
+        while tree:
+            node = tree.pop()
+            if node == self.NIL:
+                continue
+
+            left = node.left
+            right = node.right
+                
+            if node.color == NodeColor.RED and (left.color == NodeColor.RED or right.color == NodeColor.RED):
+                return False
+            # * push children onto stack to iteratively traverse.
+            if left != self.NIL:
+                tree.push(left)
+            if right != self.NIL:
+                tree.push(right)
+        return True
+    
+    @property
+    def is_red_property_recursive(self) -> bool:
         def _check_color(node):
             if node == self.NIL:
                 return True
@@ -115,24 +144,67 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
                     return False
             return _check_color(node.left) and _check_color(node.right)
         return _check_color(self.root)
-
+    
     @property
     def is_black_property(self) -> bool:
-        """ensures the black property is maintained."""
+        """Black Property Boolean. returns false if black properties are violated."""
+        # invariants
+        if self._root == self.NIL:
+            return True
+        if self._root.color != NodeColor.BLACK:
+            return False
+        
+        # initialize tree for traversal: stores a tuple (node, black_count)
+        tree = ArrayStack(tuple, 5000)
+        tree.push((self._root, 0))
+        start_path_black_count = None   # used to compare all future tree path iterations.
+
+        while tree:
+            node, black_count = tree.pop()
+            # * End of Tree Path Case:
+            if node == self.NIL:
+                final_black_count = black_count + 1
+                if start_path_black_count is None:
+                    start_path_black_count = final_black_count
+                # * exit condition - paths are not equal number of black nodes.
+                elif start_path_black_count != final_black_count:
+                    return False
+                continue
+            # increment count if node is black
+            if node.color == NodeColor.BLACK:
+                black_count += 1
+            # add children to the tree for traversal (if they are not sentinels)
+            if node.left != self.NIL:
+                tree.push((node.left, black_count))
+            if node.right != self.NIL:
+                tree.push((node.right, black_count))
+        # * exit condition - paths have equal number of black nodes.
+        return True
+                
+    @property
+    def is_black_property_recursive(self) -> bool:
+        """
+        ensures the black property is maintained.
+        """
+        # * root must always be black
+        if self._root.color != NodeColor.BLACK:
+            return False
+        # if root is sentinel (its black)
+        if self._root == self.NIL:
+            return True
+
         def _inspect(node):
             # base case if leaf - its black by default.
-            if node == self.NIL: return 1
+            if node == self.NIL: 
+                return 1
             # post order traverse
             left = _inspect(node.left)
             right = _inspect(node.right)
             # validate case: if no black nodes found or if the left and right subtrees arent equal - signal violation
-            if left == 0 or right == 0 or left != right:
+            if left != right:
+                # print(f"Violation at node {node.element}: left {left} != right {right}")
                 return 0 # violation
             return left + (1 if node.color == NodeColor.BLACK else 0)
-
-        # if root is sentinel (its black)
-        if self._root == self.NIL:
-            return True
 
         return _inspect(self.root) != 0 
 
@@ -250,40 +322,45 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
     # ----- Mutators -----
     def simple_bst_insert(self, key, value):
         """insert via bst insertion protocol"""
-        # Create a new Node (always colored Red) and sentinels for the children
-        new_node = RedBlackNode(self.datatype, key, value, sentinel=self.NIL, node_colour=NodeColor.RED, tree_owner=self)
-        new_node.left = new_node.right = self.NIL
-
         # initialize variables for traversal
         parent_node = self.NIL
         current_node = self._root
+        # for upsert case -- we need to travel the whole tree to avoid red property violations
+        is_upsert = False 
+        upserted_node = self._root
 
         # traverse Tree
         while current_node != self.NIL:
             parent_node = current_node
-            # if a match is found - update value and return node.
+            # * Upsert Case: if a match is found - update value and return node.
             if key == current_node.key:
                 current_node.element = value
-                return current_node
+                is_upsert = True
+                return current_node, is_upsert
             # if key is smaller - traverse left
-            elif key < current_node.key:
+            if key < current_node.key:
                 current_node = current_node.left
             # if key is larger - traverse right
             else:
                 current_node = current_node.right
 
+        # * Create a new Node (always colored Red) and sentinels for the children
+        new_node = RedBlackNode(self.datatype, key, value, sentinel=self.NIL, node_colour=NodeColor.RED, tree_owner=self)
+        new_node.set_red()
+        new_node.left = new_node.right = self.NIL
         # connect new node to parent (at the end of the tree)
         new_node.parent = parent_node
 
-        # root Case: tree is empty
+        # * root Case: tree is empty
         if parent_node is self.NIL:
             self._root = new_node
+        # * smaller key - insert left child
         elif key < parent_node.key:
             parent_node.left = new_node
+        # * larger key - insert right child
         else:
             parent_node.right = new_node
-        new_node.set_red()
-        return new_node
+        return new_node, is_upsert
 
     def insert(self, key, value) -> iBSTNode[T, K]:
         """
@@ -292,10 +369,11 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         value = TypeSafeElement(value, self.datatype)
         key = Key(key)
         self._utils.check_key_is_same_type(key)
-        new_node = self.simple_bst_insert(key, value)
-        self._utils.repair_red_property(new_node)
-        # print(f"New Node: {new_node.element} [{key}] inserted successfully!")
-        # print(f"Physical Node Count: {self._utils.debug_count_real_nodes(self._root)}")
+        new_node, is_upsert = self.simple_bst_insert(key, value)
+        if not is_upsert:
+            self._utils.repair_red_property(new_node)
+            self._utils.check_red_children_are_black(RedBlackNode)
+            # print(self._utils.debug_insertion_print(new_node))
         return new_node
 
     def replace(self, node, value) -> T:
@@ -315,35 +393,37 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
 
         # save the original color of the target node
         old_value = node.element
-        original_color = node.color
+        old_node = node
+        original_color = old_node.color
+        node.alive = False
+        node.tree_owner = None
+        print(f"\nDeleting: {old_value} [{original_color}]")
 
-        # 1 Child Case:
+        # * 1 Child Case: auto handles 0 child leaf case
         # discover children and replace target node with its child
         if node.left == self.NIL:
             # the node that moved into node’s position (can be NIL)
             replacement = node.right
-            # this replaces the target node
-            self._utils.transplant(node, node.right)
+            self._utils.transplant(node, node.right)  # this replaces the target node
         # same for right child
         elif node.right == self.NIL:
             replacement = node.left
             self._utils.transplant(node, node.left)
 
-        # 2 Child Case:
+        # * 2 Child Case:
         else:
-            # we will swap contents with this node and then delete it. because succ is 1 value less than the target node in the tree it requires minimal cleanup
+            # * initialze successor
             succ = self.successor(node)
             original_color = succ.color
             node.key = succ.key
             node.element = succ.element
-
             # occupies succ original node pos once succ swaps with target node
             replacement = succ.right
-            # Case 1: successor is direct right child of node:
+            # * Case A: successor is direct right child of node:
             # we pre-emptively relink replacement to succ. as succ is about to be replaced
             if succ.parent == node:
-                replacement.parent = succ
-            # Case 2: succ is deeper down in the right subtree:
+                replacement.parent = succ   # replacement parent is now the successor
+            # * Case B: succ is deeper down in the right subtree:
             else:
                 # Step 1: remove successor from old spot
                 self._utils.transplant(succ, succ.right)
@@ -352,18 +432,25 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
                 # Step 3: fix parent pointer
                 succ.right.parent = succ
 
-            # replaces the target node with the successor
+            # * replaces the target node with the successor
             self._utils.transplant(node, succ)
             # relinks original left child to successor
             succ.left = node.left
             # updates parent link of new succ left child
             succ.left.parent = succ
             # inherits the original color from target node
-            succ.color = node.color
+            succ.color = old_node.color
 
-        # if deleted node was black - run repair
+        # * if deleted node was black - run repair black violation
         if original_color == NodeColor.BLACK:
             self._utils.repair_black_property(replacement)
+            print(f"Physical Nodes: {self._utils.debug_count_real_nodes(RedBlackNode)}")
+            print(f"Total Nodes: {len(self)}\n")
+        # assertions & property violation guards:
+        self._utils.check_red_children_are_black(RedBlackNode)
+        assert self._root.color == NodeColor.BLACK, f"The root must always be black after deletion"
+        # self._utils.black_height_debug_print()
+        # assert self.is_black_property, f"Number of Black Nodes for any path must be equal."
         return old_value
 
     # ----- Traversals -----
@@ -382,11 +469,14 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
 
 # Main ----------- Client Facing Code ------------
 
-# todo inserts work - great.
-# todo deletions are getting there but issues with rotations and NIL sentinels. need to do more research.
-# todo most of the code is working.....
-# todo need to polish up the spaghetti code
-
+# todo edit recursive helper methods to use stack based iteration and traversal.
+# todo gpt fucked up - lets make it right.
+# todo repair property checks.
+# todo repair both red and black repair methods.
+# todo build log helpers into their own helper methods.
+# todo resolve upsert red property violation
+# todo lastly - resolve the red and black property violations.
+# todo stress test with 100s of items.
 
 def main():
 
@@ -440,19 +530,19 @@ def main():
     random_keys = [i for i in range(100)]
     key_sample = random.sample(random_keys, 30)
 
-    print(f"\n Testing Insertion: ")
+    print(f"\nTesting Insertion: ")
     for keys, data in zip(key_sample, random_data):
         rb.insert(keys, data)
     print(rb)
-    print(repr(rb))
-    print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
+    # print(repr(rb))
+    # print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
 
     print(f"\nTesting Upsert:")
     keyhhs = [5, 3, 8, 3, 5, 7]
     for k in keyhhs:
         rb.insert(k, f"VALUE {k}")
-    print(rb)
-    print(repr(rb))
+    # print(rb)
+    # print(repr(rb))
 
     print(f"\nTesting Is_empty?: {rb.is_empty()}")
     the_root = rb.root
@@ -466,16 +556,16 @@ def main():
     print(f"Testing Min: {min.element}")
     print(f"Testing successor of Min: {succ_of_min.element}")
     print(f"Testing predecessor of Max: {pred_of_max.element}")
-    print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
+    # print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
 
     print(f"\nTesting replace functionality: replacing {the_root.element}")
-    old_value = rb.replace(the_root, "REPLACED")
+    old_value = rb.replace(the_root, "THE ROOT")
     print(f"replaced: {old_value}. New value={the_root.element}")
 
-    print(f"\nTesting deletion: Total Nodes: {len(rb)}")
-    deleted_root_value = rb.delete(the_root)
-    print(f"Deleted Value: {deleted_root_value}")
-    print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
+    # print(f"\nTesting deletion: Total Nodes: {len(rb)}")
+    # deleted_root_value = rb.delete(the_root)
+    # print(f"Deleted Value: {deleted_root_value}")
+    # print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
     print(rb)
 
     print(f"\nTesting Deletion on a subset of items")
@@ -483,6 +573,7 @@ def main():
     keys_subset = keys_list[:10]
     print(f"items to delete: {len(keys_subset)}")
     print(f"Items: {', '.join([i.element for i in keys_subset])}")
+    print(f"Total Nodes: {len(rb)}")
     for i in keys_subset:
         rb.delete(i)
     print(rb)

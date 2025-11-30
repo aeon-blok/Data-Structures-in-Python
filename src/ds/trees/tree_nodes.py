@@ -481,7 +481,8 @@ class RedBlackNode(BSTNode[T, K], Generic[T, K]):
 class RedBlackSentinel(RedBlackNode):
     """
         Singleton Sentinel Object for Red Black Trees
-        in standard implementations: red-black tree sentinel nodes are mutable.
+        in standard implementations: red-black tree sentinel nodes are mutable. the parent and child pointers specifically
+        color is always black (immutable.)
     """
     _singleton = None
 
@@ -506,6 +507,30 @@ class RedBlackSentinel(RedBlackNode):
 
     # sentinel invariants
 
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
+
+    @property
+    def left(self):
+        return self._left
+
+    @left.setter
+    def left(self, value):
+        self._left = value
+
+    @property
+    def right(self):
+        return self._right
+
+    @right.setter
+    def right(self, value):
+        self._right = value
+
     def __bool__(self):
         return False
 
@@ -528,6 +553,14 @@ class RedBlackSentinel(RedBlackNode):
     @property
     def is_right_child(self) -> bool:
         return self.parent.right == self
+
+    @property
+    def is_black(self) -> bool:
+        return True
+
+    @property
+    def is_red(self) -> bool:
+        return False
 
     def __repr__(self):
         return "NIL"
