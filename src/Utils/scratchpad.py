@@ -78,15 +78,14 @@ from enum import Flag, auto
 # print(newlist)
 
 
-# todo refactor whole package to use custom domain logic types. (via newtype)
-# todo refactor tree nodes to use inheritance.
+# todo fix up hash table reprs.... shouldnt take long
 # todo implement __next__ for generators
-# todo refactor stacks, queues, deques, priority queues, trees to use new key logic.
-# todo refactor representations module - use base class and inherit to reduce code duplication.
-
-
+# todo implement Universal Hashing
+# todo implement cryptographic hashing
+# todo update binary tree 2 child deletion (also avl and rb trees) to actually swap the node and not just the contents.
 # todo Solve problems: balanced parentheses, LRU cache, two-sum problem using hash tables
 # todo trees -- Solve problems: heap sort, k largest elements, lowest common ancestor
 # todo graphs -- Solve: connected components, shortest path, cycle detection
 # todo Implement mini projects like a LRU cache, social network connections, or mini graph algorithms
 # todo need to add recursion guards to the representations to prevent recursive loops with __str__....
+

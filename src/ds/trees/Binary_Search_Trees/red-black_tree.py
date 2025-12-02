@@ -469,13 +469,6 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
 
 # Main ----------- Client Facing Code ------------
 
-# todo edit recursive helper methods to use stack based iteration and traversal.
-# todo gpt fucked up - lets make it right.
-# todo repair property checks.
-# todo repair both red and black repair methods.
-# todo build log helpers into their own helper methods.
-# todo resolve upsert red property violation
-# todo lastly - resolve the red and black property violations.
 # todo stress test with 100s of items.
 
 def main():
@@ -556,16 +549,10 @@ def main():
     print(f"Testing Min: {min.element}")
     print(f"Testing successor of Min: {succ_of_min.element}")
     print(f"Testing predecessor of Max: {pred_of_max.element}")
-    # print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
 
     print(f"\nTesting replace functionality: replacing {the_root.element}")
     old_value = rb.replace(the_root, "THE ROOT")
     print(f"replaced: {old_value}. New value={the_root.element}")
-
-    # print(f"\nTesting deletion: Total Nodes: {len(rb)}")
-    # deleted_root_value = rb.delete(the_root)
-    # print(f"Deleted Value: {deleted_root_value}")
-    # print(f"Inorder Traversal: {[i.element for i in rb.inorder()]}")
     print(rb)
 
     print(f"\nTesting Deletion on a subset of items")

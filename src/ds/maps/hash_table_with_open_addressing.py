@@ -150,7 +150,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self._hashconfig: HashFuncConfig = HashFuncConfig(self.table_capacity)
         self._probeconfig: ProbeFuncConfig = ProbeFuncConfig(self.table_capacity)
 
-        # trackers
+        # region trackers
         self.current_collisions = 0
         self.total_rehashes = 0
         self.total_rehash_time = 0.0
@@ -166,7 +166,9 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self._probe_ratio: PercentageFloat = self.current_probes / self.table_capacity
         self._average_probe_length: float = 0.0
         self.average_probe_limit: float = average_probes_limit
+        # endregion
 
+    # region ratios
     @property
     def collisions_ratio(self) -> PercentageFloat:
         return self.current_collisions / self.table_capacity
@@ -188,8 +190,9 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     @average_probe_length.setter
     def average_probe_length(self, value):
         self._average_probe_length = value
-
-    # stats strings:
+    # endregion
+    
+    # region stats:
     @property
     def table_items(self) -> str:
         return f"{str(', '.join(f'{k}: {v}' for k, v in self.items()))}"
@@ -225,6 +228,8 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     @property
     def rehashes_string(self) -> str:
         return self._utils.rehash_stats_OA_indicator()
+    
+    # endregion
 
     # ----- Utility -----
     def _display_table(self, columns: int = 12, cell_width: int = 15, row_padding: int = 3):
@@ -310,7 +315,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self._utils.check_key_type(key)
         value = TypeSafeElement(value, self.enforce_type)
 
-        # generate hash
+        # * generate hash
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)
         index = hashgen.hash_function()
         second_hash_code = hashgen.create_hash_code()  # outside probing loop
@@ -320,7 +325,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         tombstone_start_index = None
         probe_count = 0
 
-        # Probing Loop:
+        # * Probing Loop:
         while self.table.array[index] is not None:
             probe_count += 1    # adds to probe count on keys and tombstones...
             # tombstone logic
@@ -343,7 +348,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
             # moves to the next index on the table - This is the core of linear probing.
             index = probegen.select_probing_function(self._probing_technique)
 
-            # /Exit Condition: if we get back to where we started with no empty slot - the table is full
+            # Exit Condition: if we get back to where we started with no empty slot - the table is full
             if self._probing_technique == ProbeType.RANDOM:
                 if probe_count >= self.table_capacity:
                     raise DsOverflowError(f"Error: Hash table is full.")
@@ -351,7 +356,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                 if index == start_index:
                     raise DsOverflowError(f"Error: Hash table is full.")
 
-        # Default Condition: Add kv pair to index
+        # * Default Condition: Add kv pair to index
         target_index = tombstone_start_index if tombstone_start_index is not None else index
         # equivalence check: if we replace a tombstone - decrement tombstones counter.
         if self.table.array[target_index] == self.tombstone:
@@ -374,7 +379,11 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Step 4: Default Condition: Update the key value pair & increment size tracker
         """
 
-        # validate inputs
+        # * table rehash conditions - always has to be first so that the key and hash functions are correctly applied.
+        if self._utils.rehash_condition():
+            self._rehash_table()
+
+         # validate inputs
         key = Key(key)
         self._utils.check_key_type(key)
         value = TypeSafeElement(value, self.enforce_type)
@@ -384,15 +393,11 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         index = hashgen.hash_function()
         second_hash_code = hashgen.create_hash_code()   # outside probing loop
 
-        # table rehash conditions
-        if self._utils.rehash_condition():
-            self._rehash_table()
-
         # initialize variables for probing loop
         start_index = index # set start index for probe function
         tombstone_start_index = None
         probe_count = 0  # number of probes until key is found or insertion succeeds
-        # Probing Function: travel through the table - ignoring None and tombstones. (only actual kv pairs)
+        # * Probing Function: travel through the table - ignoring None and tombstones. (only actual kv pairs)
         while self.table.array[index] is not None:
             probe_count += 1    # adds on keys and tombstones
             # logic for tombstone -- only cache the first tombstone index we find...
@@ -424,11 +429,12 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                 if index == start_index:
                     raise DsOverflowError(f"Error: Hash table is full.")
 
-        # Default Condition: Add kv pair to index
+        # * Default Condition: Add kv pair to index
         # defines the index as either the first tombstone that was found, or the current index.
         target_index: int = tombstone_start_index if tombstone_start_index is not None else index
         # equivalence check: if we replace a tombstone - decrement tombstones counter.
-        if self.table.array[target_index] == self.tombstone: self.current_tombstones -= 1
+        if self.table.array[target_index] == self.tombstone: 
+            self.current_tombstones -= 1
         self.table.array[target_index] = (key, value)
         # updates trackers
         self.total_elements += 1
@@ -439,7 +445,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self.total_probe_operations += 1    
 
     def get(self, key, default=None):
-        """retrieves a key value pair from the hash table, with an optional default if the key is not found."""
+        """retrieves the element value from a kv pair from the hash table, with an optional default if the key is not found."""
 
         # validate inputs
         key = Key(key)
@@ -642,17 +648,19 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
 # todo keep on the lookout for the following flaky bugs. (probably solved - tested with 25,000 entries -- hundreds of times.)
 # ! in put raise DsOverflowError(f"Error: Hash table is full.")
-    # ! this happened dude to a bug in random probing, 
-    # !(if the random stepsize was coprime with the knuth constant, it would make an index unreachable.)
+# ! this happened dude to a bug in random probing,
+# !(if the random stepsize was coprime with the knuth constant, it would make an index unreachable.)
+
 # ! Key 59 not found Error: this occurs in remove()
-    # ! seems to happen when close to rehashing. 
-    # ! a potential interplay between the hashcode and the probing loop 
-    # !- moving the 2nd hashcode generated out of the probing loop seems to have fixed it for now.
+# ! seems to happen when close to rehashing.
+# ! a potential interplay between the hashcode and the probing loop
+# !- moving the 2nd hashcode generated out of the probing loop seems to have fixed it for now.
 # todo write proper tests. cover all functionality.
 
 # Main ---- Client Facing Code ------
 def main():
 
+    # region input data
     # ---- inpput data -----
 
     AI = type(
@@ -743,80 +751,89 @@ def main():
     input_values = [*input_data * 5]
     random.shuffle(input_values)
 
+    # endregion
+
+    ht = HashTableOA(str)
+    for i in string_data:
+        key = str(i)
+        ht.put(key, i)
+        print(f"get operation: {ht.get(key)}")
+        print(repr(ht))
+    print(ht)
+
     # --- Initialize Hash Table ---
-    hashtable = HashTableOA(Person, capacity=20, max_load_factor=0.6, probing_technique=ProbeType.DOUBLE_HASH)
-    print("Created hash table:", hashtable)
+    # hashtable = HashTableOA(Person, capacity=20, max_load_factor=0.6, probing_technique=ProbeType.DOUBLE_HASH)
+    # print("Created hash table:", hashtable)
 
-    # testing put() logic
-    print(f"\nTesting Insertion Logic:")
-    for i, key in enumerate(input_values):
-        hashtable.put(f"key_{i}", key)
-        print(repr(hashtable))    # testing __str__
+    # # testing put() logic
+    # print(f"\nTesting Insertion Logic:")
+    # for i, key in enumerate(input_values):
+    #     hashtable.put(f"key_{i}", key)
+    #     print(repr(hashtable))    # testing __str__
 
-    # testing remove logic
-    print(f"\nTesting remove logic:")
-    delete_items = list(hashtable.items())
-    delete_subset = random.sample(delete_items, min(len(delete_items) // 2, 10000))
-    for pair in delete_subset:
-        k,v = pair
-        hashtable.remove(k)
-        print(repr(hashtable))
+    # # testing remove logic
+    # print(f"\nTesting remove logic:")
+    # delete_items = list(hashtable.items())
+    # delete_subset = random.sample(delete_items, min(len(delete_items) // 2, 10000))
+    # for pair in delete_subset:
+    #     k,v = pair
+    #     hashtable.remove(k)
+    #     print(repr(hashtable))
 
-    # testing __getitem & __setitem__
-    items = list(hashtable.items())
-    keys = [k for k in hashtable.keys() if k is not None]
-    subset = random.sample(items, min(5, 10))
-    for i, kv_pair in enumerate(subset):
-        random_key = random.choice(keys)
-        random_key_value = hashtable[random_key]
-        k,v = kv_pair
-        getitem = hashtable[random_key]
-        print(f"Retrieving Item [{random_key}] from Table: Got: [{getitem}]")
-    for k, v in subset:
-        random_value = random.choice(hashtable.values())
-        print(f"Updating Value: {hashtable[k]} with new value {random_value}...")
-        hashtable[k] = random_value
-        print(f"Expected: {random_value} Got: {hashtable[k]}")
+    # # testing __getitem & __setitem__
+    # items = list(hashtable.items())
+    # keys = [k for k in hashtable.keys() if k is not None]
+    # subset = random.sample(items, min(5, 10))
+    # for i, kv_pair in enumerate(subset):
+    #     random_key = random.choice(keys)
+    #     random_key_value = hashtable[random_key]
+    #     k,v = kv_pair
+    #     getitem = hashtable[random_key]
+    #     print(f"Retrieving Item [{random_key}] from Table: Got: [{getitem}]")
+    # for k, v in subset:
+    #     random_value = random.choice(hashtable.values())
+    #     print(f"Updating Value: {hashtable[k]} with new value {random_value}...")
+    #     hashtable[k] = random_value
+    #     print(f"Expected: {random_value} Got: {hashtable[k]}")
 
-    
-    print(f"\nSorting Keys and playing around....")
-    keys = hashtable.keys()
-    sorted_keys = sorted(keys)
-    print(sorted_keys)
-    print(f"getting max key. {max(keys)}")
-    print(f"getting min key. {min(keys)}")
+    # print(f"\nSorting Keys and playing around....")
+    # keys = hashtable.keys()
+    # sorted_keys = sorted(keys)
+    # print(sorted_keys)
+    # print(f"getting max key. {max(keys)}")
+    # print(f"getting min key. {min(keys)}")
 
-    # test type safety:
-    try:
-        print(f"\nTesting Invalid type input: {wrong_type}")
-        hashtable.put("wrong_type", wrong_type)
-    except Exception as e:
-        print(f"{e}")
+    # # test type safety:
+    # try:
+    #     print(f"\nTesting Invalid type input: {wrong_type}")
+    #     hashtable.put("wrong_type", wrong_type)
+    # except Exception as e:
+    #     print(f"{e}")
 
-    # test __contains__
-    print(f"\nCheck if Invalid Type: {wrong_type}: Exists in the table currently?\nExpected: False, Got: {hashtable.__contains__('wrong_type')}\n")
+    # # test __contains__
+    # print(f"\nCheck if Invalid Type: {wrong_type}: Exists in the table currently?\nExpected: False, Got: {hashtable.__contains__('wrong_type')}\n")
 
-    # testing put() logic -- reinserting to test out tombstones.....
-    new_items = list(hashtable.items())
-    random.shuffle(new_items)
-    subset = random.sample(new_items, min(80, len(items) // 4))
-    for i, pair in enumerate(subset):
-        k,v = pair
-        hashtable.put(f"newkey_{k}_{i}", v)
-        print(repr(hashtable))
+    # # testing put() logic -- reinserting to test out tombstones.....
+    # new_items = list(hashtable.items())
+    # random.shuffle(new_items)
+    # subset = random.sample(new_items, min(80, len(items) // 4))
+    # for i, pair in enumerate(subset):
+    #     k,v = pair
+    #     hashtable.put(f"newkey_{k}_{i}", v)
+    #     print(repr(hashtable))
 
-    # test __len__
-    print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
+    # # test __len__
+    # print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
 
-    # display table
-    hashtable._display_table()
-    print(repr(hashtable))
+    # # display table
+    # hashtable._display_table()
+    # print(repr(hashtable))
 
-    # test clear()
-    print(f"Clearing Table: ")
-    hashtable.clear()
-    print(repr(hashtable))
-    print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
+    # # test clear()
+    # print(f"Clearing Table: ")
+    # hashtable.clear()
+    # print(repr(hashtable))
+    # print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
 
 
 if __name__ == "__main__":

@@ -52,6 +52,14 @@ class ValidDatatype:
             raise DsTypeError("Error: Datatype must be a valid Python Type object.")
         return value
 
+class PositiveNumber(int):
+    def __new__(cls, number: int):
+        if number is None:
+            raise DsInputValueError("Error: Index must not be None")
+        if number < 0:
+            raise DsInputValueError("Error: Number cannot be negative.")
+        return number
+
 class ValidIndex(int):
     """validate index number, ensure that it is positive number and in range of the capacity for the data structure."""
     def __new__(cls, index: int, capacity: int, array_insert: bool = False):
@@ -73,12 +81,6 @@ class TypeSafeElement:
         if not isinstance(value, datatype):
             raise DsTypeError(f"Error: Invalid Type: Expected: [{datatype.__name__}] Got: [{type(value).__name__}]")
         return value
-
-
-
-
-
-
 
 
 # old protocol implementation

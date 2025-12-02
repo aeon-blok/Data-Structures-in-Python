@@ -31,7 +31,7 @@ from pprint import pprint
 # region custom imports
 from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr
+from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr, AncestorNodeRepr
 from utils.exceptions import *
 
 from adts.collection_adt import CollectionADT
@@ -49,7 +49,7 @@ from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.trees.tree_utils import TreeNodeUtils
 
-from user_defined_types.generic_types import ValidDatatype, TypeSafeElement
+from user_defined_types.generic_types import ValidDatatype, TypeSafeElement, PositiveNumber
 from user_defined_types.key_types import iKey, Key
 from user_defined_types.tree_types import NodeColor
 # endregion
@@ -98,7 +98,6 @@ class BaseTreeNode(Generic[T]):
     @parent.setter
     def parent(self, value):
         self._parent = value
-
 
 class TNode(BaseTreeNode[T], iTNode[T], Generic[T]):
     """Node for general tree implementaiton"""
@@ -190,7 +189,6 @@ class TNode(BaseTreeNode[T], iTNode[T], Generic[T]):
         """returns True if the node has children nodes."""
         return len(self._children) > 0
 
-
 class BinaryNode(BaseTreeNode[T], iBNode[T], Generic[T]):
     """Node for a Basic Binary Tree"""
     def __init__(self, datatype, element, tree_owner=None) -> None:
@@ -256,7 +254,6 @@ class BinaryNode(BaseTreeNode[T], iBNode[T], Generic[T]):
 
     def is_internal(self) -> bool:
         return self.num_children() > 0
-
 
 class BSTNode(BaseTreeNode[T], iBSTNode[T, K], Generic[T, K]):
     """Node for a Basic Binary Tree"""
@@ -333,7 +330,6 @@ class BSTNode(BaseTreeNode[T], iBSTNode[T, K], Generic[T, K]):
     def is_internal(self) -> bool:
         return self.num_children() > 0
 
-
 class AvlNode(BSTNode[T, K], Generic[T, K]):
     """Node for AVL trees - inherits from BST Node."""
     def __init__(self, datatype: type, key: K, element: T, tree_owner=None) -> None:
@@ -376,7 +372,6 @@ class AvlNode(BSTNode[T, K], Generic[T, K]):
 
     def __repr__(self) -> str:
         return self._avldesc.repr_avl_node()
-
 
 class RedBlackNode(BSTNode[T, K], Generic[T, K]):
 
@@ -564,6 +559,51 @@ class RedBlackSentinel(RedBlackNode):
 
     def __repr__(self):
         return "NIL"
+
+class AncestorRankNode(Generic[T]):
+    """
+    A Parent Pointer Node Used in Disjoint Set Forests. 
+    Its not possible to access children via an Ancestor node, just the parent.
+    These Nodes are used in Implicit tree structures. so there is no tree object that controls their behaviour. They are just linked together in a tree like form.
+    rank describes the estimated upper height of the implicit tree.
+    """
+
+    def __init__(self, datatype: type, element: T) -> None:
+        self._datatype = ValidDatatype(datatype)
+        self._element = TypeSafeElement(element, self.datatype)
+        self._parent: "AncestorRankNode[T]" = self  # root nodes parent point to itself.
+        self._rank: int = PositiveNumber(0) # used for union by rank.
+        self._desc: AncestorNodeRepr = AncestorNodeRepr(self)
+
+    @property
+    def datatype(self):
+        return self._datatype
+
+    @property
+    def element(self) -> T:
+        return self._element
+
+    @property
+    def parent(self) -> "AncestorRankNode[T]":
+        return self._parent
+
+    @parent.setter
+    def parent(self, node: "AncestorRankNode[T]"):
+        self._parent = node
+
+    @property
+    def rank(self) -> int:
+        return self._rank
+
+    @property
+    def increment_rank(self) -> None:
+        self._rank += 1
+
+    def __str__(self) -> str:
+        return self._desc.str_ancestor_node()
+    
+    def __repr__(self) -> str:
+        return self._desc.repr_ancestor_node()
 
 
 # -------------- Testing Node Solo Functionality -----------------

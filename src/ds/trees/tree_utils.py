@@ -769,7 +769,6 @@ class TreeUtils:
         x.right = y
         y.parent = x # relink new child to parent 
 
-
     def debug_insertion_print(self, node):
         """debug string for insert logic."""
 
@@ -1259,6 +1258,36 @@ class TreeUtils:
             yield current_node
             # move to the right subtree.
             current_node = current_node.right
+
+
+    # endregion
+
+
+
+    # region Disjoint Set
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+
 
 
     # endregion

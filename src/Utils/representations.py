@@ -714,11 +714,15 @@ class BinaryHeapRepr(BaseRepr):
 # region Maps
 class OAHashTableRepr(BaseRepr):
 
+    @property
+    def datatype(self):
+        return f"[{self.obj.datatype_string}]"
+
     def str_oa_hashtable(self):
         return f"{self.ds_class}{self.obj.capacity_string}: {self.obj.table_items}"
 
     def repr_oa_hashtable(self):
-        stats = f"{self.ds_memory_address}{self.ds_datatype}{self.obj.capacity_string}[{self.obj.loadfactor_string}, {self.obj.probes_string}, {self.obj.tombstone_string}, {self.obj.total_collisions_string}, {self.obj.rehashes_string}, {self.obj.avg_probes_string}]"
+        stats = f"{self.ds_memory_address}{self.datatype}{self.obj.capacity_string}[{self.obj.loadfactor_string}, {self.obj.probes_string}, {self.obj.tombstone_string}, {self.obj.total_collisions_string}, {self.obj.rehashes_string}, {self.obj.avg_probes_string}]"
         return stats
 
 class ChainHashTableRepr(BaseRepr):
@@ -1246,4 +1250,49 @@ class RedBlackTreeRepr(BSTRepr):
 # endregion
 
 
+# region Disjoint Set
+
+class AncestorNodeRepr(BaseRepr):
+    """representation for Parent Pointer Tree node. also known as ancestor node"""
+
+    @property
+    def rank(self) -> str:
+        rank = self.obj.rank
+        return f"[rank={rank}]"
+
+    @property
+    def parent(self) -> str:
+        parent = self.obj.parent.element
+        return f"[parent={parent}]"
+
+    @property
+    def element(self) -> str:
+        element = self.obj.element
+        return f"[element={element}]"
+    
+    def str_ancestor_node(self):
+        return f"{self.obj.element}"
+
+    def repr_ancestor_node(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.element}{self.rank}{self.parent}"
+
+class DisjointSetForestRepr(BaseRepr):
+    """representation of Disjoint set Forest Datat Structure"""
+
+    @property
+    def total_sets(self) -> str:
+        sets = self.obj.set_count()
+        return f"[total sets={sets}]"
+
+    @property
+    def reps(self) -> str:
+        return f"[representatives={', '.join(f'{i.element}[r={i.rank}]' for i in self.obj.representatives)}]"
+
+    def str_disjoint_set_forest(self):
+        return f"{self.ds_class}{self.reps}"
+
+    def repr_disjoint_set_forest(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_sets}"
+
+   
 # Graphs
