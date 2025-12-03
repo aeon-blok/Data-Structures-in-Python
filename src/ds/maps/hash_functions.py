@@ -75,6 +75,11 @@ class HashFuncConfig:
     mad_prime: int = field(init=False)  # used for MAD compression. 
     mad_scale: int = field(init=False)  # field is used to delay init until the attributes are computed
     mad_shift: int = field(init=False)
+    # Universal Hashing
+    universal_prime: int = field(init=False)
+    universal_scale: int = field(init=False) # a must never be 0, Stretches and mixes the hash code before modulo.
+    universal_shift: int = field(init=False)
+  
 
     def __post_init__(self):
         """needed for computed attributes"""
@@ -90,6 +95,13 @@ class HashFuncConfig:
         # must be smaller than prime attribute. (and cannot be a cofactor so cannot be 1)
         self.mad_scale = random.randint(2, self.mad_prime - 1)
         self.mad_shift = random.randint(2, self.mad_prime - 1)
+
+        # Universal Hashing parameters -- # Re-randomize a,b only on resize, Use same a,b for all probes (critical for OA probing consistency)
+        self.universal_prime = self._hash_utils.find_next_prime_number(self.table_capacity * 1000)
+        self.universal_scale = random.randint(1, self.universal_prime - 1)  # a must never be 0
+        self.universal_shift = random.randint(0, self.universal_prime - 1) 
+
+
 
 class HashFuncGen():
     """
@@ -121,6 +133,8 @@ class HashFuncGen():
             return CompressFunctionsLib.mad_compression_function(hash_code, self._config.mad_scale, self._config.mad_shift, self._config.mad_prime, self._config.table_capacity)
         elif self._compress_func == CompressFuncType.KMOD:
             return CompressFunctionsLib.k_mod_compression_function(hash_code, self._config.table_capacity)
+        elif self._compress_func == CompressFuncType.UNIVERSAL:
+            return CompressFunctionsLib.universal_hashing_function(hash_code, self._config.universal_prime, self._config.universal_scale, self._config.universal_shift, self._config.table_capacity)
         else:
             raise KeyInvalidError("Error: Invalid Hash Code Type input. Check Enum Library for Valid Hash Code Types")
 
@@ -213,4 +227,15 @@ class CompressFunctionsLib:
         index = divide % table_capacity  # finally mod by table capacity
         return index
 
-    
+    @staticmethod
+    def universal_hashing_function(hash_code, prime, scale, shift, table_capacity):
+        """
+        Universal Hashing Compression Function for use with Chaining Hash Tables, Probe-safe (as long as a,b stay fixed between resizes)
+        for Optimal Distribution and High resilience to Adversarial DDOS attacks
+        h(x) = ((a*x + b) mod p) mod m
+        This is the strongest non-cryptographic hashing guarantee that exists (Carter–Wegman). (1 collision guaranteed per entry ever.)
+        prime should be 1000 x your table size minimum.
+        **Warning** this function is not probe safe!
+        """
+        # ! This Function is not safe for probing as is. needs to be modified. (in probe function library.)
+        return ((scale * hash_code + shift) % prime) % table_capacity

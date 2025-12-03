@@ -63,12 +63,40 @@ class ProbeFuncConfig:
     knuth_multiplicative_constant = 2654435761
     bit_size = 2**32
 
+    # second universal hash - for use with universal double hashing. (its the step size hash)
+    uni_second_scale: int = field(init=False)
+    uni_second_shift: int = field(init=False)
+    uni_second_prime: int = field(init=False)
+
     def __post_init__(self):
         """needed for computed attributes"""
-    
+
+    @staticmethod
+    def _is_prime_number(number: int):
+        """Boolean Check if number is a prime."""
+        if number < 2:
+            return False
+        for i in range(2, int(math.isqrt(number)) + 1):
+            if number % i == 0:
+                return False
+        return True
+
+    @staticmethod
+    def find_next_prime_number(table_capacity: int):
+        """Finds the next prime number larger than the current table capacity."""
+        candidate = table_capacity + 1
+        while True:
+            if ProbeFuncConfig._is_prime_number(candidate):
+                return candidate
+            candidate += 1
+
     def recompute(self, new_capacity):
         """recomputes the table capacity"""
         self.table_capacity = new_capacity
+        # pick a prime larger than table_capacity (e.g., next prime > capacity * 1000)
+        self.uni_second_prime = ProbeFuncConfig.find_next_prime_number(self.table_capacity * 1000)
+        self.uni_second_scale = random.randint(1, self.uni_second_prime - 1)
+        self.uni_second_shift = random.randint(0, self.uni_second_prime - 1)
 
 
 class ProbeFuncGen:
@@ -78,7 +106,6 @@ class ProbeFuncGen:
         self._probe_count = probe_count
         # should be generated from the same key. 
         self._second_hash_code = second_hash_code
-
         # composed objects
         self._config = config
 
@@ -91,6 +118,9 @@ class ProbeFuncGen:
         elif probe == ProbeType.DOUBLE_HASH:
             step_size_index = ProbeFuncLib.doublehash_stepsize_compress_func(self._second_hash_code, self._config.table_capacity)
             return ProbeFuncLib.double_hashing(self._start_index, step_size_index, self._probe_count, self._config.table_capacity)
+        elif probe == ProbeType.DOUBLE_UNIVERSAL:
+            step_size_index = ProbeFuncLib.universal_step_hash_func(self._second_hash_code, self._config.uni_second_scale, self._config.uni_second_shift, self._config.uni_second_prime, self._config.table_capacity)
+            return ProbeFuncLib. double_hashing(self._start_index, step_size_index, self._probe_count, self._config.table_capacity)
         elif probe == ProbeType.PERTURBATION:
             return ProbeFuncLib.pertubation_probing(self._start_index, self._config.perturb_step_modifier, self._config.peturb_shift, self._probe_count, self._config.table_capacity)
         elif probe == ProbeType.RANDOM:
@@ -102,10 +132,15 @@ class ProbeFuncLib:
     """A collection of probe functions for Open Addressing Hash Tables"""
     # ----- Compress Function -----
     @staticmethod
+    def universal_step_hash_func(hash_code: HashCode, scale: int, shift: int, prime: int, table_capacity: int):
+        """universal step size hash function for use with universal double hashing"""
+        return 1 + ((scale * hash_code + shift) % prime) % (table_capacity -1)
+
+    @staticmethod
     def doublehash_stepsize_compress_func(hash_code: HashCode, table_capacity: int) -> int:
         """creates a simple second hash function for step size for double hashing"""
         return 1 + (hash_code % (table_capacity - 1))
-
+    
     # ----- Probing Function -----
     @staticmethod
     def linear_probing_function(start_index: Index, probe_count, table_capacity) -> Index:

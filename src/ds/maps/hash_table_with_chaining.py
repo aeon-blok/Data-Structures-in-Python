@@ -64,7 +64,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         datatype: type,
         table_capacity: int = DEFAULT_HASHTABLE_CAPACITY,
         hash_code: HashCodeType = HashCodeType.CYCLIC_SHIFT,
-        compress_func: CompressFuncType = CompressFuncType.MAD,
+        compress_func: CompressFuncType = CompressFuncType.UNIVERSAL,
         max_load_factor: LoadFactor = NormalizedFloat(MAX_LOAD_FACTOR),
         resize_factor: int = HASHTABLE_RESIZE_FACTOR,
     ) -> None:
@@ -734,7 +734,7 @@ def main():
     # ------------- Utilize Test Suite -----------------
     # actual stress test list.
     normal_num_of_items = 100
-    stress_number_of_items = 10
+    stress_number_of_items = 100
     test = StressTestHashTable(preset_dynamic_objects, stress_number_of_items, Person, table_size=stress_number_of_items // 6)
     test.stress_test()
 

@@ -138,7 +138,6 @@ class DisjointSetForest(DisjointSetADT[T], CollectionADT[T]):
                 parent_child_index.put(parent_key, children_stack)
         return parent_child_index
 
-
     def get_members(self, representative: T) -> Optional[ArrayStack[AncestorRankNode[T]]]:
         """
         retrieves all the member NODES from a representative and returns a stack of them... 

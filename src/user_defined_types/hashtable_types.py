@@ -56,6 +56,7 @@ class ProbeType(StrEnum):
     DOUBLE_HASH = "doublehash"
     PERTURBATION = "perturbation"
     RANDOM = "random"
+    DOUBLE_UNIVERSAL = "doubleuniversal"
 
 class HashCodeType(StrEnum):
     """Types for Hash Codes in one centralized place"""
@@ -67,6 +68,7 @@ class CompressFuncType(StrEnum):
     """Compression Function Types"""
     MAD = "mad"
     KMOD = "kmod"
+    UNIVERSAL = "universal"
 
 class Tombstone:
     """Tombstone Marker Class"""

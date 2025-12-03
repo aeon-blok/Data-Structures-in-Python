@@ -109,7 +109,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         probes_threshold: PercentageFloat = NormalizedFloat(PROBES_THRESHOLD),
         tombstones_threshold: PercentageFloat = NormalizedFloat(TOMBSTONES_THRESHOLD),
         average_probes_limit: float = AVERAGE_PROBES_LIMIT,
-        probing_technique: ProbeType = ProbeType.DOUBLE_HASH,
+        probing_technique: ProbeType = ProbeType.DOUBLE_UNIVERSAL,
         hash_code: HashCodeType = HashCodeType.CYCLIC_SHIFT,
         compress_func: CompressFuncType = CompressFuncType.MAD,
     ):
@@ -748,92 +748,92 @@ def main():
 
     input_data = preset_dynamic_objects
 
-    input_values = [*input_data * 5]
+    input_values = [*string_data * 10]
     random.shuffle(input_values)
 
     # endregion
 
-    ht = HashTableOA(str)
-    for i in string_data:
-        key = str(i)
-        ht.put(key, i)
-        print(f"get operation: {ht.get(key)}")
-        print(repr(ht))
-    print(ht)
+    # ht = HashTableOA(str)
+    # for i in string_data:
+    #     key = str(i)
+    #     ht.put(key, i)
+    #     print(f"get operation: {ht.get(key)}")
+    #     print(repr(ht))
+    # print(ht)
 
-    # --- Initialize Hash Table ---
-    # hashtable = HashTableOA(Person, capacity=20, max_load_factor=0.6, probing_technique=ProbeType.DOUBLE_HASH)
-    # print("Created hash table:", hashtable)
+    # -- Initialize Hash Table ---
+    hashtable = HashTableOA(str, capacity=20, max_load_factor=0.6, probing_technique=ProbeType.DOUBLE_HASH)
+    print("Created hash table:", hashtable)
 
-    # # testing put() logic
-    # print(f"\nTesting Insertion Logic:")
-    # for i, key in enumerate(input_values):
-    #     hashtable.put(f"key_{i}", key)
-    #     print(repr(hashtable))    # testing __str__
+    # testing put() logic
+    print(f"\nTesting Insertion Logic:")
+    for i, key in enumerate(input_values):
+        hashtable.put(f"key_{i}", key)
+        print(repr(hashtable))    # testing __str__
 
-    # # testing remove logic
-    # print(f"\nTesting remove logic:")
-    # delete_items = list(hashtable.items())
-    # delete_subset = random.sample(delete_items, min(len(delete_items) // 2, 10000))
-    # for pair in delete_subset:
-    #     k,v = pair
-    #     hashtable.remove(k)
-    #     print(repr(hashtable))
+    # testing remove logic
+    print(f"\nTesting remove logic:")
+    delete_items = list(hashtable.items())
+    delete_subset = random.sample(delete_items, min(len(delete_items) // 2, 10000))
+    for pair in delete_subset:
+        k,v = pair
+        hashtable.remove(k)
+        print(repr(hashtable))
 
-    # # testing __getitem & __setitem__
-    # items = list(hashtable.items())
-    # keys = [k for k in hashtable.keys() if k is not None]
-    # subset = random.sample(items, min(5, 10))
-    # for i, kv_pair in enumerate(subset):
-    #     random_key = random.choice(keys)
-    #     random_key_value = hashtable[random_key]
-    #     k,v = kv_pair
-    #     getitem = hashtable[random_key]
-    #     print(f"Retrieving Item [{random_key}] from Table: Got: [{getitem}]")
-    # for k, v in subset:
-    #     random_value = random.choice(hashtable.values())
-    #     print(f"Updating Value: {hashtable[k]} with new value {random_value}...")
-    #     hashtable[k] = random_value
-    #     print(f"Expected: {random_value} Got: {hashtable[k]}")
+    # testing __getitem & __setitem__
+    items = list(hashtable.items())
+    keys = [k for k in hashtable.keys() if k is not None]
+    subset = random.sample(items, min(5, 10))
+    for i, kv_pair in enumerate(subset):
+        random_key = random.choice(keys)
+        random_key_value = hashtable[random_key]
+        k,v = kv_pair
+        getitem = hashtable[random_key]
+        print(f"Retrieving Item [{random_key}] from Table: Got: [{getitem}]")
+    for k, v in subset:
+        random_value = random.choice(hashtable.values())
+        print(f"Updating Value: {hashtable[k]} with new value {random_value}...")
+        hashtable[k] = random_value
+        print(f"Expected: {random_value} Got: {hashtable[k]}")
 
-    # print(f"\nSorting Keys and playing around....")
-    # keys = hashtable.keys()
-    # sorted_keys = sorted(keys)
+    print(f"\nSorting Keys and playing around....")
+    keys = hashtable.keys()
+    sorted_keys = sorted(keys)
     # print(sorted_keys)
-    # print(f"getting max key. {max(keys)}")
-    # print(f"getting min key. {min(keys)}")
+    print(f"getting max key. {max(keys)}")
+    print(f"getting min key. {min(keys)}")
 
-    # # test type safety:
-    # try:
-    #     print(f"\nTesting Invalid type input: {wrong_type}")
-    #     hashtable.put("wrong_type", wrong_type)
-    # except Exception as e:
-    #     print(f"{e}")
+    # test type safety:
+    try:
+        print(f"\nTesting Invalid type input: {wrong_type}")
+        hashtable.put("wrong_type", wrong_type)
+    except Exception as e:
+        print(f"{e}")
 
-    # # test __contains__
-    # print(f"\nCheck if Invalid Type: {wrong_type}: Exists in the table currently?\nExpected: False, Got: {hashtable.__contains__('wrong_type')}\n")
+    # test __contains__
+    print(f"\nCheck if Invalid Type: {wrong_type}: Exists in the table currently?\nExpected: False, Got: {hashtable.__contains__('wrong_type')}\n")
 
-    # # testing put() logic -- reinserting to test out tombstones.....
-    # new_items = list(hashtable.items())
-    # random.shuffle(new_items)
-    # subset = random.sample(new_items, min(80, len(items) // 4))
-    # for i, pair in enumerate(subset):
-    #     k,v = pair
-    #     hashtable.put(f"newkey_{k}_{i}", v)
-    #     print(repr(hashtable))
+    # testing put() logic -- reinserting to test out tombstones.....
+    new_items = list(hashtable.items())
+    random.shuffle(new_items)
+    subset = random.sample(new_items, min(80, len(items) // 4))
+    for i, pair in enumerate(subset):
+        k,v = pair
+        hashtable.put(f"newkey_{k}_{i}", v)
+        print(repr(hashtable))
 
-    # # test __len__
-    # print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
+    # test __len__
+    print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
 
-    # # display table
-    # hashtable._display_table()
-    # print(repr(hashtable))
+    # display table
+    hashtable._display_table()
+    print(repr(hashtable))
 
-    # # test clear()
-    # print(f"Clearing Table: ")
-    # hashtable.clear()
-    # print(repr(hashtable))
-    # print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
+    # test clear()
+    print(f"Clearing Table: ")
+    hashtable.clear()
+    print(repr(hashtable))
+    print(f"Total Elements in Hash Table Currently: {len(hashtable)}")
 
 
 if __name__ == "__main__":
