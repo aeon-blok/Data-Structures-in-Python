@@ -1,11 +1,18 @@
 import _collections_abc
 from collections import Counter, deque
+from _collections_abc import MutableSet
 import heapq
 from ctypes import string_at
 from sys import getsizeof
 from binascii import hexlify
 import enum
 from enum import Flag, auto
+
+
+
+
+
+
 
 
 # # The underscores _ are just for readability, they are ignored by Python.
@@ -78,10 +85,7 @@ from enum import Flag, auto
 # print(newlist)
 
 
-# todo fix up hash table reprs.... shouldnt take long
 # todo implement __next__ for generators
-# todo implement Universal Hashing
-# todo implement cryptographic hashing
 # todo update binary tree 2 child deletion (also avl and rb trees) to actually swap the node and not just the contents.
 # todo Solve problems: balanced parentheses, LRU cache, two-sum problem using hash tables
 # todo trees -- Solve problems: heap sort, k largest elements, lowest common ancestor

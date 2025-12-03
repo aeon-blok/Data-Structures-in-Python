@@ -70,6 +70,7 @@ class ProbeFuncConfig:
 
     def __post_init__(self):
         """needed for computed attributes"""
+        self.recompute(self.table_capacity)
 
     @staticmethod
     def _is_prime_number(number: int):

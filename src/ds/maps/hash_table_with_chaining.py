@@ -63,8 +63,8 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         self,
         datatype: type,
         table_capacity: int = DEFAULT_HASHTABLE_CAPACITY,
-        hash_code: HashCodeType = HashCodeType.CYCLIC_SHIFT,
-        compress_func: CompressFuncType = CompressFuncType.UNIVERSAL,
+        hash_code: HashCodeType = HashCodeType.SHA256,
+        compress_func: CompressFuncType = CompressFuncType.SHA256,
         max_load_factor: LoadFactor = NormalizedFloat(MAX_LOAD_FACTOR),
         resize_factor: int = HASHTABLE_RESIZE_FACTOR,
     ) -> None:
@@ -276,14 +276,13 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         Step 4: Increment size tracker
         Step 5: Check load factor → call _rehash_table if exceeded.
         """
-        key = Key(key)
-        self._utils.check_key_type(key)  # ensures the input matches table key type.
-
-        value = TypeSafeElement(value, self.datatype)
-
-        # rehash table if exceed max load factor (+1 for future insertion)
+        # rehash table if exceed max load factor (+1 for future insertion) -- needs to be first.
         if (self.total_elements + 1) / self.table_capacity > self.max_load_factor:
             self._rehash_table()
+
+        key = Key(key)
+        self._utils.check_key_type(key)  # ensures the input matches table key type.
+        value = TypeSafeElement(value, self.datatype)
 
         # collect index via hash function
         hashgen = HashFuncGen(key, self._hashconfig, self._hash_code, self._compress_func)

@@ -742,6 +742,27 @@ class ChainHashTableRepr(BaseRepr):
 
 # endregion
 
+# region sets
+
+class HashSetRepr(BaseRepr):
+
+    @property
+    def total_elements(self) -> str:
+        return f"[{len(self.obj)}]"
+
+    @property
+    def elements(self) -> str:
+        return f"{{{f', '.join(str(i) for i in self.obj)}}}"
+
+    def str_hashset(self):
+        return f"{self.ds_class}{self.elements}"
+
+    def repr_hashset(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_elements}"
+
+
+# endregion
+
 
 # Trees
 class TreeNodeRepr(BaseRepr):
@@ -1294,5 +1315,5 @@ class DisjointSetForestRepr(BaseRepr):
     def repr_disjoint_set_forest(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_sets}"
 
-   
+
 # Graphs

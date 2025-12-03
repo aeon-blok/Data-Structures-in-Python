@@ -20,9 +20,9 @@ import numpy
 import ctypes
 import random
 from collections.abc import Sequence
-import math
 from dataclasses import dataclass, field
 import random
+import os, hashlib, math, itertools
 
 # endregion
 
@@ -65,16 +65,28 @@ If you create new hash code generators, or new compression functions, you will h
 @dataclass
 class HashFuncConfig:
     """Configuration Class for HashFuncGen Strategy Class. -- Stores all the necessary attributes for the various methods to operate."""
+    
     table_capacity: int # size of the hashtable capacity.
+
+    # Salt for hash functions
+    salt: bytes = field(init=False)
+    salt_int: int = field(init=False)
+
+    # PRF secret key
+    prf_secret_key: bytes = field(init=False)
+
     # polynomial hash code
     polynomial_prime_weighting: int = 33 # small prime number: commonly 33, 37, 39, 41
+    
     # cyclic shift hash code
     cyclic_bit_mask: BitMask = BitMask(2**64-1)  # This creates a 64-bit mask
     cyclic_shift_amount: int = 7    # used for cyclic shift hash code, shifts the bits by this much
+    
     # MAD compress function
     mad_prime: int = field(init=False)  # used for MAD compression. 
     mad_scale: int = field(init=False)  # field is used to delay init until the attributes are computed
     mad_shift: int = field(init=False)
+    
     # Universal Hashing
     universal_prime: int = field(init=False)
     universal_scale: int = field(init=False) # a must never be 0, Stretches and mixes the hash code before modulo.
@@ -90,6 +102,14 @@ class HashFuncConfig:
         """recalculates the MAD Compression attributes (prime, scale, shift - based on the new table capacity)"""
         if new_capacity is not None: self.table_capacity = new_capacity
         else: self.table_capacity = max(MIN_HASHTABLE_CAPACITY, self.table_capacity)
+
+        # prf secret key:
+        self.prf_secret_key: bytes = os.urandom(16)
+
+        # salt for hash functions
+        self.salt: bytes = os.urandom(16)  # new salt
+        self.salt_int: int = int.from_bytes(self.salt, "big") # convert bytes salt to integer
+        
         # MAD Compress Function - fixed after initialization (until table rehashing)
         self.mad_prime = self._hash_utils.find_next_prime_number(self.table_capacity)  # just slightly above table size.
         # must be smaller than prime attribute. (and cannot be a cofactor so cannot be 1)
@@ -100,7 +120,6 @@ class HashFuncConfig:
         self.universal_prime = self._hash_utils.find_next_prime_number(self.table_capacity * 1000)
         self.universal_scale = random.randint(1, self.universal_prime - 1)  # a must never be 0
         self.universal_shift = random.randint(0, self.universal_prime - 1) 
-
 
 
 class HashFuncGen():
@@ -123,6 +142,10 @@ class HashFuncGen():
             return HashCodesLib.cyclic_shift_hash_code(self._key, self._config.cyclic_shift_amount, self._config.cyclic_bit_mask)
         elif self._hash_code == HashCodeType.POLYCYCLIC:
             return HashCodesLib.cyclic_polynomial_combo_hash_code(self._key, self._config.cyclic_shift_amount, self._config.cyclic_bit_mask)
+        elif self._hash_code == HashCodeType.SHA256:
+            return HashCodesLib.sha_256_hash_code(self._key, self._config.salt)
+        elif self._hash_code == HashCodeType.BLAKE2B:
+            return HashCodesLib.keyed_prf_blake2b(self._config.prf_secret_key, self._key)
         else:
             raise KeyInvalidError("Error: Invalid Hash Code Type input. Check Enum Library for Valid Hash Code Types")
 
@@ -132,9 +155,11 @@ class HashFuncGen():
         if self._compress_func == CompressFuncType.MAD:
             return CompressFunctionsLib.mad_compression_function(hash_code, self._config.mad_scale, self._config.mad_shift, self._config.mad_prime, self._config.table_capacity)
         elif self._compress_func == CompressFuncType.KMOD:
-            return CompressFunctionsLib.k_mod_compression_function(hash_code, self._config.table_capacity)
+            return CompressFunctionsLib.k_mod_compression_function(hash_code,self._config.salt, self._config.table_capacity)
         elif self._compress_func == CompressFuncType.UNIVERSAL:
             return CompressFunctionsLib.universal_hashing_function(hash_code, self._config.universal_prime, self._config.universal_scale, self._config.universal_shift, self._config.table_capacity)
+        elif self._compress_func == CompressFuncType.SHA256:
+            return CompressFunctionsLib.sha_256_compress_function(hash_code, self._config.table_capacity)
         else:
             raise KeyInvalidError("Error: Invalid Hash Code Type input. Check Enum Library for Valid Hash Code Types")
 
@@ -160,6 +185,25 @@ class HashFuncUtils:
             if HashFuncUtils._is_prime_number(candidate):
                 return candidate
             candidate += 1
+
+    @staticmethod
+    def convert_to_bytes(input) -> bytes:
+        """
+        Serialize common Python types to bytes deterministically.
+        SHA-256 only accepts bytes. this function is necessary to guarantee derministic output for cryptographic hashing
+        """
+        if isinstance(input, bytes):
+            return input
+        if isinstance(input, str):
+            return input.encode("utf-8")
+        if isinstance(input, int):
+            # big-endian variable-length integer serialization
+            if input == 0:
+                return b"\x00"
+            length = (input.bit_length() + 7) // 8
+            return input.to_bytes(length, "big", signed=False)
+        # fallback: use repr (deterministic for builtins)
+        return repr(input).encode("utf-8")
 
 
 class HashCodesLib:
@@ -204,6 +248,25 @@ class HashCodesLib:
         hash_code ^= hash_code << (shift // 2) & bit_mask
         return hash_code & bit_mask
 
+    @staticmethod
+    def sha_256_hash_code(key, salt):
+        """Creates a Hash Code from SHA 256 algorithm"""
+        # * 1. Convert key to bytes
+        key_bytes = str(key).encode("utf-8")
+        # * 2. SHA-256 digest
+        digest = hashlib.sha256(key_bytes + salt).digest()
+        # * 3. Convert digest to integer (hash code)
+        hash_code = int.from_bytes(digest, "big")
+        return hash_code
+
+    @staticmethod
+    def keyed_prf_blake2b(secret_key: bytes, key) -> int:
+        """keyed PRF Hash Code generator. """
+        key_bytes = HashFuncUtils.convert_to_bytes(key)
+        digest = hashlib.blake2b(key_bytes, key=secret_key, digest_size=32)
+        return int.from_bytes(digest.digest(), "big")
+        
+
 
 class CompressFunctionsLib:
     """Compression functions take a Hash Code, and convert it into a Hash Table Index, used to store key, value pairs"""
@@ -211,10 +274,10 @@ class CompressFunctionsLib:
         pass
     # -------------------------------- Compression Functions --------------------------------
     @staticmethod
-    def k_mod_compression_function(hash_code, table_capacity):
+    def k_mod_compression_function(hash_code, salt, table_capacity):
         """Takes a hash code and conforms it to the hash table size, and returns the index number"""
         # the division method: aka k-mod
-        k_mod = hash_code % table_capacity
+        k_mod = (hash_code + salt) % table_capacity
         return k_mod
 
     @staticmethod
@@ -239,3 +302,9 @@ class CompressFunctionsLib:
         """
         # ! This Function is not safe for probing as is. needs to be modified. (in probe function library.)
         return ((scale * hash_code + shift) % prime) % table_capacity
+
+    @staticmethod
+    def sha_256_compress_function(hash_code, table_capacity):
+        """Converts a SHA 256 Hash code into an index, with an added random salt to help protect against Hash Flood DOS attacks"""
+        # ! requires a SHA-256 hash code to work correctly.
+        return hash_code % table_capacity

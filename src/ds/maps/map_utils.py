@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from adts.map_adt import MapADT
     from adts.sequence_adt import SequenceADT
 
+from adts.set_adt import SetADT
 from ds.primitives.arrays.dynamic_array import VectorArray
 
 # endregion
@@ -189,7 +190,6 @@ class MapUtils:
         elif self.obj.average_probe_length > self.obj.average_probe_limit:
             return True
         return False
-   
 
     # -------------------------------- Visualizing Open Addressing Hash Table  --------------------------------
 
@@ -307,3 +307,22 @@ class MapUtils:
             row_display = [str(item).center(cell_width) for item in row]
             print(" | ".join(row_display))
             print(row_seperator)
+
+
+    # region Hash Set
+    # -------------------------------- Hash Set  --------------------------------
+
+    def validate_set(self, set):
+        """checks to see that input is a valid set and not a none value"""
+        if set is None:
+            raise DsTypeError("Error: Set Cannot be a none value")
+        if not isinstance(set, SetADT):
+            raise DsTypeError(f"Error: Input is not a Set. Must match and implement SetADT interface. Got: {type(set).__name__}")
+
+    def check_set_empty(self):
+        if self.obj.is_empty:
+            raise DsUnderflowError(f"Error: Set is Empty...")
+
+
+
+    # endregion

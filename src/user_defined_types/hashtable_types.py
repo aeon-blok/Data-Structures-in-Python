@@ -22,6 +22,7 @@ from array import array
 import numpy
 import ctypes
 from enum import Enum, StrEnum, Flag, auto
+from dataclasses import dataclass, field
 
 # endregion
 
@@ -63,12 +64,16 @@ class HashCodeType(StrEnum):
     POLYNOMIAL = "polynomial"
     CYCLIC_SHIFT = "cyclic"
     POLYCYCLIC = "polycyclic"
+    SHA256 = "sha256"
+    BLAKE2B = "blake2b"
+
 
 class CompressFuncType(StrEnum):
     """Compression Function Types"""
     MAD = "mad"
     KMOD = "kmod"
     UNIVERSAL = "universal"
+    SHA256 = "sha256"
 
 class Tombstone:
     """Tombstone Marker Class"""
@@ -80,3 +85,9 @@ class Tombstone:
     
     def __repr__(self) -> str:
         return f"🪦"
+
+
+@dataclass(frozen=True)
+class SetSentinel:
+    """Sentinel for Hash Set Implementations - used as the dummy value for the value slot."""
+    is_sentinel: bool = True
