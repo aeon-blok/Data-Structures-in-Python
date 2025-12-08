@@ -99,7 +99,10 @@ For this implementation we will handle collisions via Open Addressing & Linear P
 
 
 class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
-    """Hash Table Data Structure with Probing / double hashing & Tombstones (Open Addressing)"""
+    """
+    Hash Table Data Structure with Probing / double hashing & Tombstones (Open Addressing)
+    self.return_keys: The Hash table has a property that allows it to return key() objects for easy comparison. (sorted, max, min etc)
+    """
     def __init__(
         self,
         datatype: type,
@@ -191,7 +194,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     def average_probe_length(self, value):
         self._average_probe_length = value
     # endregion
-    
+
     # region stats:
     @property
     def table_items(self) -> str:
@@ -228,9 +231,23 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     @property
     def rehashes_string(self) -> str:
         return self._utils.rehash_stats_OA_indicator()
-    
+
     # endregion
 
+    @property
+    def return_keys(self) -> VectorArray[Key]:
+        """returns key objects.... Good for sorting & comparisons."""
+        # Init Vector Array
+        if self._table_keytype is None:
+            found = VectorArray(self.table_capacity, object)
+        else:
+            found = VectorArray(self.table_capacity, iKey)
+        for slot in self.table.array:
+            if slot is not None and slot != self.tombstone:
+                k, v = slot
+                found.append(k)
+        return found
+    
     # ----- Utility -----
     def _display_table(self, columns: int = 12, cell_width: int = 15, row_padding: int = 3):
         """Table visualization - with tombstone markers included!"""
@@ -383,7 +400,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         if self._utils.rehash_condition():
             self._rehash_table()
 
-         # validate inputs
+        # validate inputs
         key = Key(key)
         self._utils.check_key_type(key)
         value = TypeSafeElement(value, self.enforce_type)
@@ -552,10 +569,15 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def keys(self):
         """Return a set of all the keys in the hash table"""
-        found = VectorArray(self.table_capacity, iKey)
+        # Init Vector Array
+        if self._table_keytype is None:
+            found = VectorArray(self.table_capacity, object)
+        else:
+            found = VectorArray(self.table_capacity, self._table_keytype)
         for slot in self.table.array:
             if slot is not None and slot != self.tombstone:
                 k, v = slot
+                k = k.value  # unpack key object.
                 found.append(k)
         return found
 
@@ -574,7 +596,10 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         for slot in self.table.array:
             if slot is not None and slot != self.tombstone:
                 k, v = slot
-                found.append(slot)
+                key = k.value  # unpack key object.
+                value = v
+                kv_pair = (key, value)  # pack again with unpacked key value
+                found.append(kv_pair)
         return found
 
     # ----- Meta Collection ADT Operations -----
@@ -643,6 +668,7 @@ class HashTableOA(MapADT[T, K], CollectionADT[T], Generic[T, K]):
         for slot in self.table.array:
             if slot is not None and slot != self.tombstone:
                 k, v = slot
+                k = k.value # unpack key object.
                 yield k
 
 
@@ -797,7 +823,7 @@ def main():
         print(f"Expected: {random_value} Got: {hashtable[k]}")
 
     print(f"\nSorting Keys and playing around....")
-    keys = hashtable.keys()
+    keys = hashtable.return_keys
     sorted_keys = sorted(keys)
     # print(sorted_keys)
     print(f"getting max key. {max(keys)}")
@@ -828,6 +854,12 @@ def main():
     # display table
     hashtable._display_table()
     print(repr(hashtable))
+
+    # print(f"\nTesting Keys(), Values(), items() etc...")
+    # keys = hashtable.keys()
+    # items = hashtable.items()
+    # values = hashtable.values()
+    # print(keys)
 
     # test clear()
     print(f"Clearing Table: ")

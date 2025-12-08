@@ -337,7 +337,6 @@ def main():
     print(repr(dsf))
 
     for i in string_data:
-        key = Key(str(i))
         dsf.make_set(i)
 
     print(dsf)

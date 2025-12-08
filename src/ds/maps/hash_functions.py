@@ -202,18 +202,49 @@ class HashFuncUtils:
                 return b"\x00"
             length = (input.bit_length() + 7) // 8
             return input.to_bytes(length, "big", signed=False)
+        # * for objects - with __hash__
+        if hasattr(input, "__hash__"):
+            return str(hash(input)).encode("utf-8")
         # fallback: use repr (deterministic for builtins)
         return repr(input).encode("utf-8")
 
+    @staticmethod
+    def convert_key_to_string(input):
+        """Int, float, tuple will be converted to a string on entry. other types will be rejected (error)"""
+        if isinstance(input, (int, float)):
+            input = str(input)
+        elif isinstance(input, tuple):
+            string = f""
+            for element in input:
+                if isinstance(element, (int, float, str)):
+                    element = str(element)
+                    string += element
+                else:
+                    raise DsTypeError(f"Error: Cyclic Shift Hash Code requires tuple elements to be int, float or string!")
+            input = string
+        elif hasattr(input, "__hash__"):
+            input = str(hash(input))    # this will use the __hash__ to create a hash of the object.
+        else:
+            raise DsTypeError(f"Error: While Converting a key to be used as a string in hash code functions, the element must be hashable or a valid datatype.")
+        return input
+
 
 class HashCodesLib:
-    """Different types of hash codes for Hash Tables, they take a key and turn it into a long, unique integer, ready for processing by a compress function"""
+    """
+    Different types of hash codes for Hash Tables, they take a key and turn it into a long, unique integer, ready for processing by a compress function
+    Value Based Hashing: For primitives and standard types (int, float, str, tuple etc...) 
+    these will be equal if the contents are the same. E.g "apple" == "apple"
+    Identity Based Hashing: For Objects and UDT. (Edge(), Vertex() etc.) 
+    these will considered equal only by their id() - so only the same object will ever be considered equal.
+    """
     def __init__(self) -> None:
         pass
     # -------------------------------- Hash Codes  --------------------------------
     @staticmethod
     def polynomial_hash_code(key, prime_weighting: int = 33):
         """polynomial hash code: uses Horners Method"""
+        # * polynomial can only use strings.
+        key = HashFuncUtils.convert_key_to_string(key)
         prime_weighting = prime_weighting  # small prime number: commonly 33, 37, 39, 41 - we will randomize and initialize on hashtable creation
         hash_code = 0
         # horner's method = hash * prime + char(ascii number)
@@ -223,7 +254,10 @@ class HashCodesLib:
 
     @staticmethod
     def cyclic_shift_hash_code(key, shift:int = 7, custom_bit_mask:Optional[int] = None):
-        """Cyclic Shift Hash Code: uses bitwise shifting"""
+        """Cyclic Shift Hash Code: uses bitwise shifting. Requires String key input."""
+        # *  Cyclic shift can only use strings.
+        key = HashFuncUtils.convert_key_to_string(key)
+
         word_bit_size = 64
         bit_mask = custom_bit_mask if custom_bit_mask else 2**64 - 1  # This creates a 64-bit mask
         hash_code = 0
@@ -236,6 +270,7 @@ class HashCodesLib:
     @staticmethod
     def cyclic_polynomial_combo_hash_code(key, shift: int = 7, custom_bit_mask:Optional[int] = None):
         """Combines Cyclic Shift and Polynomial techniques together to create a hash code."""
+        key = HashFuncUtils.convert_key_to_string(key)
         prime_weighting = 33  # small prime number: commonly 33, 37, 39, 41 - we will randomize and initialize on hashtable creation
         bit_mask = custom_bit_mask if custom_bit_mask else 2**64 - 1  # This creates a 64-bit mask
         hash_code = 0
@@ -252,7 +287,7 @@ class HashCodesLib:
     def sha_256_hash_code(key, salt):
         """Creates a Hash Code from SHA 256 algorithm"""
         # * 1. Convert key to bytes
-        key_bytes = str(key).encode("utf-8")
+        key_bytes = HashFuncUtils.convert_key_to_string(key).encode("utf-8")
         # * 2. SHA-256 digest
         digest = hashlib.sha256(key_bytes + salt).digest()
         # * 3. Convert digest to integer (hash code)
@@ -265,7 +300,6 @@ class HashCodesLib:
         key_bytes = HashFuncUtils.convert_to_bytes(key)
         digest = hashlib.blake2b(key_bytes, key=secret_key, digest_size=32)
         return int.from_bytes(digest.digest(), "big")
-        
 
 
 class CompressFunctionsLib:

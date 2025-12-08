@@ -97,7 +97,6 @@ class ViewRepr(ArrayRepr):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.length}"
 # endregion
 
-
 # region linked lists
 class SllNodeRepr(UntypedBaseRepr):
     """Representation for Singly Linked List NODE """
@@ -178,7 +177,6 @@ class LinkedListRepr(BaseRepr):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}"
 
 # endregion
-
 
 # region Positional Lists
 class PNodeRepr(UntypedBaseRepr):
@@ -264,7 +262,7 @@ class PlistRepr(BaseRepr):
 
 # endregion
 
-
+# region Stacks
 # stacks
 class LlStackRepr(LinkedListRepr):
     """Stack Representation in the console."""
@@ -378,7 +376,9 @@ class MinMaxStackRepr(ArrayStackRepr):
     def repr_min_max_avg_stack(self) -> str:
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.min}{self.max}{self.average}{self.key}"
+# endregion
 
+# region queues
 # queues
 class llQueueRepr(LinkedListRepr):
     """Linked list queue representation """
@@ -492,7 +492,9 @@ class CircArrayQueueRepr(BaseRepr):
     def repr_circ_array_queue(self) -> str:
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.front_element}{self.rear_element}{self.buffer_type}"
+# endregion
 
+# region deques
 # deques
 class CircDequeRepr(BaseRepr):
 
@@ -608,8 +610,9 @@ class LlDequeRepr(LinkedListRepr):
             return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}"
 
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.front_element}{self.rear_element}"
+# endregion
 
-
+# region priority queues
 # priority queues
 class PQueueRepr(BaseRepr):
 
@@ -709,7 +712,7 @@ class BinaryHeapRepr(BaseRepr):
         if self.obj.is_empty():
             return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.heap_type}"
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.priority_element}{self.keytype}{self.heap_type}"
-
+# endregion
 
 # region Maps
 class OAHashTableRepr(BaseRepr):
@@ -752,7 +755,7 @@ class HashSetRepr(BaseRepr):
 
     @property
     def elements(self) -> str:
-        return f"{{{f', '.join(str(i) for i in self.obj)}}}"
+        return f"{{{f', '.join(str(i) for i in self.obj.members)}}}"
 
     def str_hashset(self):
         return f"{self.ds_class}{self.elements}"
@@ -763,7 +766,7 @@ class HashSetRepr(BaseRepr):
 
 # endregion
 
-
+# region Trees
 # Trees
 class TreeNodeRepr(BaseRepr):
 
@@ -890,6 +893,7 @@ class GenTreeRepr(BaseRepr):
         stats = f"{self.total_nodes}{self.tree_height}"
         return f"\n{title}\n{stats}\n{node_structure}\n"
 
+# region Binary Trees
 # Binary Trees
 class BinaryNodeRepr(TreeNodeRepr):
 
@@ -993,6 +997,7 @@ class BinaryTreeRepr(BaseRepr):
     def repr_binary_tree(self):
         """__repr__ for binary tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}"
+# endregion
 
 # region BST
 class BSTNodeRepr(TreeNodeRepr):
@@ -1270,9 +1275,7 @@ class RedBlackTreeRepr(BSTRepr):
 
 # endregion
 
-
 # region Disjoint Set
-
 class AncestorNodeRepr(BaseRepr):
     """representation for Parent Pointer Tree node. also known as ancestor node"""
 
@@ -1314,6 +1317,101 @@ class DisjointSetForestRepr(BaseRepr):
 
     def repr_disjoint_set_forest(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_sets}"
+# endregion
 
-
+# region Graphs
 # Graphs
+
+class VertexRepr(BaseRepr):
+    """representation for Vertex Nodes"""
+
+    @property
+    def element(self) -> str:
+        value = self.obj.element
+        return f"{value}"
+
+    @property
+    def vert_id(self) -> str:
+        """uses insert order as an id for the vert."""
+        label = self.obj.name
+        insert_number = self.obj.insert_order
+
+        # insertion number logic
+        if insert_number is None:
+            insert_number = f"[_]"
+        else:
+            insert_number = f"[{insert_number}]"
+
+        # label replaces insertion number
+        if label is not None:
+            return f"{insert_number}id={label}"
+        else:
+            return f"{insert_number}"
+
+    def str_vertex(self):
+        return f"{self.element}"
+
+    def repr_vertex(self):
+        return f"{self.ds_class}{self.element}"
+
+
+class EdgeRepr(BaseRepr):
+    """Edge Object representation"""
+
+    @property
+    def weight(self) -> str:
+        weight = self.obj.element
+        return f"{weight}"
+
+    @property
+    def edge_id(self) -> str:
+        origin = self.obj.origin.element
+        destination = self.obj.destination.element
+        return f"{origin} <{self.obj.element}> {destination}"
+
+    def repr_edge(self):
+        return f"{self.ds_class}{self.edge_id}"
+
+    def str_edge(self):
+        return f"{self.edge_id}"
+
+
+class GraphRepr(BaseRepr):
+    """representation for Graphs"""
+
+    @property
+    def directed(self) -> str:
+        result = self.obj.is_directed
+        if result:
+            graph_type = f"directed"
+        else:
+            graph_type = f"undirected"
+
+        return f"[Mode={graph_type}]"
+
+    @property
+    def vertex_count(self) -> str:
+        count = self.obj.vertex_count
+        return f"[V={count}]"
+
+    @property
+    def edge_count(self) -> str:
+        count = self.obj.edge_count
+        return f"[E={count}]"
+
+    @property
+    def adj_map(self) -> str:
+        adjacency_map = self.obj.view_adjacency_map
+        if self.obj.vertex_count == 0:
+            return f"Graph Adjacency Map: Empty Graph..."
+        else:
+            return self.obj.view_adjacency_map
+
+    def str_graph(self):
+        return f"{self.adj_map}"
+
+    def repr_graph(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.directed}{self.vertex_count}{self.edge_count}"
+
+
+# endregion

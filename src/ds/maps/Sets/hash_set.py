@@ -84,13 +84,12 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
     Utilizes Composition for the underlying Hash Table Data structure.
     We use a Sentinel Value for the values() - so that they can be easily identified. (Stored in Hashable_types.py)
     """
-    def __init__(self, datatype: type, capacity: int) -> None:
+    def __init__(self, datatype: type,) -> None:
         self._datatype = ValidDatatype(datatype)
-        self._set_capacity = PositiveNumber(capacity)   # just the initial capacity. dynamic after this.
 
         # composed objects:
         self._NIL = SetSentinel()
-        self._ht = HashTableOA(SetSentinel, self._set_capacity)
+        self._ht = HashTableOA(SetSentinel)
         self._utils = MapUtils(self)
         self._validators = DsValidation()
         self._desc = HashSetRepr(self)
@@ -104,13 +103,17 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
         return self._datatype
 
     @property
-    def return_elements(self) -> VectorArray:
+    def members(self) -> VectorArray:
         """returns the elements of the set as an array"""
         keys = self.ht.keys()
         total_keys = len(keys)
         elements = VectorArray(total_keys * 2, self._datatype)
+
         for i in keys:
-            elements.append(i.value)
+            elements.append(i)
+
+        # todo - option to either yield or return as an array.
+
         return elements
 
     @property
@@ -136,7 +139,7 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
         self._ht.clear()
 
     def __iter__(self):
-        return (i.value for i in self._ht.keys())
+        return (i for i in self._ht.keys())  
 
     # ----- Utility -----
     def __str__(self) -> str:
@@ -237,8 +240,7 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
         self._utils.validate_set(other)
 
         # initialize new set
-        new_capacity = (len(self) + len(other)) * 2
-        new_set = HashSet(self._datatype, new_capacity)
+        new_set = HashSet(self._datatype)
 
         # add elements. - internal logic wi
         for element in self:
@@ -252,9 +254,7 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
         """If an element exists in both sets, add to a new set."""
 
         self._utils.validate_set(other)
-
-        new_capacity = (len(self) + len(other)) * 2
-        new_set = HashSet(self._datatype, new_capacity)
+        new_set = HashSet(self._datatype)
 
         for element in self:
             if other.__contains__(element):
@@ -267,8 +267,7 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
 
         self._utils.validate_set(other)
 
-        new_capacity = (len(self) + len(other)) * 2
-        new_set = HashSet(self._datatype, new_capacity)
+        new_set = HashSet(self._datatype)
 
         for element in self:
             if not other.__contains__(element):
@@ -280,9 +279,7 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
         """the elements that exist in set A or set B, but not in Both sets at the same time, add these to a new set and return it."""
 
         self._utils.validate_set(other)
-
-        new_capacity = (len(self) + len(other)) * 2
-        new_set = HashSet(self._datatype, new_capacity)
+        new_set = HashSet(self._datatype)
 
         for element in self:
             if other.__contains__(element):
@@ -349,7 +346,7 @@ def main():
         "watermelon",
     ]
 
-    set_a = HashSet(str, 10)
+    set_a = HashSet(str)
     print(set_a)
     print(repr(set_a))
     print(f"Is set empty? {set_a.is_empty()}")
@@ -360,7 +357,7 @@ def main():
     print(set_a)
     print(repr(set_a))
 
-    set_b = HashSet(str, 10)
+    set_b = HashSet(str)
     print(set_b)
     print(repr(set_b))
 
@@ -410,7 +407,7 @@ def main():
     print(f"{set_a_keys}")
 
     print(f"\nTesting return of elements... as an array.")
-    set_a_elements = set_a.return_elements
+    set_a_elements = set_a.members
     print(f"{set_a_elements}")
 
     print(f"\nTesting Clear")

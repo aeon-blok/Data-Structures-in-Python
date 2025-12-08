@@ -53,11 +53,9 @@ from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 
 class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
     """
-    Hash Table implementation with collision chaining via array bucket.
+    Hash Table implementation with collision chaining via bucket arrays.
     Essentially we build a Multi Dimensional Array. (MD Array) - the first array stores bucket arrays. the bucket arrays store kv pairs
-    The keys must be unique strings, the values can be enforced to be a specific type.
-    Uses Experimental ** exponential resizing for the table rehashing -
-    has controls for max load factor and resize factor.
+    uses key() objects internally for key hashing and comparison. this standardizes comparisons. Can return the key() objects with property self.return_keys
     """
     def __init__(
         self,
@@ -102,6 +100,25 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
             self.buckets.array[i] = None
 
         self._hashconfig: HashFuncConfig = HashFuncConfig(self.table_capacity)
+
+    @property
+    def return_keys(self) -> VectorArray[iKey]:
+        """returns key() objects for comparison (max, min, sorted etc)"""
+        if self._table_keytype is None:
+            found_keys = VectorArray(self.bucket_capacity, object)
+        else:
+            found_keys = VectorArray(self.bucket_capacity, iKey)
+        table = self.buckets.array
+        # iterate through table O(N*K)
+        for bucket in table:
+            if bucket is not None:
+                # only iterate over the populated portion of the bucket (bucket.size)
+                for i in range(bucket.size):
+                    # must access the .array attribute (where the array items are stored....)
+                    kv_pair = bucket.array[i]
+                    k, v = kv_pair  # destructure tuple
+                    found_keys.append(k)
+        return found_keys
 
     # ----- Utility -----
     def collisions_per_bucket(self):
@@ -178,6 +195,11 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def __setitem__(self, key, value):
         return self.put(key, value)
+
+    def __delitem__(self, key):
+        result = self.remove(key)
+        if result is None: # key not found
+            raise KeyInvalidError(f"Error: Couldn't find the key to remove the element from the hash table.")
 
     # ----- Table Rehashing -----
     def _rehash_table(self):
@@ -378,9 +400,12 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
     def keys(self):
         """Return a array of all the keys in the hash table"""
-        found_keys = VectorArray(self.bucket_capacity, iKey)
-        table = self.buckets.array
+        if self._table_keytype is None:
+            found_keys = VectorArray(self.bucket_capacity, object)
+        else:
+            found_keys = VectorArray(self.bucket_capacity, self._table_keytype)
 
+        table = self.buckets.array
         # iterate through table O(N*K)
         for bucket in table:
             if bucket is not None:
@@ -389,12 +414,13 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                     # must access the .array attribute (where the array items are stored....)
                     kv_pair = bucket.array[i]
                     k,v = kv_pair   # destructure tuple
+                    k = k.value
                     found_keys.append(k)
         return found_keys
 
     def values(self):
         """Return a array of all the values of the hash table"""
-        found_values = VectorArray(self.total_elements, object)
+        found_values = VectorArray(self.total_elements, self.datatype)
         table = self.buckets.array
         # iterate through table O(N*K)
         for bucket in table:
@@ -417,7 +443,9 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                 # only iterate over the populated portion of the bucket (bucket.size)
                 for i in range(bucket.size):
                     # must access the .array attribute (where the array items are stored....)
-                    kv_pair = bucket.array[i]
+                    k,v = slot = bucket.array[i]
+                    k = k.value
+                    kv_pair = (k, v)
                     found_items.append(kv_pair)
         return found_items
 
@@ -467,11 +495,6 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
 
         self._hashconfig.recompute(self.table_capacity)
 
-        # MAD attributes
-        # self.prime = self._utils.find_next_prime_number(self.table_capacity) # self.table_capacity * 300000000
-        # self.scale = random.randint(2, self.prime - 1)
-        # self.shift = random.randint(1, self.prime - 1)
-
     def __iter__(self):
         """iterates over the hash table via generator - useful for looping and ranges..."""
         table = self.buckets.array
@@ -480,6 +503,7 @@ class ChainHashTable(MapADT[T, K], CollectionADT[T], Generic[T, K]):
                 for i in range(bucket.size):
                     kv_pair = bucket.array[i]
                     k, v = kv_pair
+                    k = k.value # unpack key
                     yield k
 
     # Main ---- Client Facing Code -----
@@ -618,7 +642,7 @@ class StressTestHashTable():
         test_key = key if key is not None else random.choice(keys)
         print(f"Testing if Hash table contains {test_key} == {test_key in self.hashtable}")
         try:
-            assert test_key in self.hashtable.buckets.array == True, f"Error: Assertion for Contains({test_key}) failed!"
+            assert test_key in self.hashtable, f"Error: Assertion for Contains({test_key}) failed!"
         except AssertionError as error:
             print(f"{error}")
 
@@ -683,7 +707,6 @@ class StressTestHashTable():
 
 
 def main():
-
     # region inputdata
     # ------------- Input Data -----------------
     # # Strings
