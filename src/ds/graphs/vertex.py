@@ -75,7 +75,6 @@ class Vertex(Generic[T]):
         # metadata for algos
         self.predecessor: Optional[Vertex] = None # different from BST predecessor - means the node that came before this one (parent...)
         self.color = VertexColor.WHITE  # DFS / BFS
-        self.was_visited: bool = False  # used in traversal
         self.distance = None    # for shortest path algos
         self.component_id = None    # connected components
 

@@ -16,8 +16,6 @@ from utils.constants import SLL_SEPERATOR
 
 # where we add console visualizations for the different data structure types - usually use these in __str__ or __repr__ or a utility function.
 
-# todo create a base class for inheriting common attributes from.
-
 class BaseRepr:
     """Holds all the common descriptors that are used by every representation."""
     def __init__(self, obj) -> None:
@@ -54,6 +52,7 @@ class UntypedBaseRepr:
 
 
 # region arrays
+
 class ArrayRepr(BaseRepr):
     """Representation for arrays and base class for array type structures."""
     @property
@@ -95,6 +94,23 @@ class ViewRepr(ArrayRepr):
     def repr_view(self):
         """ __repr__ for array views (like slices)"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.length}"
+
+class SortedArrayRepr(ArrayRepr):
+    """For Sorted Arrays - special type of array. We need to add additional property to not show the key objects."""
+
+    @property
+    def items(self) -> str:
+        return f"[{', '.join(str(self.obj.array[i].value) for i in range(self.obj.size))}]"
+
+    @property
+    def array_type(self) -> str:
+        return f"[{'Static' if self.obj.is_static == True else 'Dynamic'}]"
+
+
+    def repr_array(self):
+        """array __repr__ - for devs"""
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}"
+
 # endregion
 
 # region linked lists

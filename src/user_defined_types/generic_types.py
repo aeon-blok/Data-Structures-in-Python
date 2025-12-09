@@ -83,30 +83,6 @@ class TypeSafeElement:
         return value
 
 
-# old protocol implementation
-# class iKey(ABC):
-#     """
-#     Enforces that the type:
-#     is comparable (<,>,==,!=
-#     is hashable (compared for equality __eq__ -- can compare any object - required by base class)
-#     """
-#     @abstractmethod
-#     def __lt__(self, other: "iKey") -> bool: ...
-#     @abstractmethod
-#     def __gt__(self, other: "iKey") -> bool: ...
-#     @abstractmethod
-#     def __eq__(self, other: object) -> bool:
-#         """If two objects compare equal (__eq__), their hashes must also be equal."""
-#         ...
-#     @abstractmethod
-#     def __hash__(self) -> int:
-#         """
-#         to be hashable, an object’s __hash__() method must return an integer.
-#         Keys must be effectively immutable.
-#         """
-#         ...
-
-
 # endregion
 
 

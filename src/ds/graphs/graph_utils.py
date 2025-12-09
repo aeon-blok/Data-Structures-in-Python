@@ -35,10 +35,13 @@ if TYPE_CHECKING:
 
 from ds.primitives.arrays.dynamic_array import VectorArray
 from ds.sequences.Stacks.array_stack import ArrayStack
+from ds.sequences.Deques.linked_list_deque import DllDeque
 from ds.sequences.Deques.circular_array_deque import CircularArrayDeque
+from ds.maps.Sets.hash_set import HashSet
+from ds.graphs.vertex import Vertex
 
-from user_defined_types.graph_types import weight, VertexColor
 
+from user_defined_types.graph_types import weight, VertexColor, ValidVertex
 # endregion
 
 
@@ -103,4 +106,198 @@ class GraphUtils:
         """Converts an adjacency map to an adjacency matrix"""
         pass
 
-    
+    def dfs_combined_iterative_traversal(self, source_vertex: Vertex):
+        """
+        DFS - returns preorder and postorder traversal
+        Precondition: a start vertex is supplied
+        Postcondition: visits reachable vertices only
+        """
+
+        # Validate Inputs
+        source_vertex = ValidVertex(source_vertex, Vertex)
+
+        # initialize stack
+        stack = ArrayStack(Vertex)
+        reverse_stack = ArrayStack(Vertex)
+        # set - checks whether a vertex has already been visited. -- O(1) membership checks.
+        visited = HashSet(Vertex)
+        preorder = VectorArray(100, Vertex)
+        postorder = VectorArray(100, Vertex)
+
+        # * mark initial vertex as visited
+        visited.add(source_vertex)
+        stack.push(source_vertex)
+
+        # * iterate over stack - mark each node as visited and move to its unvisited neighbours.
+        while stack:
+            vertex = stack.pop()
+            preorder.append(vertex)
+            reverse_stack.push(vertex)
+            neighbours = self.obj.neighbours(vertex)
+            # reversed - this is preordering.
+            for i in reversed(neighbours):
+                if i not in visited:
+                    visited.add(i)
+                    stack.push(i)
+
+        # 2 stacks - for postorder.
+        while reverse_stack:
+            postorder.append(reverse_stack.pop())
+
+        return preorder, postorder 
+
+    def dfs_preorder_iterative_traversal(self, source_vertex: Vertex, reverse_preorder=False):
+        """depth first search - uses stack and iterative traversal. Preorder implementation (first to last visited...)"""
+
+        # Validate Inputs
+        source_vertex = ValidVertex(source_vertex, Vertex)
+
+        # initialize stack
+        stack = ArrayStack(Vertex)
+        # set - checks whether a vertex has already been visited. -- O(1) membership checks.
+        visited = HashSet(Vertex)
+        # preorder array - nodes are added in order of discovery, from first to last.
+        preorder = VectorArray(100, Vertex)
+
+        # * mark initial vertex as visited
+        visited.add(source_vertex)
+        stack.push(source_vertex)
+
+        # * iterate over stack - mark each node as visited and move to its unvisited neighbours.
+        while stack:
+            vertex = stack.pop()
+            preorder.append(vertex)
+            neighbours = self.obj.neighbours(vertex)
+            # reversed - this is preordering.
+            for i in reversed(neighbours):
+                if i not in visited:
+                    visited.add(i)
+                    stack.push(i)
+
+        # * if reverse preorder - reverse the preorder array and return.
+        # (NOTE: reverse preorder is NOT the same as postorder)
+        if reverse_preorder:
+            rev_preorder = VectorArray(preorder.size, Vertex)
+            for i in reversed(preorder):
+                rev_preorder.append(i)
+            return rev_preorder
+
+        # return the preorder array of vertices.
+        return preorder 
+
+    def dfs_postorder_iterative_traversal(self, source_vertex: Vertex, reverse_postorder=False):
+        """
+        postorder implementation of DFS (last to first...) 
+        Utilize the two stack method to get postorder for nodes.
+        """
+
+        # Validate Inputs
+        source_vertex = ValidVertex(source_vertex, Vertex)
+
+        # initialize stack
+        stack = ArrayStack(Vertex)
+        reverse_stack = ArrayStack(Vertex)
+        # set - checks whether a vertex has already been visited. -- O1 membership checks.
+        visited = HashSet(Vertex)
+
+        # * mark initial vertex as visited
+        visited.add(source_vertex)
+        stack.push(source_vertex)
+
+        # * iterate over stack - mark each node as visited and move to its unvisited neighbours.
+        while stack:
+            vertex = stack.pop()
+            reverse_stack.push(vertex)
+            neighbours = self.obj.neighbours(vertex)
+            # postorder does not use reversed...
+            for i in neighbours:
+                if i not in visited:
+                    visited.add(i)
+                    stack.push(i)
+
+        # Postorder array - utilizes our second stack which reverses the ordering due to its LIFO nature
+        postorder = VectorArray(reverse_stack.size, Vertex)
+        while reverse_stack:
+            postorder.append(reverse_stack.pop())
+
+        # reverse the array for reverse Postorder - NOT the same as preorder.
+        if reverse_postorder:
+            rev_postorder = VectorArray(postorder.size, Vertex)
+            for i in reversed(postorder):
+                rev_postorder.append(i)
+            return rev_postorder
+
+        # return the postorder array of vertices.
+        return postorder
+
+    def bfs_iterative_traversal(self, source_vertex: Vertex):
+        """BFS implementation using a deque and iterative traversal..."""
+        # init containers
+        source_vertex = ValidVertex(source_vertex, Vertex)
+        bfs_queue = CircularArrayDeque(Vertex, 100)
+        visited = HashSet(Vertex)
+        levelorder = VectorArray(100, Vertex)
+
+        # add source vertex to the deque...
+        bfs_queue.add_front(source_vertex)
+        # invariant: A vertex must be marked visited at the moment it is first discovered (enqueued).
+        visited.add(source_vertex)
+
+        # traverse entire graph. starting from source node, add each node to the visited set to prevent infinite recursion
+        # append the nodes to the level order array to get an ordered list, (shortest distance from source vertex to furthest distance...)
+        while bfs_queue:
+            vertex = bfs_queue.remove_front()
+            levelorder.append(vertex)
+            for i in self.obj.neighbours(vertex):
+                if i not in visited:
+                    bfs_queue.add_rear(i)
+                    visited.add(i)
+        return levelorder
+
+    def dfs_forest(self):
+        """
+        A DFS forest is the union of DFS trees, one per connected component.
+        dfs over all connected components in the graph.
+        iterative variety with stack....
+        a MD array or matrix is the returned result containing arrays of all connected graphs and their order...
+        This is a Connected Components Algorithm in practice.
+        """
+        visited = HashSet(Vertex)
+        preorder_components = VectorArray(100, VectorArray)
+        postorder_components = VectorArray(100, VectorArray)
+
+        for neighbour in self.obj.vertices():
+            # skip vertex if visited already.
+            if neighbour in visited: continue
+            # utilizes our single component version to get both pre and post order results.
+            preorder, postorder = self.dfs_combined_iterative_traversal(neighbour)
+            # mark as visited. (postorder not necessary -- Every node that appears in postorder already appeared in preorder.)
+            for i in preorder: visited.add(i)
+            # append to components arrays.
+            preorder_components.append(preorder)
+            postorder_components.append(postorder)
+        return preorder_components, postorder_components
+
+    def bfs_forest(self):
+        """
+        Operates on the entire graph, not just one component.
+        No single start vertex, Iterates BFS over all unvisited vertices
+        Required for disconnected graphs
+        This is a Connected Components Algorithm in practice.
+        """
+        visited = HashSet(Vertex)
+        levelorder_components = VectorArray(100, VectorArray)
+
+        for neighbour in self.obj.vertices():
+            if neighbour in visited: 
+                continue
+            levelorder = self.bfs_iterative_traversal(neighbour)
+            for i in levelorder:
+                visited.add(i)
+            levelorder_components.append(levelorder)
+        return levelorder_components
+
+
+
+
+

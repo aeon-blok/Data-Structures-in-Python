@@ -34,4 +34,19 @@ from user_defined_types.generic_types import T
 
 # endregion
 
-# Hints
+
+
+
+class BSearch(StrEnum):
+    """different search modes for binary search"""
+    CLASSIC = "classic"
+    RECURSIVE = "recursive"
+    EXPONENTIAL = "exponential"
+    INTERPOLATION = "interpolation"
+    NOISY = "noisy"
+
+
+
+
+
+

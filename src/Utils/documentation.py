@@ -9,7 +9,6 @@ user_defined_types → utils → adts → (primitives → sequences → maps →
 make sure not to go backwards, will have to code around circular imports...
 
 
-
 Composed Objects:
 self._validators = Global validation methods wrapped in a helper class 
 -- might have to scrap this now that most of the validation is being completed through UDT types.

@@ -91,11 +91,13 @@ class Key(iKey):
         return self._datatype
 
     def _assert_key_type(self, other):
+        """Ensure that the other comparison object is a valid Key() object"""
         if not isinstance(other, iKey):
             raise KeyInvalidError(f"Error: Can only compare key with other key types.")
         return other
     
     def _assert_same_key_type(self, other):
+        """Ensure that the key() objects being compared have the same datatype (e.g. int vs int)"""
         if self._datatype != other.datatype:
             raise DsTypeError(f"Error: Cannot compare keys of different datatypes. Ensure that you are using the same type.")
         return other
@@ -103,6 +105,8 @@ class Key(iKey):
     def __repr__(self) -> str:
         return f"Key({self._value!r})"
     
+    # -------------------- Comparison Operators --------------------
+
     def __lt__(self, other) -> bool:
         other = self._assert_key_type(other)
         other = self._assert_same_key_type(other)
@@ -133,4 +137,26 @@ class Key(iKey):
     def __hash__(self) -> int:
         return hash(self._value)
     
+    # -------------------- Arithmetic Operators --------------------
 
+    # todo add logic for all the various types, numeric, count, lexographic etc....
+    
+    def __sub__(self, other):
+        other = self._assert_key_type(other)
+        other = self._assert_same_key_type(other)
+        return self.value - other.value
+    
+    def __add__(self, other):
+        other = self._assert_key_type(other)
+        other = self._assert_same_key_type(other)
+        return self.value + other.value
+    
+    def __mul__(self, other):
+        other = self._assert_key_type(other)
+        other = self._assert_same_key_type(other)
+        return self.value * other.value
+
+    def __truediv__(self, other):
+        other = self._assert_key_type(other)
+        other = self._assert_same_key_type(other)
+        return self.value / other.value

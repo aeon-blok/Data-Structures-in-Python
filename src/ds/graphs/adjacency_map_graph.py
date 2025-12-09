@@ -126,7 +126,6 @@ class GraphAdjMap(GraphADT[T], CollectionADT[T], Generic[T]):
         return self._desc.repr_graph()
 
     # ----- Canonical ADT Operations -----
-
     def has_vertex(self, vertex: Vertex) -> bool:
         """returns a boolean checking for existence of a vertex"""
         return vertex in self._out_adj_map
@@ -273,7 +272,7 @@ class GraphAdjMap(GraphADT[T], CollectionADT[T], Generic[T]):
         else:
             # one logical edge (u, v) - for undirected the incoming map is a reference to the outgoing.
             del self._out_adj_map[u][v]  
-            # extra logic for self loops... ([u][u] etc)
+            # extra logic for self loops... ([u][u] etc) -- if u == v (then u IS v), its already been deleted.
             if u != v: del self._out_adj_map[v][u]
 
     def remove_vertex(self, vertex) -> None:
@@ -306,10 +305,25 @@ class GraphAdjMap(GraphADT[T], CollectionADT[T], Generic[T]):
         # directed graph: delete from incoming adjacency map also.
         if self.is_directed: del self._inc_adj_map[vertex]
 
+    # ----- Traversals -----
+    def dfs_forest(self):
+        """
+        returns both preorder and postorder arrays of a dfs search.
+        utilizes iterative traversal. (its also a connected components algorithm)
+        returns an MD array of component graphs. for both preorder and postorder traversal.
+        """
+        preorder, postorder = self._utils.dfs_forest()
+        return preorder, postorder
+
+    def bfs_forest(self):
+        """
+        Breadth First Search via iterative traversal & deque (a connected components algorithm)
+        Will iterate through all component graphs and return the results as a MD array.
+        """
+        return self._utils.bfs_forest()
+
 
 # ------------------------ Main(): Client Facing Code --------------------------
-
-
 def main():
 
     input_data_a = ["A", "B", "C", "D", "E","F", "G", "H", "I", "J"]
@@ -486,6 +500,23 @@ def main():
         print(f"Incident edges: {g_dense.incident_edges(self_v)}")
     except Exception as e:
         print(f"Self-loop rejected as expected: {type(e).__name__} -> {e}")
+
+    print(f"\nTesting DFS: Depth First Search")
+    print(f"Current Verts: {g_dense.vertices()}")
+    for i in g_dense.vertices():
+        print(f"{i}: {g_dense.neighbours(i)}")
+    preforest, postforest = g_dense.dfs_forest()
+    print(f"Preorder Component Graph Forest:")
+    print(preforest)
+
+    print(f"\nTesting BFS: Breadth First Search")
+    print(f"Current Verts: {g_dense.vertices()}")
+    for i in g_dense.vertices():
+        print(f"{i}: {g_dense.neighbours(i)}")
+    levelforest = g_dense.bfs_forest()
+    print("BFS Levelorder Component Graph Forest: ")
+    print(levelforest)
+
 
 if __name__ == "__main__":
     main()
