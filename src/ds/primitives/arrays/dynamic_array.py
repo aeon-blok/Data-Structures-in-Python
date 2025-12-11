@@ -169,7 +169,6 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
 
     def __setitem__(self, index, value: T):
         """Built in override - adds indexing."""
-        value = TypeSafeElement(value, self.datatype)
         self.set(index, value)
 
     # ----- Canonical ADT Operations -----
@@ -306,6 +305,15 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
     def __iter__(self):
         """Iterates over all the elements in the sequence - used in loops and ranges etc"""
         for i in range(self.size):
+            result = self.array[i]
+            yield cast(T, result)
+
+    def __bool__(self):
+        return self.size > 0
+
+    def __reversed__(self):
+        """reverses the iteration"""
+        for i in range(self.size-1, -1, -1):
             result = self.array[i]
             yield cast(T, result)
 
@@ -462,9 +470,6 @@ def main():
     lists = [[i] for i in range(6)]
     tuples = [(i,i+1) for i in range(6)]
     dicts = [{"key": i} for i in range(6)]
-
-    
-
 
     # print(f"\ntesting CTYPES Array")
     # run_array_tests(int, ints, CTYPES_DATATYPES)

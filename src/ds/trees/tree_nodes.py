@@ -31,7 +31,7 @@ from pprint import pprint
 # region custom imports
 from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr, AncestorNodeRepr
+from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr, AncestorNodeRepr, BTreeNodeRepr
 from utils.exceptions import *
 
 from adts.collection_adt import CollectionADT
@@ -604,6 +604,76 @@ class AncestorRankNode(Generic[T]):
     
     def __repr__(self) -> str:
         return self._desc.repr_ancestor_node()
+
+class BTreeNode(Generic[T]):
+    """Specialized B Tree Node."""
+    def __init__(self, datatype: type, min_degree: int, is_leaf: bool = False) -> None:
+        self._datatype = datatype
+        self._keytype: None | type = None
+        self._degree = min_degree
+        self.leaf = is_leaf
+        # keys must be in strictly ascending order.
+        self.keys = []  # min: t-1, max: 2t-1 (t is degree)
+        self.elements = []  # the corresponding values to the keys.
+        self.children = [] # keys + 1, max children is 2t (the node is full at this point.)
+
+        # composed objects
+        self._desc = BTreeNodeRepr(self)
+
+    @property
+    def datatype(self) -> type:
+        return self._datatype
+    
+    # ----- Accessors -----
+    @property
+    def degree(self) -> int:
+        return self._degree
+    
+    @property
+    def is_leaf(self) -> bool:
+        return self.leaf
+
+    @property
+    def num_keys(self) -> int:
+        return len(self.keys)
+
+    @property
+    def return_keys(self) -> Iterable:
+        """returns a list of all the keys."""
+        return self.keys
+    
+    @property
+    def return_elements(self) -> Iterable:
+        """returns a list of all the elements"""
+        return self.elements
+    
+    @property
+    def return_children(self) -> Iterable:
+        """returns a list of all the children nodes."""
+        return self.children
+
+    def get_key(self, index):
+        return self.keys[index]
+    
+    def get_element(self, index):
+        return self.elements[index]
+
+    def get_child(self, index):
+        return self.children[index]
+
+    # ----- Utility Operations -----
+
+    def __str__(self) -> str:
+        return self._desc.str_btree_node()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_btree_node()
+
+
+
+
+
+
 
 
 # -------------- Testing Node Solo Functionality -----------------

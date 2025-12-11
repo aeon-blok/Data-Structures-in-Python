@@ -909,6 +909,24 @@ class GenTreeRepr(BaseRepr):
         stats = f"{self.total_nodes}{self.tree_height}"
         return f"\n{title}\n{stats}\n{node_structure}\n"
 
+class BTreeNodeRepr(BaseRepr):
+    """Node representation for Btree Nodes"""
+
+    def str_btree_node(self):
+        return f""
+    
+    def repr_btree_node(self):
+        return f""
+
+class BTreeRepr(BaseRepr):
+    """B Tree representation"""
+    
+    def str_btree(self):
+        return f""
+    
+    def repr_btree(self):
+        return f""
+
 # region Binary Trees
 # Binary Trees
 class BinaryNodeRepr(TreeNodeRepr):
@@ -1431,3 +1449,8 @@ class GraphRepr(BaseRepr):
 
 
 # endregion
+
+
+
+
+
