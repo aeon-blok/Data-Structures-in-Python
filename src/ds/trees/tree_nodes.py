@@ -607,15 +607,16 @@ class AncestorRankNode(Generic[T]):
 
 class BTreeNode(Generic[T]):
     """Specialized B Tree Node."""
-    def __init__(self, datatype: type, min_degree: int, is_leaf: bool = False) -> None:
+    def __init__(self, datatype: type, degree: int, is_leaf: bool = False) -> None:
         self._datatype = datatype
         self._keytype: None | type = None
-        self._degree = min_degree
+        self._degree = degree
+        self._maxdegree: int = (2 * self._degree) - 1
         self.leaf = is_leaf
         # keys must be in strictly ascending order.
-        self.keys = []  # min: t-1, max: 2t-1 (t is degree)
-        self.elements = []  # the corresponding values to the keys.
-        self.children = [] # keys + 1, max children is 2t (the node is full at this point.)
+        self.keys = VectorArray(self._maxdegree, object)  # min: t-1, max: 2t-1 (t is degree)
+        self.elements = VectorArray(self._maxdegree, self._datatype)  # the corresponding values to the keys.
+        self.children = VectorArray(self._maxdegree, type(self)) # keys + 1, max children is 2t (the node is full at this point.)
 
         # composed objects
         self._desc = BTreeNodeRepr(self)
@@ -623,12 +624,21 @@ class BTreeNode(Generic[T]):
     @property
     def datatype(self) -> type:
         return self._datatype
-    
+
     # ----- Accessors -----
     @property
     def degree(self) -> int:
+        """defines how many keys are allowed in a node. min: deg-1, max: 2deg-1"""
         return self._degree
     
+    @property
+    def min_keys(self) -> int:
+        return self._degree - 1
+    
+    @property
+    def max_keys(self) -> int:
+        return (2 * self._degree) - 1
+
     @property
     def is_leaf(self) -> bool:
         return self.leaf
@@ -641,12 +651,12 @@ class BTreeNode(Generic[T]):
     def return_keys(self) -> Iterable:
         """returns a list of all the keys."""
         return self.keys
-    
+
     @property
     def return_elements(self) -> Iterable:
         """returns a list of all the elements"""
         return self.elements
-    
+
     @property
     def return_children(self) -> Iterable:
         """returns a list of all the children nodes."""
@@ -654,7 +664,7 @@ class BTreeNode(Generic[T]):
 
     def get_key(self, index):
         return self.keys[index]
-    
+
     def get_element(self, index):
         return self.elements[index]
 
@@ -668,12 +678,6 @@ class BTreeNode(Generic[T]):
 
     def __repr__(self) -> str:
         return self._desc.repr_btree_node()
-
-
-
-
-
-
 
 
 # -------------- Testing Node Solo Functionality -----------------

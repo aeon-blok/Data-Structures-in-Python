@@ -75,28 +75,32 @@ class BTreeADT(ABC, Generic[T]):
     # ----- Canonical ADT Operations -----
     # ----- Accessors -----
     @abstractmethod
-    def search(self, key) -> Optional[T]:
-        """Searches the B Tree for the specified key"""
+    def search(self, key) -> Optional[tuple]:
+        """
+        Searches the B Tree for the specified key, 
+        returns a tuple of the node and the key index. which can be accessed via the node. 
+        the element can also be accesed via the same index value.
+        """
         ...
 
     @abstractmethod
-    def predecessor(self, key):
-        """returns the largest KEY smaller than the specified key."""
+    def _predecessor(self, node, index) -> tuple:
+        """returns the node and index of the largest key smaller than the specified key."""
         ...
 
     @abstractmethod
-    def successor(self, key):
-        """returns the smallest KEY larger than the specified key """
+    def _successor(self, node, index) -> tuple:
+        """returns the node and index of the smallest key larger than the specified key """
         ...
 
     @abstractmethod
-    def min(self):
-        """returns the smallest KEY in the B Tree"""
+    def min(self) -> Optional[tuple]:
+        """returns the smallest key value pair in the B Tree"""
         ...
 
     @abstractmethod
-    def max(self):
-        """returns the largest KEY in the B Tree"""
+    def max(self) -> Optional[tuple]:
+        """returns the largest key value pair in the B Tree"""
         ...
 
     # ----- Mutators -----
@@ -124,17 +128,13 @@ class BTreeADT(ABC, Generic[T]):
         """Splits a Full Child node. Promotes the median key to the parent."""
         ...
 
-    @abstractmethod
-    def merge_children(self, parent_node, index) -> None:
-        """Merges 2 child nodes together (they must be siblings) and pulls a key from the parent"""
-        ...
 
     @abstractmethod
-    def borrow_left(self, parent_node, index) -> None:
+    def borrow_left(self, parent_node, idx) -> None:
         """Borrows a key value pair from a sibiling, via the parent"""
         ...
 
     @abstractmethod
-    def borrow_right(self, parent_node, index) -> None:
+    def borrow_right(self, parent_node, idx) -> None:
         """Borrows a key value pair from a sibiling, via the parent"""
         ...

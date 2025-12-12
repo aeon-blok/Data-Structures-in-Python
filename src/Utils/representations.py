@@ -912,20 +912,52 @@ class GenTreeRepr(BaseRepr):
 class BTreeNodeRepr(BaseRepr):
     """Node representation for Btree Nodes"""
 
+    @property
+    def is_leaf(self) -> str:
+        return f"[is_leaf={self.obj.is_leaf}]"
+
+    @property
+    def capacity(self) -> str:
+        return f"[{self.obj.num_keys}/{self.obj.max_keys}]"
+
+    @property
+    def items(self) -> str:
+        combo = str(', '.join(f'{k}={v}' for k,v in zip(self.obj.keys, self.obj.elements)))
+        return f"[{combo}]"
+
+    @property
+    def keys_range(self) -> str:
+        array_length = len(self.obj.keys)
+        begin = self.obj.keys[0]
+        end = self.obj.keys[array_length-1]
+        return f"[key_range: {begin} -> {end}]"
+
     def str_btree_node(self):
-        return f""
-    
+        return f"{self.ds_class}{self.capacity}{self.is_leaf}{self.keys_range}{self.items}"
+
     def repr_btree_node(self):
-        return f""
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.capacity}"
 
 class BTreeRepr(BaseRepr):
     """B Tree representation"""
+
+    @property
+    def tree_size(self) -> str:
+        return f"[size={self.obj.total_nodes}]"
+    
+    @property
+    def traversal_order(self) -> str:
+        return f"[method={self.obj.traversal}]"
+    
+    @property
+    def node_capacity(self) -> str:
+        return f"[node_capacity: min={self.obj.min_keys_per_node}, max={self.obj.max_keys_per_node}]"
     
     def str_btree(self):
         return f""
     
     def repr_btree(self):
-        return f""
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.tree_size}{self.traversal_order}{self.node_capacity}"
 
 # region Binary Trees
 # Binary Trees
@@ -1388,7 +1420,6 @@ class VertexRepr(BaseRepr):
     def repr_vertex(self):
         return f"{self.ds_class}{self.element}"
 
-
 class EdgeRepr(BaseRepr):
     """Edge Object representation"""
 
@@ -1408,7 +1439,6 @@ class EdgeRepr(BaseRepr):
 
     def str_edge(self):
         return f"{self.edge_id}"
-
 
 class GraphRepr(BaseRepr):
     """representation for Graphs"""
@@ -1447,10 +1477,4 @@ class GraphRepr(BaseRepr):
     def repr_graph(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.directed}{self.vertex_count}{self.edge_count}"
 
-
 # endregion
-
-
-
-
-
