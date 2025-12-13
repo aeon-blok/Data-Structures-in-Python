@@ -66,14 +66,18 @@ Because disk read & write is so much slower. comparing keys is more efficient th
 class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
     """
     B Tree Data Structure Implementation:
+    Duplicate Keys are forbidden.
+    Utilizes Pre-emptive fix Strategy for insert and deletion. (CLRS)
+    Stores key and element values.
+    Traversal solely uses inorder traversal - (can output keys, values or tuples of both)
     """
-    def __init__(self, datatype: type, degree: int, traversal: Traversal = Traversal.INORDER) -> None:
+    def __init__(self, datatype: type, degree: int) -> None:
         self._datatype = ValidDatatype(datatype)
         self._keytype: None | type = None
         self._root: None | BTreeNode[T] = None
         self._degree = PositiveNumber(degree)
-        self._traversal = traversal
         self._total_nodes: int = 0
+        self._total_keys: int = 0
 
         # composed objects
         self._utils = TreeUtils(self)
@@ -85,9 +89,15 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         return self._datatype
 
     @property
-    def traversal(self):
-        return self._traversal
-
+    def total_keys(self) -> int:
+        """returns the total number of keys in the b tree"""
+        return self._total_keys
+    
+    @property
+    def tree_height(self) -> int:
+        """the max tree height of the btree"""
+        return self._utils.btree_height_iterative(BTreeNode)
+    
     @property
     def max_keys(self) -> int:
         """2t-1 -- defines the maximum number of keys allowed per node, derived from the degree."""
@@ -111,19 +121,27 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         return self._root is None
 
     def clear(self) -> None:
-        return super().clear()
+        """iteratively deletes all the nodes and resets counters etc."""
+        self._root = None
+        self._total_keys = 0
+        self._total_nodes = 0
 
-    def __contains__(self, value: T) -> bool:
-        return super().__contains__(value)
+    def __contains__(self, key) -> bool:
+        return self.search_for_element(key) is not None
 
     def __len__(self) -> Index:
-        return self._total_nodes
+        return self._total_keys
 
-    def __iter__(self):
-        pass
+    def __iter__(self) -> Generator[T, None, None]:
+        """returns the element value via inorder traversal (smallest to largest key)"""
+        for k,v in self.traverse(return_type='tuple'):
+            yield v
 
-    def __reversed__(self):
-        pass
+    def __reversed__(self) -> Generator[T, None, None]:
+        """reverses iteration - largest to smallest element is returned."""
+        elements = self.traverse('elements')
+        for v in reversed(elements):
+            yield v
 
     # ----- Utilities -----
     def __str__(self) -> str:
@@ -137,11 +155,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
 
     # ----- Canonical ADT Operations -----
     # ----- Accessors -----
-    def search_for_element(self, key) -> T | None:
-        """Searches for the specified key in the B tree and returns the value."""
-        node, idx = self.search(key)
-        element = node.elements[idx]
-        return element
+    
 
     # todo implement binary search
 
@@ -171,8 +185,17 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
 
     def search(self, key) -> Optional[tuple]:
         """Searches by key for the node that contains the key. returns a tuple of the node and the key index. which can be accessed via the node."""
-
         return self._recursive_search(self._root, key)
+
+    def search_for_element(self, key) -> T | None:
+        """Searches for the specified key in the B tree and returns the value."""
+        node_and_index = self.search(key)
+        if node_and_index is not None:
+            node, idx = node_and_index
+            element = node.elements[idx]
+            return element
+        else:
+            return None
 
     def _predecessor(self, node, index):
         """returns the predecessor key - that is the largest key in the left subtree smaller than the specified key."""
@@ -206,7 +229,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         current = self._root
         # empty tree case:
         if current is None: return None
-        
+
         # traverse
         while not current.is_leaf:
             current = current.children[current.num_keys]
@@ -236,6 +259,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
             # insert key and value into the node
             node.keys.insert(idx+1, key)
             node.elements.insert(idx+1, value)
+            self._total_keys += 1
 
         # * internal node - find the child where key belongs
         else:
@@ -257,6 +281,10 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         """
         Public Facing Insert Method: Inserts a Key Value Pair into an existing leaf node.
         Overflow Rule: If the node is full - performs a split child/root operation. (on every full node you encounter traversing the tree.)
+        Fix Then Insert Strategy: Utilizes the strategy employed by CLRS - 
+        Nodes are pre-emptively checked for number of keys and split if full. 
+        this allows the insertion to be completed in a single traversal down the tree. 
+        rather than having to go back up the tree to fix nodes that violate the b tree properties.
         """
 
         # *empty tree case: insert into root node.
@@ -277,6 +305,9 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
     def delete(self, key) -> None:
         """
         public delete method - utilizes recursive deletion.
+        Fix then Delete Strategy: Utilizes pre-emptive checking to ensure that every child has over the min number of keys. 
+        which allows us to delete a key without extra operations.
+        If they do not have the required number of keys (t) then perform a borrow or merge operation
         """
 
         # * Empty tree Case:
@@ -287,6 +318,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         if self._root.num_keys == 1 and self._root.is_leaf and self._root.keys[0] == key:
             self._root = None
             self._total_nodes -= 1
+            self._total_keys -= 1
             return
 
         # * Case 0: Root Case:
@@ -301,6 +333,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
                 self._root.keys.delete(idx)
                 self._root.elements.delete(idx)
                 self._total_nodes -= 1
+                self._total_keys -= 1
                 return
             # * Case 0B: root is internal node & has 1 child after deletion -- (merge nodes)
             elif not self._root.is_leaf and len(self._root.children) == 1:
@@ -308,6 +341,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
                 self._root = self._root.children[0]
                 self._root.leaf = True
                 self._total_nodes -= 1
+                self._total_keys -= 1
                 return
 
         return self._recursive_delete(self._root, key)
@@ -317,76 +351,86 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         if parent_node.num_keys > self.min_keys:
             parent_node.keys.delete(idx)
             parent_node.elements.delete(idx)
+            self._total_keys -= 1
 
-    def _case_2_internal_node_contains_key(self, parent_node, idx, key):
-        """Case 2A: child i has the min + 1 required keys"""
-        # init family unit
-        child = parent_node.children[idx]
-        left_sibling = parent_node.children[idx-1]
-        right_sibling = parent_node.children[idx+1]
-
-        if child.num_keys > self.min_keys:
-            # find predecessor:
-            pred, pred_idx = self._predecessor(child, idx)
-            parent_node.keys[idx] = pred.keys[pred_idx]
-            self._recursive_delete(pred, key)
-
-        # * Case 2B: child i has min keys, and its right sibling has min + 1 keys
-        if child.num_keys == self.min_keys and right_sibling.num_keys > self.min_keys:
-            # find successor:
-            succ, succ_idx = self._successor(right_sibling, idx)
-            parent_node.keys[idx] = succ.keys[succ_idx]
-            self._recursive_delete(succ, key)
-
-        # * Case 2C: both child i and sibling i+1 have min keys. (cant borrow need to merge.)
-        if child.num_keys == self.min_keys and (right_sibling.num_keys == self.min_keys or left_sibling.num_keys == self.min_keys):
-            # merge right sibling into child
-            if right_sibling:
-                merged_child = self.merge_right_into_child(parent_node, idx)
-                # recursively move into the next child.
-                self._recursive_delete(merged_child, key)
-            # merge child into left sibling (affects index order)
-            else:
-                merged_left_sibling = self.merge_with_left(parent_node, idx)
-                self._recursive_delete(merged_left_sibling, key)
-
-    def _case_3A_internal_node_does_not_contain_key(self, parent_node, idx, key):
+    def _case_2A_internal_node_contains_key(self, parent_node, idx, key):
         """
-        Child i has min (t-1) keys, but sibling has min + 1 keys -- (borrow from sibling)
+        Case 2A: child i has the min + 1 required keys
+        find the predecessor's key - and swap with the parent key
+        then we recursively delete from the predecessor node.
+        """
+        child = parent_node.children[idx]
+        # find predecessor:
+        pred, pred_idx = self._predecessor(child, idx)
+        # swap keys with parent
+        parent_node.keys[idx] = pred.keys[pred_idx]
+        return pred
+
+    def _case_2B_internal_node_contains_key(self, parent_node, idx, key):
+        """Case 2B: child i has min keys, and its right sibling has min + 1 keys"""
+        right_sibling = parent_node.children[idx + 1]
+        # find successor:
+        succ, succ_idx = self._successor(right_sibling, idx)
+        # swap keys with parent
+        parent_node.keys[idx] = succ.keys[succ_idx]
+        return succ
+
+    def _case_2C_internal_node_contains_key(self, parent_node, idx, key):
+        """
+        Case 2C: both child and sibling have min keys. (cant borrow need to merge.)
+        merging right sibling into child is preferable because it maintains index order.
+        """
+        right_sibling = parent_node.children[idx + 1] if idx + 1 < parent_node.num_keys + 1 else None
+        left_sibling = parent_node.children[idx-1] if idx > 0 else None
+
+        # merge right sibling into child
+        if right_sibling.num_keys == self.min_keys:
+            self._total_nodes -= 1
+            return self.merge_right_into_child(parent_node, idx)
+
+        # merge child into left sibling (affects index order)
+        if left_sibling.num_keys == self.min_keys:
+            self._total_nodes -= 1
+            return self.merge_with_left(parent_node, idx)
+
+        raise NodeExistenceError(f"Error: Case 2C: sibling must have min keys. B Tree property violated")
+
+    def _case_3_internal_node_does_not_contain_key(self, parent_node, idx, key):
+        """
+        Case 3A: Child i has min (t-1) keys, but sibling has min + 1 keys -- (borrow from sibling)
         Borrow median key from parent. and swap this with sibling.
-        """
-        # init family unit
-        child = parent_node.children[idx]
-        left_sibling = parent_node.children[idx - 1]
-        right_sibling = parent_node.children[idx+1]
-
-        # borrow key from left sibling
-        if child.num_keys == self.min_keys and left_sibling and left_sibling.num_keys > self.min_keys:
-            self.borrow_left(parent_node, idx)
-        # borrow key from right sibling
-        elif child.num_keys == self.min_keys and right_sibling and right_sibling.num_keys > self.min_keys:
-            self.borrow_right(parent_node, idx)
-        # recursively move to child and run the same borrow / check
-        self._recursive_delete(child, key)
-
-    def _case_3B_internal_node_does_not_contain_key(self, parent_node, idx, key):
-        """
         Case 3B:  Child and siblings have min keys (merge child with sibling)
         we need to move a key from current node to become the median key for this new merged node.
         Merging with right is preferable because it maintains index order.
         """
+
         # init family unit
         child = parent_node.children[idx]
-        left_sibling = parent_node.children[idx-1]
-        right_sibling = parent_node.children[idx+1]
-        # merge with right sibling (this maintains index order)
-        if right_sibling:
-            merged_child_from_right = self.merge_right_into_child(parent_node, idx)
-            self._recursive_delete(merged_child_from_right, key)
-        # merge with left sibling (if it exists.)
-        elif left_sibling:
-            merged_left = self.merge_with_left(parent_node, idx)
-            self._recursive_delete(merged_left, key)
+        left_sibling = parent_node.children[idx - 1] if idx > 0 else None
+        right_sibling = parent_node.children[idx+1] if idx + 1 < parent_node.num_keys + 1 else None
+
+        if child.num_keys == self.min_keys:
+            # * Case 3A: Child i has min keys, but sibling has min + 1 keys -- (borrow from sibling)
+            # Case 3A: borrow key from left sibling
+            if left_sibling is not None and left_sibling.num_keys > self.min_keys:
+                self.borrow_left(parent_node, idx)
+                return child
+            # Case 3A: borrow key from right sibling
+            if right_sibling is not None and right_sibling.num_keys > self.min_keys:
+                self.borrow_right(parent_node, idx)
+                return child
+
+            # * Case 3B:  Child and siblings have min keys (merge child with sibling)
+            if right_sibling is not None and right_sibling.num_keys == self.min_keys:
+                self._total_nodes -= 1
+                return self.merge_right_into_child(parent_node, idx)
+            # merge with left sibling (if it exists.)
+            if left_sibling is not None and left_sibling.num_keys == self.min_keys:
+                self._total_nodes -= 1
+                return self.merge_with_left(parent_node, idx)
+
+            # In a properly formed B-tree (degree ≥ 2), this should never trigger, but it catches any logic/invariant violation.
+            raise NodeExistenceError(f"Error: Case 3B: Invariant violated - Child does not have a sibling.")
 
     def _recursive_delete(self, node, key) -> None:
         """
@@ -402,7 +446,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         idx = 0
         parent_node = node
 
-        # traverse through keys.
+        # * Linear Scan: traverse through keys and find the key...
         while idx < parent_node.num_keys and key > parent_node.keys[idx]:
             idx += 1  # increment counter
 
@@ -411,44 +455,56 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         left_sibling = parent_node.children[idx-1] if idx > 0 else None
         right_sibling = parent_node.children[idx+1] if idx + 1 < parent_node.num_keys + 1 else None
 
-        # * Case 3A:  Child i has min key, but sibling has min + 1 keys -- (borrow from sibling)
-        # essentially this works like a pre-emptive check - enforcing that every child has over the min required keys.
-        if idx < parent_node.num_keys and key != parent_node.keys[idx] and not parent_node.is_leaf:
-            self._case_3A_internal_node_does_not_contain_key(parent_node, idx, key)
-
-        # * Case 3B:  Child and siblings have min keys (merge child with sibling)
-        elif not parent_node.is_leaf and left_sibling.num_keys == self.min_keys and right_sibling.num_keys == self.min_keys:
-            self._case_3B_internal_node_does_not_contain_key(parent_node, idx, key)
-
-        # * Case 2: Internal node contains the key.
-        if idx < parent_node.num_keys and key == parent_node.keys[idx] and not parent_node.is_leaf:
-            self._case_2_internal_node_contains_key(parent_node, idx, key)
-
-        # * Case 1: Leaf Node Contains Key: delete immmediately.
-        if idx < parent_node.num_keys and key == parent_node.keys[idx] and parent_node.is_leaf:
+        # * Case 1: Leaf Node Contains Key: delete immmediately (only if it has > min keys)
+        if key == parent_node.keys[idx] and parent_node.is_leaf:
             self._case_1_leaf_node_contains_key(parent_node, idx)
 
+        # * Case 2: Internal node contains the key.
+        if key == parent_node.keys[idx] and not parent_node.is_leaf:
+            # * Case 2A: child i has the min + 1 required keys
+            if child.num_keys > self.min_keys:
+                pred = self._case_2A_internal_node_contains_key(parent_node, idx, key)
+                self._recursive_delete(pred, key)
+            # * Case 2B: child i has min keys, and its right sibling has min + 1 keys
+            if child.num_keys == self.min_keys: 
+                if right_sibling is not None and right_sibling.num_keys > self.min_keys:
+                    succ = self._case_2B_internal_node_contains_key(parent_node, idx, key)
+                    self._recursive_delete(succ, key)
+                # * Case 2C: both child i and siblings have min keys. (cant borrow need to merge.)
+                if right_sibling is not None or left_sibling is not None:
+                    merged_node = self._case_2C_internal_node_contains_key(parent_node, idx, key)
+                    self._recursive_delete(merged_node, key)
+
+        # * Case 3: Internal Node does not contain key
+        # essentially this works like a pre-emptive check -- enforcing that every child has over the min required keys.
+        if not parent_node.is_leaf and key != parent_node.keys[idx]:
+            transformed_node = self._case_3_internal_node_does_not_contain_key(parent_node, idx, key)
+            # recursively move to child
+            self._recursive_delete(transformed_node, key)
+
     # ----- Traversal -----
-
-    def inorder(self):
-        """inorder traversal for b trees -- traverses from smallest key to largest key."""
-    
-    
-    def preorder(self):
-        """dfs traversal - also called preorder. depth first search"""
-    
-    def postorder(self):
-        """dfs but goes from last to first. not the same as reversing preorder."""
-
-    def levelorder(self):
-        """bfs - breadth first search - travels each height level iteratively first, before moving to the next level of the tree"""
-
-    def traverse(self) -> Iterable[Tuple]:
+    def traverse(self, return_type: Literal['keys', 'elements', 'tuple']) -> Iterable:
         """
         Traverse throughout the B Tree and return a sequence of all the kv pairs in the tree. 
-        In a specifed order (preorder, postorder, levelorder, inorder...)
+        In a specifed order (inorder)
         """
-        return super().traverse()
+        keys = VectorArray(self._total_keys, object)
+        elements = VectorArray(self._total_keys, self._datatype)
+        tuples = VectorArray(self._total_keys, tuple)
+
+        for k,v in self._utils.b_tree_inorder():
+            keys.append(k)
+            elements.append(v)
+            tuples.append((k, v))
+
+        if return_type == 'keys':
+            return keys
+
+        if return_type == 'elements':
+            return elements
+
+        if return_type == 'tuple':
+            return tuples
 
     # ----- Utility -----
     def split_root(self):
@@ -471,29 +527,38 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
 
     def split_child(self, parent_node: BTreeNode, index: Index) -> None:
         """
-        split the full node into 2 different nodes. 
+        split the full node into 2 different nodes.
         We split via the median key
-        all nodes > median go to the new right node, 
+        all nodes > median go to the new right node,
         all < median go to the left node.
-        promote the median key up to the parent. 
+        promote the median key up to the parent.
+        remove median key from child
+        indices: 0 … t-2 | t-1 | t … 2t-2      
+                left      median    right
         """
         # child - retains the first half of the keys
         child_node: BTreeNode = parent_node.children[index]
+
         # * we create a new sibling - it will inherit its leaf status from its other sibling (the child)
         new_sibling: BTreeNode = BTreeNode(self._datatype, self._degree, is_leaf=child_node.leaf)
+
         self._total_nodes += 1
 
+        median_key =  child_node.keys[self._degree - 1]
+        median_element = child_node.elements[self._degree - 1]
+
         # * collect the largest keys and elements from the child. and give them to the sibling.
-        # moves the minimum number of keys necessary to the new node.
+        # moves the minimum number of keys necessary to the new node
         for idx in range(self.min_keys):
             # copies over the keys that are higher than the min number of keys.
             new_sibling.keys.append(child_node.keys[idx + self._degree])
-            new_sibling.elements.append(child_node.elements[idx+self._degree])
-        # copy over children also.
+            new_sibling.elements.append(child_node.elements[idx + self._degree])
+        # copy over children also
         if not child_node.is_leaf:
             for idx in range(self._degree):
                 new_sibling.children.append(child_node.children[idx + self._degree])
-        # delete the second half of keys and children from child node.
+
+        # * delete the second half of keys and children from child node.
         for _ in range(self.min_keys):
             child_node.keys.delete(self._degree)
             child_node.elements.delete(self._degree)
@@ -505,8 +570,13 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         # add new sibling to parent's children list
         parent_node.children.insert(index+1, new_sibling)
 
-        # now insert promoted median key.
-        parent_node.keys.insert(index, child_node.keys[self._degree])
+        # now insert promoted median key. (t-1)
+        parent_node.keys.insert(index, median_key)
+        parent_node.elements.insert(index, median_element)
+
+        # remove median key from child node.
+        child_node.keys.delete(self._degree-1)
+        child_node.elements.delete(self._degree-1)
 
     def merge_right_into_child(self, parent_node, idx):
         """
@@ -571,6 +641,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         then moves the corresponding parent key / element down to the RIGHT child
         assumes the nodes involved are internal nodes.
         The key separating the two nodes is at index (idx - 1)
+        Borrow is in essence a rotation, applied to two keys.
         """
 
         child = parent_node.children[idx]
@@ -599,6 +670,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         Then Moves the Corresponding parent key / element down into the LEFT child.
         parent key --> child key.
         right_sibling key --> parent key
+        Borrow is in essence a rotation, applied to two keys.
         """
         child = parent_node.children[idx]
         right_sibling = parent_node.children[idx+1]
@@ -627,6 +699,7 @@ def main():
     b.insert(1, "apple")
     b.insert(2, "banana")
     print(repr(b))
+    print(b)
     print(b._root)
 
 

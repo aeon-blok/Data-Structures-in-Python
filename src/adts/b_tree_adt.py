@@ -115,11 +115,6 @@ class BTreeADT(ABC, Generic[T]):
         """Deletes a key (and its value) from the B Tree while preserving B Tree invariants."""
         ...
 
-    # ----- Traversal -----
-
-    @abstractmethod
-    def traverse(self) -> Iterable[tuple]:
-        """returns a sequence of all the keys in the specified traversal order."""
         ...
     # ----- Utility -----
 

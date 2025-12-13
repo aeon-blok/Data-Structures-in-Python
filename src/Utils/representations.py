@@ -933,7 +933,7 @@ class BTreeNodeRepr(BaseRepr):
         return f"[key_range: {begin} -> {end}]"
 
     def str_btree_node(self):
-        return f"{self.ds_class}{self.capacity}{self.is_leaf}{self.keys_range}{self.items}"
+        return f"{self.ds_class}{self.capacity}{self.keys_range}{self.items}"
 
     def repr_btree_node(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.capacity}"
@@ -943,21 +943,51 @@ class BTreeRepr(BaseRepr):
 
     @property
     def tree_size(self) -> str:
-        return f"[size={self.obj.total_nodes}]"
-    
+        return f"[keys={self.obj.total_keys}]"
+
     @property
-    def traversal_order(self) -> str:
-        return f"[method={self.obj.traversal}]"
-    
+    def total_nodes(self) -> str:
+        return f"[nodes={self.obj.total_nodes}]"
+
     @property
     def node_capacity(self) -> str:
-        return f"[node_capacity: min={self.obj.min_keys_per_node}, max={self.obj.max_keys_per_node}]"
-    
+        return f"[storage: min={self.obj.min_keys}, max={self.obj.max_keys}]"
+
     def str_btree(self):
-        return f""
-    
+        """DFS preorder visualization of the B-tree showing key ranges per node."""
+
+        if self.obj.root is None:
+            return f"[🌿 empty tree]"
+
+        hierarchy = []
+        tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
+
+        while tree:
+            # we traverse depth-first, which naturally fits a hierarchical print.
+            node, prefix, is_last = tree.pop()
+
+            # generate key range string for node
+            key_range = f"[{node.keys[0]} -> {node.keys[node.num_keys-1]}]" if node.num_keys > 0 else "[]"
+
+            indicator = "🌿:" if node is self.obj.root else ("└─" if is_last else "├─")
+
+            hierarchy.append(f"{prefix}{indicator}{key_range}")
+
+            # Build prefix for children
+            new_prefix = prefix + ("   " if is_last else "│  ")
+
+            # Push children in reverse order to preserve left-to-right display
+            for i, child in enumerate(reversed(node.children)):
+                last_child = i == 0
+                tree.append((child, new_prefix, last_child))
+
+        node_structure = "\n".join(hierarchy)
+        title = f"B-Tree:"
+        stats = f"{self.tree_size}{self.total_nodes}{self.node_capacity}"
+        return f"\n{title}\n{stats}\n{node_structure}"
+
     def repr_btree(self):
-        return f"{self.ds_memory_address}{self.ds_datatype}{self.tree_size}{self.traversal_order}{self.node_capacity}"
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.tree_size}{self.node_capacity}"
 
 # region Binary Trees
 # Binary Trees

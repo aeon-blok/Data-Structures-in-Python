@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 from ds.primitives.arrays.dynamic_array import VectorArray
 from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.sequences.Deques.circular_array_deque import CircularArrayDeque
+from ds.maps.Sets.hash_set import HashSet
 
 from adts.tree_adt import iTNode
 from adts.binary_tree_adt import iBNode
@@ -1272,7 +1273,194 @@ class TreeUtils:
 
     # region B tree
 
+    def children_invariant(self, node):
+        """node with k keys must have k+1 children"""
+        if not node.is_leaf and len(node.children) != node.num_keys + 1:
+            raise ValueError("Error: Node Children Must be size: keys + 1") 
+        
+    def node_invariant(self, node):
+        """
+        node must have >= min keys (deg-1)
+        node must have <= max keys (2*deg-1)
+        root must have 1 to 2*deg-1 keys
+        """
+        if node == self.obj.root:
+            if not (1 <= node.num_keys <= self.obj.max_keys):
+                raise DsInputValueError(f"Error: Root must have min 1 key, and max 2t-1 keys!")
+        else:
+            if not (self.obj.min_keys <= node.num_keys <= self.obj.max_keys):
+                raise DsInputValueError(f"Error: Node Must have min t-1 keys, and max 2t-1 keys!")
+        
+    def subtree_order_invariant(self, node):
+        """
+        all keys in the children must lie between the keys adjacent to that child. 
+        This rule must recursively apply to all children in the subtree.
+        """
+        if node.is_leaf:
+            return
+    
+        for idx, child in enumerate(node.children):
+            if child.num_keys == 0:
+                raise DsInputValueError("Error: Child has zero keys")
+            if idx == 0 and child.keys[child.num_keys-1] >= node.keys[0]:
+                raise DsInputValueError(f"Error: the last Child Key is larger than the first parent key.")
+            elif idx == node.num_keys and child.keys[0] <= node.keys[node.num_keys-1]:
+                raise DsInputValueError(f"Error: First Child Key is Smaller than the last parent key.")
+            elif 0 < idx < node.num_keys:
+                if child.keys[0] <= node.keys[idx-1] or child.keys[child.num_keys-1] >= node.keys[idx]:
+                    raise DsInputValueError("Error: Children are not properly sandwiched between parent keys.")        
+            
+    def sorted_key_order_invariant(self, node):
+        """
+        A key cannot be larger than its right neighbour.
+        A key cannot be smaller than its left neighbour
+        """
+        for i in range(node.num_keys-1):
+            if node.keys[i] >= node.keys[i+1]:
+                raise KeyInvalidError(f"Error: Node Key is Larger than its neighbour. Violates B tree invariant.")
+        
+    def leaf_invariant(self, node):
+        """
+        Leaf Nodes cannot have children
+        """
+        if node.is_leaf and len(node.children) != 0:
+            raise NodeExistenceError(f"Error: Leaf Node Cannot have children")
+        
+    def validate_btree_node(self, node):
+        """
+        ensures that btree invariants are not violated:
+        """
+        self.children_invariant(node)
+        self.node_invariant(node)
+        self.subtree_order_invariant(node)
+        self.sorted_key_order_invariant(node)
+        self.leaf_invariant(node)
+  
+    def validate_subtree(self, node):
+        """recursively validates every node in the subtree of the specified node."""
+        self.validate_btree_node(node)
 
+        # move to the children of this node.
+        if not node.is_leaf:
+            for child in node.children:
+                self.validate_subtree(child)
 
+    def _validate_leaf_depths(self):
+        """ensure that every leaf node has the same depth or height in the tree."""
+
+        if self.obj.root is None:
+            return
+        
+        tree = ArrayStack(tuple)
+        tree.push((self.obj.root, 0))
+        leaf_depth = None
+
+        while tree:
+            node, depth = tree.pop()
+            # * traverse a leaf
+            if node.is_leaf:
+                # first leaf identified sets the leaf depth rule.
+                if leaf_depth is None:
+                    leaf_depth = depth
+                elif depth != leaf_depth:
+                    raise DsOverflowError(f"Error: Tree / Leaf Depth Invariant Violated - leaves exist at different depths / heights in the tree.")
+            # * not a leaf - traverse to children.
+            else:
+                for child in node.children:
+                    tree.push((child, depth+1))
+            
+    def validate_btree(self):
+        """recursively validates the entire tree, including leaf depth and all the nodes in the tree. (including the root)"""
+        
+        if self.obj.root is None:
+            return
+        
+        if self.obj.root.num_keys == 0 and not self.obj.root.is_leaf:
+            raise DsInputValueError(f"Error: Root has 0 keys and is not a leaf. violates btree property.")
+        
+        # * recursively move throughout the entire tree, checking that nodes all satisfy the btree invariants.
+        self.validate_subtree(self.obj.root)
+
+        # * validate tree / leaves height invariant
+        self._validate_leaf_depths()
+
+    def btree_height_iterative(self, node_type):
+        """returns the max height of the Btree - via BFS traversal"""
+        if self.obj.root is None:
+            return 0
+        height = 0
+        tree = CircularArrayDeque(node_type)
+        tree.add_front(self.obj.root)
+        while tree:
+            level_size = len(tree)
+            for _ in range(level_size):
+                node = tree.remove_front()
+                for child in node.children:
+                    tree.add_rear(child)
+            height += 1
+        return height
+
+    def b_tree_inorder(self) -> Generator[tuple, None, None]:
+        """
+        inorder traversal for b trees -- Yields keys, not nodes
+        Works for B-trees, B+-trees (internal keys), and B*-trees
+        Uses O(h) auxiliary space (optimal)
+        """
+
+        # * empty tree case
+        if self.obj.root is None: return
+
+        tree = ArrayStack(type(self.obj.root))
+        current = self.obj.root
+        index = 0
+
+        while tree or current:
+            while current:
+                # push the current node and the first child index to the stack
+                tree.push((current, 0))
+                # traverse to leftmost child -- This ensures the traversal always reaches the smallest remaining key before yielding anything.
+                current = current.children[0] if not current.is_leaf else None
+            
+            # remove item from tree stack for yielding
+            current, index = tree.pop()
+
+            # yield key / element
+            key = current.keys[index]
+            element = current.elements[index]
+            yield (key, element)
+
+            # after yielding key, traverse to the next right child (index + 1)
+            if not current.is_leaf:
+                next_child = current.children[index+1]
+            else:
+                next_child = None
+            
+            # if more keys remain in this node, revisit it
+            if index + 1 < current.num_keys:
+                tree.push((current, index+1))
+            
+            # traverse to the right subtree.
+            current = next_child
+            
+    def b_tree_preorder(self, node_type):
+        """dfs traversal - also called preorder. depth first search"""
+        
+        if self.obj.root is None:
+            return
+        
+        tree = ArrayStack(node_type)
+        tree.push(self.obj.root)
+
+        while tree:
+            node = tree.pop()
+            yield node
+
+            if not node.is_leaf:
+                for child in reversed(node.children):
+                    tree.push(child)
+
+    def b_tree_levelorder(self):
+        """bfs - breadth first search - travels each height level iteratively first, before moving to the next level of the tree"""
+        ...
 
     # endregion
