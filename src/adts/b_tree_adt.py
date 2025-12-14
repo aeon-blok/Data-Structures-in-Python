@@ -75,31 +75,29 @@ class BTreeADT(ABC, Generic[T]):
     # ----- Canonical ADT Operations -----
     # ----- Accessors -----
     @abstractmethod
-    def search(self, key) -> Optional[tuple]:
+    def search(self, key) -> Optional[T]:
         """
-        Searches the B Tree for the specified key, 
-        returns a tuple of the node and the key index. which can be accessed via the node. 
-        the element can also be accesed via the same index value.
+        Searches the B Tree for the specified key, returns element value
         """
         ...
 
     @abstractmethod
-    def _predecessor(self, node, index) -> tuple:
+    def _predecessor(self, node) -> tuple:
         """returns the node and index of the largest key smaller than the specified key."""
         ...
 
     @abstractmethod
-    def _successor(self, node, index) -> tuple:
+    def _successor(self, node) -> tuple:
         """returns the node and index of the smallest key larger than the specified key """
         ...
 
     @abstractmethod
-    def min(self) -> Optional[tuple]:
+    def min(self) -> Optional[T]:
         """returns the smallest key value pair in the B Tree"""
         ...
 
     @abstractmethod
-    def max(self) -> Optional[tuple]:
+    def max(self) -> Optional[T]:
         """returns the largest key value pair in the B Tree"""
         ...
 

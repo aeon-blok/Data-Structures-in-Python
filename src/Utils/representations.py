@@ -861,7 +861,7 @@ class GenTreeRepr(BaseRepr):
 
     def repr_gen_tree(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}{self.traversal_type}"
-
+        
     def str_gen_tree(self):
         """
         Traverses the Tree via stack
@@ -930,10 +930,10 @@ class BTreeNodeRepr(BaseRepr):
         array_length = len(self.obj.keys)
         begin = self.obj.keys[0]
         end = self.obj.keys[array_length-1]
-        return f"[key_range: {begin} -> {end}]"
+        return f"[key range: {begin}|{end}]"
 
     def str_btree_node(self):
-        return f"{self.ds_class}{self.capacity}{self.keys_range}{self.items}"
+        return f"{self.ds_class}{self.capacity}{self.keys_range}"
 
     def repr_btree_node(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.capacity}"
@@ -951,39 +951,28 @@ class BTreeRepr(BaseRepr):
 
     @property
     def node_capacity(self) -> str:
-        return f"[storage: min={self.obj.min_keys}, max={self.obj.max_keys}]"
+        return f"[kpn: min={self.obj.min_keys}, max={self.obj.max_keys}]"
+
+    @property
+    def tree_height(self) -> str:
+        return f"[height={self.obj.tree_height}]"
+
+    @property
+    def valid_tree(self) -> str:
+        self.obj.validate_tree
+        return f"[valid=True]"
 
     def str_btree(self):
         """DFS preorder visualization of the B-tree showing key ranges per node."""
 
         if self.obj.root is None:
-            return f"[🌿 empty tree]"
+            return f"[empty tree]"
 
-        hierarchy = []
-        tree = [(self.obj.root, "", True)]  # (node, prefix, is_last)
-
-        while tree:
-            # we traverse depth-first, which naturally fits a hierarchical print.
-            node, prefix, is_last = tree.pop()
-
-            # generate key range string for node
-            key_range = f"[{node.keys[0]} -> {node.keys[node.num_keys-1]}]" if node.num_keys > 0 else "[]"
-
-            indicator = "🌿:" if node is self.obj.root else ("└─" if is_last else "├─")
-
-            hierarchy.append(f"{prefix}{indicator}{key_range}")
-
-            # Build prefix for children
-            new_prefix = prefix + ("   " if is_last else "│  ")
-
-            # Push children in reverse order to preserve left-to-right display
-            for i, child in enumerate(reversed(node.children)):
-                last_child = i == 0
-                tree.append((child, new_prefix, last_child))
-
+        hierarchy = self.obj.bfs_view
+        
         node_structure = "\n".join(hierarchy)
-        title = f"B-Tree:"
-        stats = f"{self.tree_size}{self.total_nodes}{self.node_capacity}"
+        title = f"🌿 B-Tree:"
+        stats = f"{self.node_capacity}{self.tree_size}{self.total_nodes}{self.tree_height}{self.valid_tree}"
         return f"\n{title}\n{stats}\n{node_structure}"
 
     def repr_btree(self):

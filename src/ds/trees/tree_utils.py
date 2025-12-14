@@ -1410,7 +1410,7 @@ class TreeUtils:
         # * empty tree case
         if self.obj.root is None: return
 
-        tree = ArrayStack(type(self.obj.root))
+        tree = ArrayStack(tuple)
         current = self.obj.root
         index = 0
 
@@ -1459,8 +1459,47 @@ class TreeUtils:
                 for child in reversed(node.children):
                     tree.push(child)
 
-    def b_tree_levelorder(self):
-        """bfs - breadth first search - travels each height level iteratively first, before moving to the next level of the tree"""
-        ...
+    def b_tree_bfs_view(self, node_type) -> Iterable[str]:
+        """console visualization for BFS - Btree - powerful and convenient representation"""
+        
+        if self.obj.root is None:
+            return []
+            
+        
+        tree = CircularArrayDeque(node_type)
+        tree.add_front(self.obj.root)
+        level = 0
+        hierarchy = []
+
+
+        while tree:
+            level_size = len(tree)
+            level_string = f"Level {level}:[{level_size}]: "
+
+            for i in range(level_size):
+                node = tree.remove_front()
+                key_range = f"[{node.keys[0]}|{node.keys[node.num_keys-1]}[{node.num_keys}]]" if node.num_keys > 0 else "[]"
+                if i == level_size -1:
+                    level_string += key_range 
+                else:
+                    level_string += key_range + ", "
+
+                
+                if not node.is_leaf:
+                    for i in range(len(node.children)):
+                        child = node.children[i]
+                        tree.add_rear(child)
+                        
+            hierarchy.append(level_string)
+            level += 1
+
+        return hierarchy
+
+    def check_btree_key_is_same_type(self, key):
+        """Checks the input key type with the stored hash table key type."""
+        if self.obj._tree_keytype is None:
+            self.obj._tree_keytype = key.datatype
+        elif key.datatype != self.obj.tree_keytype:
+            raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj.tree_keytype.__name__}, Got: {key.datatype.__name__}")
 
     # endregion

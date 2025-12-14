@@ -605,7 +605,7 @@ class AncestorRankNode(Generic[T]):
     def __repr__(self) -> str:
         return self._desc.repr_ancestor_node()
 
-class BTreeNode(Generic[T]):
+class BTreeNode():
     """Specialized B Tree Node."""
     def __init__(self, datatype: type, degree: int, is_leaf: bool = False) -> None:
         self._datatype = datatype
@@ -614,7 +614,7 @@ class BTreeNode(Generic[T]):
         self._maxdegree: int = (2 * self._degree) - 1
         self.leaf = is_leaf
         # keys must be in strictly ascending order.
-        self.keys = VectorArray(self._maxdegree, object)  # min: t-1, max: 2t-1 (t is degree)
+        self.keys = VectorArray(self._maxdegree, iKey)  # min: t-1, max: 2t-1 (t is degree)
         self.elements = VectorArray(self._maxdegree, self._datatype)  # the corresponding values to the keys.
         self.children = VectorArray(self._maxdegree, type(self)) # keys + 1, max children is 2t (the node is full at this point.)
 
@@ -646,30 +646,6 @@ class BTreeNode(Generic[T]):
     @property
     def num_keys(self) -> int:
         return len(self.keys)
-
-    @property
-    def return_keys(self) -> Iterable:
-        """returns a list of all the keys."""
-        return self.keys
-
-    @property
-    def return_elements(self) -> Iterable:
-        """returns a list of all the elements"""
-        return self.elements
-
-    @property
-    def return_children(self) -> Iterable:
-        """returns a list of all the children nodes."""
-        return self.children
-
-    def get_key(self, index):
-        return self.keys[index]
-
-    def get_element(self, index):
-        return self.elements[index]
-
-    def get_child(self, index):
-        return self.children[index]
 
     # ----- Utility Operations -----
 
