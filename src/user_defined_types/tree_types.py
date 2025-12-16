@@ -31,6 +31,9 @@ from utils.exceptions import *
 from user_defined_types.generic_types import T, K
 from user_defined_types.key_types import Key, iKey
 
+# type alias
+PageID = int
+
 class NodeColor(Enum):
     """Node Coloring Enum for Red Black Trees"""
     RED = "red"

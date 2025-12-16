@@ -938,6 +938,24 @@ class BTreeNodeRepr(BaseRepr):
     def repr_btree_node(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.capacity}"
 
+class PageRepr(BaseRepr):
+    """representation for Page object (in memory representation of disk stored bytes.)"""
+
+    @property
+    def page_id(self) -> str:
+        return f"[id={self.obj.page_id}]"
+    
+    @property
+    def space(self) -> str:
+        return f"[avl_space={self.obj.available_space}]"
+    
+    def str_page(self):
+        return f"{self.ds_class}{self.space}"
+    
+    def repr_page(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.space}"
+
+
 class BTreeRepr(BaseRepr):
     """B Tree representation"""
 

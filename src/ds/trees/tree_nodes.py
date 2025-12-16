@@ -26,13 +26,18 @@ import random
 import time
 import uuid
 from pprint import pprint
+import struct
+import pathlib
+import os
+import pickle
 # endregion
 
 # region custom imports
 from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr, AncestorNodeRepr, BTreeNodeRepr
+from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr, AncestorNodeRepr, BTreeNodeRepr, PageRepr
 from utils.exceptions import *
+from utils.constants import PAGE_SIZE
 
 from adts.collection_adt import CollectionADT
 from adts.tree_adt import iTNode
@@ -617,14 +622,21 @@ class BTreeNode():
         self.keys = VectorArray(self._maxdegree, iKey)  # min: t-1, max: 2t-1 (t is degree)
         self.elements = VectorArray(self._maxdegree, self._datatype)  # the corresponding values to the keys.
         self.children = VectorArray(self._maxdegree, type(self)) # keys + 1, max children is 2t (the node is full at this point.)
-
         # composed objects
         self._desc = BTreeNodeRepr(self)
 
     @property
     def datatype(self) -> type:
         return self._datatype
-
+    
+    @property
+    def keytype(self) -> Optional[type]:
+        return self._keytype
+    
+    @keytype.setter
+    def keytype(self, value) -> None:
+        self._keytype = value
+    
     # ----- Accessors -----
     @property
     def degree(self) -> int:

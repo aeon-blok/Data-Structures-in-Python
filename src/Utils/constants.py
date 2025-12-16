@@ -60,5 +60,9 @@ REHASH_SYMBOL: str = "♻️" or "⚙️" or "🔧"
 PROBE_SYMBOL: str = "🔍"
 AVERAGE_PROBES_SYMBOL: str = "Avg 🔍"
 
-
+# priority queues
 MIN_PQUEUE_CAPACITY = 4
+
+
+# b trees
+PAGE_SIZE: int = 4096

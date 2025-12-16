@@ -1495,11 +1495,16 @@ class TreeUtils:
 
         return hierarchy
 
-    def check_btree_key_is_same_type(self, key):
-        """Checks the input key type with the stored hash table key type."""
+    def set_keytype(self, key):
+        """sets the tree keytype on first insertion."""
         if self.obj._tree_keytype is None:
             self.obj._tree_keytype = key.datatype
-        elif key.datatype != self.obj.tree_keytype:
+            self.obj.root.keytype = key.datatype
+            self.obj.page_manager.keytype = key.datatype
+
+    def check_btree_key_is_same_type(self, key):
+        """Checks the input key type with the stored hash table key type."""
+        if key.datatype != self.obj.tree_keytype:
             raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj.tree_keytype.__name__}, Got: {key.datatype.__name__}")
 
     # endregion
