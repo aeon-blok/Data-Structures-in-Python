@@ -1497,14 +1497,237 @@ class TreeUtils:
 
     def set_keytype(self, key):
         """sets the tree keytype on first insertion."""
-        if self.obj._tree_keytype is None:
-            self.obj._tree_keytype = key.datatype
-            self.obj.root.keytype = key.datatype
-            self.obj.page_manager.keytype = key.datatype
+        if self.obj.tree_keytype is None:
+            self.obj.tree_keytype = key.datatype
 
     def check_btree_key_is_same_type(self, key):
         """Checks the input key type with the stored hash table key type."""
         if key.datatype != self.obj.tree_keytype:
             raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj.tree_keytype.__name__}, Got: {key.datatype.__name__}")
+
+    # endregion
+
+    # region B Tree Disk 
+    def disk_set_keytype(self, key):
+            """sets the tree keytype on first insertion."""
+            if self.obj.tree_keytype is None:
+                self.obj.tree_keytype = key.datatype
+                self.obj.page_manager.keytype = key.datatype
+
+    def disk_node_invariant(self, node):
+        """
+        node must have >= min keys (deg-1)
+        node must have <= max keys (2*deg-1)
+        root can have 0 keys...
+        """
+        recorded_root_page_id = self.obj.page_manager.root_page_id
+
+        if node.page_id == recorded_root_page_id:
+            return
+        else:
+            if not (self.obj.min_keys <= node.num_keys <= self.obj.max_keys):
+                raise DsInputValueError(f"Error: Node Must have min t-1 keys, and max 2t-1 keys!")
+        
+
+    def disk_subtree_order_invariant(self, node):
+        """
+        all keys in the children must lie between the keys adjacent to that child. 
+        This rule must recursively apply to all children in the subtree.
+        """
+        if node.is_leaf:
+            return
+    
+        for idx, child_pid in enumerate(node.children):
+            child = self.obj.convert_page_id_to_node(child_pid)
+            if child.num_keys == 0:
+                raise DsInputValueError("Error: Child has zero keys")
+            if idx == 0 and child.keys[child.num_keys-1] >= node.keys[0]:
+                raise DsInputValueError(f"Error: the last Child Key is larger than the first parent key.")
+            elif idx == node.num_keys and child.keys[0] <= node.keys[node.num_keys-1]:
+                raise DsInputValueError(f"Error: First Child Key is Smaller than the last parent key.")
+            elif 0 < idx < node.num_keys:
+                if child.keys[0] <= node.keys[idx-1] or child.keys[child.num_keys-1] >= node.keys[idx]:
+                    raise DsInputValueError("Error: Children are not properly sandwiched between parent keys.")        
+    
+    def disk_btree_height_iterative(self, node_type):
+        """returns the max height of the Btree - via BFS traversal"""
+        if self.obj.root is None:
+            return 0
+        height = 0
+        tree = CircularArrayDeque(node_type)
+        root = self.obj.load_root_from_disk()
+        tree.add_front(root)
+        while tree:
+            level_size = len(tree)
+            for _ in range(level_size):
+                node = tree.remove_front()
+                for child_pid in node.children:
+                    child = self.obj.convert_page_id_to_node(child_pid)
+                    tree.add_rear(child)
+            height += 1
+        return height
+
+    def disk_validate_leaf_depths(self):
+        """ensure that every leaf node has the same depth or height in the tree."""
+
+        if self.obj.root is None:
+            return
+        
+        tree = ArrayStack(tuple)
+        root = self.obj.load_root_from_disk()
+        tree.push((root, 0))
+        leaf_depth = None
+
+        while tree:
+            node, depth = tree.pop()
+            # * traverse a leaf
+            if node.is_leaf:
+                # first leaf identified sets the leaf depth rule.
+                if leaf_depth is None:
+                    leaf_depth = depth
+                elif depth != leaf_depth:
+                    raise DsOverflowError(f"Error: Tree / Leaf Depth Invariant Violated - leaves exist at different depths / heights in the tree.")
+            # * not a leaf - traverse to children.
+            else:
+                for child_pid in node.children:
+                    child = self.obj.convert_page_id_to_node(child_pid)
+                    tree.push((child, depth+1))
+            
+    def disk_b_tree_inorder(self) -> Generator[tuple, None, None]:
+        """
+        inorder traversal for b trees -- Yields keys, not nodes
+        Works for B-trees, B+-trees (internal keys), and B*-trees
+        Uses O(h) auxiliary space (optimal)
+        """
+
+        # * empty tree case
+        if self.obj.root is None: return
+
+        tree = ArrayStack(tuple)
+        root = self.obj.load_root_from_disk()
+        current = root
+        index = 0
+
+        while tree or current:
+            while current:
+                # push the current node and the first child index to the stack
+                tree.push((current, 0))
+                # traverse to leftmost child -- This ensures the traversal always reaches the smallest remaining key before yielding anything.
+                current = self.obj.convert_page_id_to_node(current.children[0]) if not current.is_leaf else None
+            
+            # remove item from tree stack for yielding
+            current, index = tree.pop()
+
+            # yield key / element
+            key = current.keys[index]
+            element = current.elements[index]
+            yield (key, element)
+
+            # after yielding key, traverse to the next right child (index + 1)
+            if not current.is_leaf:
+                next_child = self.obj.convert_page_id_to_node(current.children[index+1])
+            else:
+                next_child = None
+            
+            # if more keys remain in this node, revisit it
+            if index + 1 < current.num_keys:
+                tree.push((current, index+1))
+            
+            # traverse to the right subtree.
+            current = next_child
+
+    def disk_b_tree_preorder(self, node_type):
+        """dfs traversal - also called preorder. depth first search"""
+        
+        if self.obj.root is None:
+            return
+        
+        tree = ArrayStack(node_type)
+        root = self.obj.load_root_from_disk()
+        tree.push(root)
+
+        while tree:
+            node = tree.pop()
+            node = self.obj.convert_page_id_to_node(node)
+            yield node
+
+            if not node.is_leaf:
+                for child_pid in reversed(node.children):
+                    tree.push(child_pid)
+
+    def disk_b_tree_bfs_view(self, node_type) -> Iterable[str]:
+        """console visualization for BFS - Btree - powerful and convenient representation"""
+        
+        if self.obj.root is None:
+            return []
+            
+        tree = CircularArrayDeque(node_type)
+        root = self.obj.load_root_from_disk()
+        tree.add_front(root)
+        level = 0
+        hierarchy = []
+
+        while tree:
+            level_size = len(tree)
+            level_string = f"Level {level}:[{level_size}]: "
+
+            for i in range(level_size):
+                node = tree.remove_front()
+                node = self.obj.convert_page_id_to_node(node)
+                key_range = f"[{node.keys[0]}|{node.keys[node.num_keys-1]}[{node.num_keys}]]" if node.num_keys > 0 else "[]"
+                if i == level_size -1:
+                    level_string += key_range 
+                else:
+                    level_string += key_range + ", "
+
+                
+                if not node.is_leaf:
+                    for i in range(len(node.children)):
+                        child = self.obj.convert_page_id_to_node(node.children[i])
+                        tree.add_rear(child)
+                        
+            hierarchy.append(level_string)
+            level += 1
+
+        return hierarchy
+
+    def disk_validate_btree_node(self, node):
+        """
+        ensures that btree invariants are not violated:
+        """
+        node = self.obj.convert_page_id_to_node(node)
+        self.children_invariant(node)
+        self.disk_node_invariant(node)
+        self.disk_subtree_order_invariant(node)
+        self.sorted_key_order_invariant(node)
+        self.leaf_invariant(node)
+  
+    def disk_validate_subtree(self, node):
+        """recursively validates every node in the subtree of the specified node."""
+
+        self.obj.convert_page_id_to_node(node)
+        self.disk_validate_btree_node(node)
+
+        # move to the children of this node.
+        if not node.is_leaf:
+            for child in node.children:
+                child = self.obj.convert_page_id_to_node(child)
+                self.disk_validate_subtree(child)
+   
+    def disk_validate_btree(self):
+        """recursively validates the entire tree, including leaf depth and all the nodes in the tree. (including the root)"""
+        
+        root = self.obj.load_root_from_disk()
+        if root is None:
+            return
+        
+        if root.num_keys == 0 and not root.is_leaf:
+            raise DsInputValueError(f"Error: Root has 0 keys and is not a leaf. violates btree property.")
+        
+        # * recursively move throughout the entire tree, checking that nodes all satisfy the btree invariants.
+        self.disk_validate_subtree(root)
+
+        # * validate tree / leaves height invariant
+        self.disk_validate_leaf_depths()
 
     # endregion

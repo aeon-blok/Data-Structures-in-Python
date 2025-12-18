@@ -612,30 +612,26 @@ class AncestorRankNode(Generic[T]):
 
 class BTreeNode():
     """Specialized B Tree Node."""
+
+    # todo Create a new disk b-tree node that inherits from this, with children as type int or PageID
+
     def __init__(self, datatype: type, degree: int, is_leaf: bool = False) -> None:
+        self.page_id: Optional[int] = None
         self._datatype = datatype
-        self._keytype: None | type = None
+        self.keytype: None | type = None
         self._degree = degree
         self._maxdegree: int = (2 * self._degree) - 1
         self.leaf = is_leaf
         # keys must be in strictly ascending order.
         self.keys = VectorArray(self._maxdegree, iKey)  # min: t-1, max: 2t-1 (t is degree)
         self.elements = VectorArray(self._maxdegree, self._datatype)  # the corresponding values to the keys.
-        self.children = VectorArray(self._maxdegree, type(self)) # keys + 1, max children is 2t (the node is full at this point.)
+        self.children = VectorArray(self._maxdegree, object) # keys + 1, max children is 2t (the node is full at this point.)
         # composed objects
         self._desc = BTreeNodeRepr(self)
 
     @property
     def datatype(self) -> type:
         return self._datatype
-    
-    @property
-    def keytype(self) -> Optional[type]:
-        return self._keytype
-    
-    @keytype.setter
-    def keytype(self, value) -> None:
-        self._keytype = value
     
     # ----- Accessors -----
     @property
@@ -666,6 +662,7 @@ class BTreeNode():
 
     def __repr__(self) -> str:
         return self._desc.repr_btree_node()
+
 
 
 # -------------- Testing Node Solo Functionality -----------------

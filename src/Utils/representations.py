@@ -955,7 +955,6 @@ class PageRepr(BaseRepr):
     def repr_page(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.space}"
 
-
 class BTreeRepr(BaseRepr):
     """B Tree representation"""
 
@@ -995,6 +994,8 @@ class BTreeRepr(BaseRepr):
 
     def repr_btree(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.tree_size}{self.node_capacity}"
+
+
 
 # region Binary Trees
 # Binary Trees
