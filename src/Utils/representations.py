@@ -928,8 +928,8 @@ class BTreeNodeRepr(BaseRepr):
     @property
     def keys_range(self) -> str:
         array_length = len(self.obj.keys)
-        begin = self.obj.keys[0]
-        end = self.obj.keys[array_length-1]
+        begin = self.obj.keys[0] if not self.obj.keys.is_empty() else None
+        end = self.obj.keys[array_length-1] if not self.obj.keys.is_empty() else None
         return f"[key range: {begin}|{end}]"
 
     def str_btree_node(self):
@@ -986,15 +986,14 @@ class BTreeRepr(BaseRepr):
             return f"[empty tree]"
 
         hierarchy = self.obj.bfs_view
-        
+
         node_structure = "\n".join(hierarchy)
         title = f"🌿 B-Tree:"
         stats = f"{self.node_capacity}{self.tree_size}{self.total_nodes}{self.tree_height}{self.valid_tree}"
         return f"\n{title}\n{stats}\n{node_structure}"
 
     def repr_btree(self):
-        return f"{self.ds_memory_address}{self.ds_datatype}{self.tree_size}{self.node_capacity}"
-
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_size}{self.node_capacity}"
 
 
 # region Binary Trees

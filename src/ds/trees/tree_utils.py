@@ -1718,9 +1718,7 @@ class TreeUtils:
         """recursively validates the entire tree, including leaf depth and all the nodes in the tree. (including the root)"""
         
         root = self.obj.load_root_from_disk()
-        if root is None:
-            return
-        
+      
         if root.num_keys == 0 and not root.is_leaf:
             raise DsInputValueError(f"Error: Root has 0 keys and is not a leaf. violates btree property.")
         
@@ -1729,5 +1727,11 @@ class TreeUtils:
 
         # * validate tree / leaves height invariant
         self.disk_validate_leaf_depths()
+
+        return True
+
+    def assert_root_pid_in_sync(self):
+        assert self.obj.root.page_id == self.obj.page_manager.root_page_id, f"Error: root page id out of sync.... root pid={self.obj.root.page_id} & Page manager root pid={self.obj.page_manager.root_page_id}"
+
 
     # endregion
