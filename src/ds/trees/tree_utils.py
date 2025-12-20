@@ -1509,10 +1509,13 @@ class TreeUtils:
 
     # region B Tree Disk 
     def disk_set_keytype(self, key):
-            """sets the tree keytype on first insertion."""
-            if self.obj.tree_keytype is None:
-                self.obj.tree_keytype = key.datatype
-                self.obj.page_manager.keytype = key.datatype
+        """sets the tree keytype on first insertion."""
+        print(f"Setting Tree Key Datatype: to {key.datatype}")
+        self.obj.tree_keytype = key.datatype
+        print(f"Updating Page Manager Key Type")
+        self.obj.page_manager.keytype = key.datatype
+        print(f"Writing Changes to Disk (via tree metadata.)")
+        self.obj.page_manager.write_tree_metadata(self.obj._root.page_id, self.obj.total_nodes, self.obj.total_keys)
 
     def disk_node_invariant(self, node):
         """
@@ -1528,7 +1531,6 @@ class TreeUtils:
             if not (self.obj.min_keys <= node.num_keys <= self.obj.max_keys):
                 raise DsInputValueError(f"Error: Node Must have min t-1 keys, and max 2t-1 keys!")
         
-
     def disk_subtree_order_invariant(self, node):
         """
         all keys in the children must lie between the keys adjacent to that child. 

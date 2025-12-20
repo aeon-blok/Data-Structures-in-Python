@@ -611,10 +611,7 @@ class AncestorRankNode(Generic[T]):
         return self._desc.repr_ancestor_node()
 
 class BTreeNode():
-    """Specialized B Tree Node."""
-
-    # todo Create a new disk b-tree node that inherits from this, with children as type int or PageID
-
+    """Specialized B Tree Node. Page Id's are used for disk based b-trees"""
     def __init__(self, datatype: type, degree: int, is_leaf: bool = False) -> None:
         self.page_id: Optional[int] = None
         self._datatype = datatype

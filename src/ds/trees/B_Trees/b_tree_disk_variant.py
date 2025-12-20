@@ -609,7 +609,7 @@ class PageManager:
         """
         Loads the entire B-Tree from disk
         reads the metadata,
-        recursively reads the children of the root and loads them into memory.
+        loads the in memory free list cache (via traversing the on disk linked list.)
         returns the root node.
         """
 
@@ -620,19 +620,9 @@ class PageManager:
         self._keytype: type = keytype
         self._root_page_id = root_page_id
         self.free_list_head = freelist_head
-
+        self.load_free_list_cache()
         root = self.read_node_from_disk(root_page_id)
-
         return root
-
-    def save_tree_to_disk(self, root: BTreeNode, total_nodes:int, total_keys:int) -> None:
-        """
-        Saves te entire B-Tree to Disk
-        recursively writes all nodes starting from the root
-        updates the tree metadata.
-        """
-        root_page_id = self.write_node_to_disk(root)
-        self.write_tree_metadata(root_page_id, total_nodes, total_keys)
 
 
 class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
@@ -660,10 +650,12 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # * existing tree found - load from disk.
         if self.page_manager.root_page_id is not None:
             self._root = self.page_manager.load_tree_from_disk()
-            root_page_id, freelist_head, deg, total_nodes, total_keys, dtype, keytype = self.page_manager.read_tree_metadata()
+            root_page_id, freelist_head, deg, total_nodes, total_keys, dtype, ktype = self.page_manager.read_tree_metadata()
             self._datatype = ValidDatatype(dtype)
             self._degree = PositiveNumber(deg)
-            self.tree_keytype: None | type = keytype
+            self.tree_keytype: None | type = ktype
+            self._total_nodes: int = total_nodes
+            self._total_keys: int = total_keys
         # * initialize new tree parameters
         else:
             if datatype is None or degree is None:
@@ -672,10 +664,9 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             self._degree = PositiveNumber(degree)
             self.tree_keytype: None | type = None
             self._root: None | BTreeNode =  None
-
-        self._total_nodes: int = 0
-        self._total_keys: int = 0
-        self.create_tree()
+            self._total_nodes: int = 0
+            self._total_keys: int = 0
+            self.create_tree()
 
         # composed objects
         self._utils = TreeUtils(self)
@@ -725,20 +716,18 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         self.page_manager.root_page_id = node.page_id
         assert self._root.page_id == self.page_manager.root_page_id, f"Error: root page id out of sync.... root pid={self._root.page_id} & Page manager root pid={self.page_manager.root_page_id}"
 
-
     @property
     def total_nodes(self) -> int:
         return self._total_nodes
 
     # ----- Loading A B-tree From Disk -----
-    def inspect_pagefile(self):
+    def inspect_pagefile(self, filename: str = r"pagefile.txt"):
         """reads the page file and inteprets the binary into string text."""
 
         if not self.page_manager.pagefile:
             return
 
         directory = self.page_manager.pagefile.parent
-        filename = f"{self.page_manager.pagefile.stem}.txt"
         pagefile_log = directory / filename
 
         title = f"Disk B Tree Pagefile (converted to textfile for inspection)\n"
@@ -854,6 +843,18 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         self.page_manager.write_tree_metadata(self.page_manager.root_page_id, self._total_nodes, self._total_keys)
 
         return root_page_id
+
+    def save_btree_to_disk(self):
+        """
+        updates all the metadata in the pagefile for the current state of the tree. 
+        When you load a btree, this information will be used to reconstruct the tree (mainly the root pid.)
+        If you do not save before exiting your program, the metadata will be incorrect and likely lead to a corrupted load of the tree (incorrect root etc....)
+        """
+        print(f"Saving B-Tree to Disk")
+        root_page_id, freelist_head, deg, total_nodes, total_keys, dtype, ktype = self.page_manager.read_tree_metadata()
+        print(f"Current Metadata: Root PID={root_page_id}, freelist_head={freelist_head}, degree={deg}, total_nodes={total_nodes}, total_keys={total_keys}, datatype={dtype}, key type={ktype}")
+        self.write_root_to_disk()
+        print(f"Save Complete... Pagefile Located at: {self.page_manager.pagefile}")
 
     # ----- Meta Collection ADT Operations -----
     def is_empty(self) -> bool:
@@ -1067,8 +1068,10 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         """
 
         # * validate inputs
+
         key = Key(key)
-        self._utils.disk_set_keytype(key)
+        if self.tree_keytype is None:
+            self._utils.disk_set_keytype(key)
         self._utils.check_btree_key_is_same_type(key)
         value = TypeSafeElement(value, self._datatype)
         self._root = self.load_root_from_disk()
@@ -1138,7 +1141,6 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         You don’t need to reload the parent/leaf node in Case 1. no chance of stale references
         """
         print(f"CASE 1: Entering Case 1")
-        self._root = self.load_root_from_disk()
 
         if parent_node.num_keys > self.min_keys:
             print(f"Deleting Key: {parent_node.keys[idx]}")
@@ -1148,7 +1150,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             parent_pid = self.write_node_to_disk(parent_node)
             self._utils.assert_root_pid_in_sync()
             self.page_manager.write_tree_metadata(self._root.page_id, self._total_nodes, self._total_keys)
-        elif parent_node == self._root:
+        elif parent_node is self._root:
             print(f"ROOT CASE: Node is the Root and the only node left: deleting Key: {parent_node.keys[idx]}")
             parent_node.keys.delete(idx)
             parent_node.elements.delete(idx)
@@ -1156,7 +1158,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             parent_pid = self.write_node_to_disk(parent_node)    # will auto check if its the root
             self.page_manager.write_tree_metadata(parent_pid, self._total_nodes, self._total_keys)
         else:
-            raise KeyInvalidError(f"Error: Case 1: Key not found.")
+            raise KeyInvalidError(f"Error: Case 1: Key not found. node keys={parent_node.keys}")
 
     def _case_2_internal_node_contains_key(self, parent_node, idx, key) -> None:
         """
@@ -1169,17 +1171,21 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         left_sibling = self.convert_page_id_to_node(parent_node.children[idx - 1]) if idx > 0 else None
 
         if child.num_keys >= self._degree:
-            print(f"CASE 2A: Entering Case 2A: child pointer={child}")
+            print(f"CASE 2A: Entering Case 2A: child i has the min + 1 required keys")
+            print(f"child pointer={child}")
 
             # * find predecessor:
             pred, pred_idx = self._predecessor(child)
             pred_key: iKey = pred.keys[pred_idx]
             pred_element: T = pred.elements[pred_idx]
-            print(f"predecessor: {pred_key} and {pred}")
+            print(f"predecessor: {pred_key} and {pred}.")
+            print(f"Replacing Target Key: {parent_node.keys[idx]}")
 
             # * replace parent key / element with predecessor key.
             parent_node.keys[idx] = pred_key
             parent_node.elements[idx] = pred_element
+            print(f"Target Key Deleted: (replaced with pred key) = {parent_node.keys[idx]}")
+            print(f"Writing changes to disk...")
 
             # * after swapping parent and predecessor key / element - write to disk to persist changes.
             # ensure child is not a stale reference by reloading node from page id. same for parent
@@ -1193,15 +1199,19 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             return
 
         elif child.num_keys == self.min_keys and right_sibling is not None and right_sibling.num_keys >= self._degree:
-            print(f"CASE 2B: Entering Case 2B: child pointer={child}, right sibling={right_sibling}")
+            print(f"CASE 2B: Entering Case 2B: child i has min keys, and its right sibling has min + 1 keys")
+            print(f"child pointer={child}, right sibling={right_sibling}")
             # find successor:
             succ, succ_idx = self._successor(right_sibling)
             succ_key = succ.keys[succ_idx]
             succ_element = succ.elements[succ_idx]
             print(f"succesor: {succ_key}, {succ}")
+            print(f"Replacing Target Key: {parent_node.keys[idx]}")
             # replace parent key with succ key
             parent_node.keys[idx] = succ_key
             parent_node.elements[idx] = succ_element
+            print(f"Target Key Deleted: (replaced with succ key) = {parent_node.keys[idx]}")
+            print(f"Writing changes to disk...")
 
             # write updated keys to disk and refresh references
             parent_node_pid = self.write_node_to_disk(parent_node)
@@ -1215,7 +1225,8 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 
         # * Case 2C: both child i and siblings have min keys. (cant borrow need to merge.)
         elif child.num_keys == self.min_keys: 
-            print(f"CASE 2C: Entering Case 2C child={child}, right={right_sibling}, left={left_sibling}")
+            print(f"CASE 2C: Entering Case 2C -- both child and sibling have min keys. (cant borrow need to merge.)")
+            print(f"child={child}, right={right_sibling}, left={left_sibling}")
             # merge right sibling into child
             if right_sibling is not None and right_sibling.num_keys == self.min_keys:
                 print(f"merge right into child operation:")
@@ -1236,6 +1247,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 parent_node = self.convert_page_id_to_node(parent_pid)
                 merged_node = self.convert_page_id_to_node(left_pid)
                 print(f"merged={merged_node}")
+                print(f"Merged Sibling Keys = {merged_node.keys}")
                 assert merged_node.num_keys == self.max_keys, f"Error: Case 2C: Merged left sibling should have Max number of keys. (CLRS)"
                 assert merged_node.num_keys >= self._degree, f"Error: Case 2C: left sibling doesnt have t keys."
                 print(f"Entering recursive delete on merged node.")
@@ -1330,8 +1342,8 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # * Linear Scan: traverse through keys and find the key...
         while idx < parent_node.num_keys and key > parent_node.keys[idx]:
             idx += 1  # increment counter
-        print(f"keys = {parent_node.keys}")
-        print(f"Linear Scan Finished on {idx}/{parent_node.num_keys}")
+        print(f"keys={parent_node.keys}")
+        print(f"Linear Scan Finished on {idx}/{parent_node.num_keys-1}")
 
         # * Case 1: Leaf Node Contains Key: delete immmediately (only if it has > min keys)
         if parent_node.is_leaf:
@@ -1621,6 +1633,9 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 # ------------------------------- Main: Client Facing Code: -------------------------------
 def main():
 
+    # todo fix contains, clear() and is_empty()
+    # todo fix validate b-tree logic etc.
+
     random_data = [
         "apple",
         "orange",
@@ -1656,82 +1671,68 @@ def main():
 
     keys = [i for i in range(len(random_data))]
 
+    # # ------------------------------- Loading an existing B-tree From Disk: -------------------------------
+    # pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
+    # btree = BTreeDisk(pagefile_location)
+    # print(btree)
+    # print(repr(btree))
+    # print(btree.traverse("keys"))
+    # print(btree.traverse("elements"))
+    # keys = list(btree.traverse("keys"))
+    # random.shuffle(keys)
+    # keys = keys[:10]
+    # print(keys)
+    # for key in keys:
+    #     btree.delete(key)
+    
+    # print(btree)
 
-    print(f"\nTesting Disk Based B Tree")
-    pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
-    diskb = BTreeDisk(pagefile_location, str, 5)
-    print(diskb)
-    print(repr(diskb))
+    # btree.save_btree_to_disk()
+    # btree.inspect_pagefile(filename=r"diskb_modified_pagefile.txt")
 
-    print(f"\nTesting Insert functionality of Btree")
-    for i, item in zip(keys, random_data):
-        print(diskb)
-        diskb.insert(i, item)
-        print(repr(diskb))
+    # -----------------------------------------------------------------------------------------------------
 
-    print(diskb)
-
-    print(f"\nTesting Search functionality of Btree: key:0 = {diskb.search(0)}")
-    print(f"Testing Contains functionality: key:23423425 in disk B tree? {23423425 in diskb}")
-    print(f"Is Disk B-Tree Empty?: {diskb.is_empty()}")
-
-    print(f"\nTesting Delete functionality of Btree")
-    print(diskb)
-    print(repr(diskb))
-    shuffled_keys = list(range(15))
-    random.shuffle(shuffled_keys)
-    for key in shuffled_keys:
-        diskb.delete(key)
-        print(diskb)
-        print(repr(diskb))
-
+    # print(f"\nTesting Disk Based B Tree")
+    # pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
+    # diskb = BTreeDisk(pagefile_location, str, 5)
     # print(diskb)
-    diskb.inspect_pagefile()
-
-
-    # b = BTreeDisk(str, 5)
-    # print(f"Does key 3 exist? {'Yes' if 3 in b else 'No'}")
+    # print(repr(diskb))
 
     # print(f"\nTesting Insert functionality of Btree")
     # for i, item in zip(keys, random_data):
-    #     b.insert(i, item)
+    #     diskb.insert(i, item)
+    # print(diskb)
 
-    # print(repr(b))
-    # print(b)
-    # b.validate_tree
-
-    # print(f"\nTesting Node repr")
-    # print(b._root)
-    # print(repr(b.root))
-
-    # print(f"\nTesting Search Functionality: key:25 = {b.search(25)}")
-    # print(f"Testing Search on a non existent key: key:200 = {b.search(200)}")
-
-    # min_val = b.min()
-    # max_val = b.max()
+    # print(f"\nTesting Search functionality of Btree: key:0 = {diskb.search(0)}")
+    # print(f"Testing Search on a non existent key: key:200 = {diskb.search(200)}")
+    # print(f"Testing Contains functionality: key:23423425 in disk B tree? {23423425 in diskb}")
+    # print(f"Is Disk B-Tree Empty?: {diskb.is_empty()}")
+    # min_val = diskb.min()
+    # max_val = diskb.max()
     # print(f"Min element: {min_val}")
     # print(f"Max element: {max_val}")
+    # print(f"Total keys in tree: {len(diskb)}")
 
-    # print("\nTesting __contains__ and __len__...")
-    # print(f"Does key 3 exist? {'Yes' if 3 in b else 'No'}")
-    # print(f"Total keys in tree: {len(b)}")
-
-    # # ---------- Traverse ----------
-    # print("\nTesting traversal...")
-    # print(b.traverse("keys"))
-    # print(b.traverse("elements"))
-    # print(b.traverse("tuple"))
-
-    # print(f"\nTesting Delete functionality...")
-    # print(b)
-    # b.validate_tree
-    # print(f"Testing randomized deletion")
+    # print(f"\nTesting Delete functionality of Btree")
+    # print(diskb)
+    # print(repr(diskb))
     # shuffled_keys = list(range(30))
     # random.shuffle(shuffled_keys)
+    # shuffled_keys = shuffled_keys[:15]
+    # print(shuffled_keys)
+
     # for key in shuffled_keys:
-    #     b.delete(key)
-    #     print(b)
-    # b.validate_tree
+    #     diskb.delete(key)
+
+    # print(diskb)
+
+    # print("\nTesting traversal...")
+    # print(diskb.traverse("keys"))
+    # print(diskb.traverse("elements"))
+
+    # diskb.save_btree_to_disk()
+    # diskb.inspect_pagefile("pagefile_final.txt")
+
 
     # # ---------- Type Checking ----------
     # print("\nTesting type validation...")
