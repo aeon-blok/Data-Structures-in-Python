@@ -1,0 +1,730 @@
+Disk B Tree Pagefile (converted to textfile for inspection)
+the free list is a linked list of deleted page id's from the disk. when a new node is created it will utilize these disk blocks and ids for the next disk write.
+
+Page 0 (Metadata):
+Root Page ID: 78
+Free List Head: 75
+Degree: 5
+Total Number of Nodes in Tree: 149
+Total Number of keys in the tree: 750
+Tree DataType: (for elements): str
+Key Type: (for keys): <class 'int'>
+Free List (linked list): 75 -> 180 -> 263 -> 113 -> 105 -> 227 -> 67 -> 206 -> 250 -> 86 -> 103 -> 28 -> 199 -> 156 -> 163 -> 246 -> 218 -> 65 -> 82 -> 85 -> 124 -> 141 -> 27 -> 162 -> 39 -> 238 -> 181 -> 99 -> 198 -> 72 -> 4 -> 106 -> 9 -> 214 -> 255 -> 173 -> 188 -> 193 -> 264 -> 212 -> 205 -> 183 -> 234 -> 213 -> 235 -> 18 -> 148 -> 207 -> 93 -> 30 -> 92 -> 22 -> 57 -> 107 -> 84 -> 215 -> 259 -> 6 -> 190 -> 91 -> 123 -> 219 -> 242 -> 96 -> 233 -> 130 -> 71 -> 245 -> 182 -> 197 -> 77 -> 108 -> 149 -> 133 -> 253 -> 161 -> 128 -> 270 -> 260 -> 247 -> 166 -> 186 -> 254 -> 49 -> 125 -> 229 -> 240 -> 203 -> 143 -> 111 -> 76 -> 119 -> 7 -> 191 -> 46 -> 97 -> 147 -> 66 -> 114 -> 134 -> 248 -> 19 -> 174 -> 104 -> 83 -> 268 -> 257 -> 109 -> 42 -> 267 -> 21 -> 115 -> 29 -> 34 -> 60 -> 74 -> 158 -> 79 -> 132 -> 171 -> 266
+
+Page: 1
+Keys: [VectorArray][Key(5), Key(6), Key(10), Key(29)]
+Elements: [VectorArray][president, with, force, early]
+Children: Leaf Node
+Page: 2
+Keys: [VectorArray][Key(35), Key(66), Key(81), Key(133), Key(149)]
+Elements: [VectorArray][its, interview, training, finally, economy]
+Children: [VectorArray][1, 89, 16, 73, 102, 112]
+Page: 3
+Keys: [VectorArray][Key(1069), Key(1070), Key(1071), Key(1072)]
+Elements: [VectorArray][Republican, easy, five, make]
+Children: Leaf Node
+Page: 4 Has Been Deleted and can be located in the free list.
+Page: 5
+Keys: [VectorArray][Key(847), Key(866), Key(871), Key(874)]
+Elements: [VectorArray][customer, identify, none, rise]
+Children: Leaf Node
+Page: 6 Has Been Deleted and can be located in the free list.
+Page: 7 Has Been Deleted and can be located in the free list.
+Page: 8
+Keys: [VectorArray][Key(753), Key(758), Key(761), Key(762), Key(769), Key(772)]
+Elements: [VectorArray][different, training, until, firm, miss, gun]
+Children: Leaf Node
+Page: 9 Has Been Deleted and can be located in the free list.
+Page: 10
+Keys: [VectorArray][Key(336), Key(337), Key(339), Key(341)]
+Elements: [VectorArray][list, across, team, blue]
+Children: Leaf Node
+Page: 11
+Keys: [VectorArray][Key(1637), Key(1638), Key(1639), Key(1640)]
+Elements: [VectorArray][left, well, none, stand]
+Children: Leaf Node
+Page: 12
+Keys: [VectorArray][Key(160), Key(287), Key(404), Key(505), Key(643), Key(904)]
+Elements: [VectorArray][family, grow, past, letter, surface, often]
+Children: [VectorArray][2, 120, 43, 151, 129, 26, 50]
+Page: 13
+Keys: [VectorArray][Key(1711), Key(1712), Key(1713), Key(1714), Key(1717)]
+Elements: [VectorArray][lay, picture, candidate, building, clear]
+Children: Leaf Node
+Page: 14
+Keys: [VectorArray][Key(1380), Key(1382), Key(1384), Key(1386), Key(1389)]
+Elements: [VectorArray][station, on, nice, appear, sure]
+Children: Leaf Node
+Page: 15
+Keys: [VectorArray][Key(219), Key(221), Key(225), Key(226), Key(227), Key(228), Key(229)]
+Elements: [VectorArray][just, involve, rest, discussion, property, now, worry]
+Children: Leaf Node
+Page: 16
+Keys: [VectorArray][Key(70), Key(75), Key(76), Key(79)]
+Elements: [VectorArray][wife, artist, national, investment]
+Children: Leaf Node
+Page: 17
+Keys: [VectorArray][Key(1088), Key(1089), Key(1090), Key(1091), Key(1092), Key(1093)]
+Elements: [VectorArray][trade, no, thank, story, fight, market]
+Children: Leaf Node
+Page: 18 Has Been Deleted and can be located in the free list.
+Page: 19 Has Been Deleted and can be located in the free list.
+Page: 20
+Keys: [VectorArray][Key(368), Key(371), Key(381), Key(383), Key(384), Key(388)]
+Elements: [VectorArray][in, free, write, start, serious, lot]
+Children: Leaf Node
+Page: 21 Has Been Deleted and can be located in the free list.
+Page: 22 Has Been Deleted and can be located in the free list.
+Page: 23
+Keys: [VectorArray][Key(1804), Key(1821), Key(1828), Key(1840), Key(1851)]
+Elements: [VectorArray][issue, fear, picture, before, discuss]
+Children: [VectorArray][243, 216, 118, 258, 200, 224]
+Page: 24
+Keys: [VectorArray][Key(1581), Key(1584), Key(1585), Key(1586), Key(1587)]
+Elements: [VectorArray][per, quality, guy, friend, manager]
+Children: Leaf Node
+Page: 25
+Keys: [VectorArray][Key(1000), Key(1003), Key(1004), Key(1005)]
+Elements: [VectorArray][apply, fight, follow, others]
+Children: Leaf Node
+Page: 26
+Keys: [VectorArray][Key(664), Key(682), Key(716), Key(749), Key(775), Key(814), Key(828), Key(845), Key(876)]
+Elements: [VectorArray][like, better, understand, wish, become, rule, woman, almost, goal]
+Children: [VectorArray][87, 52, 95, 135, 8, 121, 101, 56, 5, 90]
+Page: 27 Has Been Deleted and can be located in the free list.
+Page: 28 Has Been Deleted and can be located in the free list.
+Page: 29 Has Been Deleted and can be located in the free list.
+Page: 30 Has Been Deleted and can be located in the free list.
+Page: 31
+Keys: [VectorArray][Key(391), Key(393), Key(402), Key(403)]
+Elements: [VectorArray][bar, thing, message, easy]
+Children: Leaf Node
+Page: 32
+Keys: [VectorArray][Key(1188), Key(1193), Key(1196), Key(1199), Key(1200)]
+Elements: [VectorArray][drop, style, until, process, well]
+Children: Leaf Node
+Page: 33
+Keys: [VectorArray][Key(968), Key(977), Key(978), Key(979)]
+Elements: [VectorArray][organization, point, way, late]
+Children: Leaf Node
+Page: 34 Has Been Deleted and can be located in the free list.
+Page: 35
+Keys: [VectorArray][Key(1476), Key(1477), Key(1482), Key(1484), Key(1489)]
+Elements: [VectorArray][for, often, let, professional, month]
+Children: Leaf Node
+Page: 36
+Keys: [VectorArray][Key(1935), Key(1949), Key(1964), Key(1978), Key(1987)]
+Elements: [VectorArray][prove, reflect, benefit, source, rule]
+Children: [VectorArray][239, 170, 211, 168, 241, 195]
+Page: 37
+Keys: [VectorArray][Key(1548), Key(1550), Key(1552), Key(1553), Key(1554)]
+Elements: [VectorArray][international, source, place, investment, if]
+Children: Leaf Node
+Page: 38
+Keys: [VectorArray][Key(1332), Key(1334), Key(1335), Key(1337)]
+Elements: [VectorArray][way, kind, whether, rock]
+Children: Leaf Node
+Page: 39 Has Been Deleted and can be located in the free list.
+Page: 40
+Keys: [VectorArray][Key(1519), Key(1523), Key(1524), Key(1525), Key(1527), Key(1528), Key(1530), Key(1532)]
+Elements: [VectorArray][office, spring, back, something, garden, goal, strategy, down]
+Children: Leaf Node
+Page: 41
+Keys: [VectorArray][Key(477), Key(481), Key(488), Key(489), Key(494), Key(495), Key(500), Key(503)]
+Elements: [VectorArray][put, evidence, compare, first, until, sure, if, image]
+Children: Leaf Node
+Page: 42 Has Been Deleted and can be located in the free list.
+Page: 43
+Keys: [VectorArray][Key(303), Key(335), Key(344), Key(367), Key(389)]
+Elements: [VectorArray][long, fall, drop, development, brother]
+Children: [VectorArray][70, 142, 10, 167, 20, 31]
+Page: 44
+Keys: [VectorArray][Key(1364), Key(1378), Key(1390), Key(1398), Key(1415)]
+Elements: [VectorArray][card, them, life, recently, admit]
+Children: [VectorArray][80, 139, 14, 116, 249, 63]
+Page: 45
+Keys: [VectorArray][Key(1059), Key(1060), Key(1061), Key(1062), Key(1064), Key(1066)]
+Elements: [VectorArray][character, final, consumer, item, exactly, institution]
+Children: Leaf Node
+Page: 46 Has Been Deleted and can be located in the free list.
+Page: 47
+Keys: [VectorArray][Key(558), Key(559), Key(562), Key(570)]
+Elements: [VectorArray][someone, suffer, four, evidence]
+Children: Leaf Node
+Page: 48
+Keys: [VectorArray][Key(987), Key(988), Key(990), Key(992), Key(993)]
+Elements: [VectorArray][executive, hair, simple, front, pattern]
+Children: Leaf Node
+Page: 49 Has Been Deleted and can be located in the free list.
+Page: 50
+Keys: [VectorArray][Key(914), Key(928), Key(944), Key(966), Key(983)]
+Elements: [VectorArray][letter, cover, later, cause, color]
+Children: [VectorArray][51, 145, 61, 98, 33, 48]
+Page: 51
+Keys: [VectorArray][Key(905), Key(910), Key(911), Key(912)]
+Elements: [VectorArray][clearly, skin, suddenly, analysis]
+Children: Leaf Node
+Page: 52
+Keys: [VectorArray][Key(666), Key(672), Key(676), Key(678)]
+Elements: [VectorArray][item, dark, mention, style]
+Children: Leaf Node
+Page: 53
+Keys: [VectorArray][Key(240), Key(243), Key(249), Key(250)]
+Elements: [VectorArray][four, about, your, collection]
+Children: Leaf Node
+Page: 54
+Keys: [VectorArray][Key(1058), Key(1173), Key(1263), Key(1354), Key(1434)]
+Elements: [VectorArray][garden, I, claim, face, pretty]
+Children: [VectorArray][58, 265, 194, 244, 44, 189]
+Page: 55
+Keys: [VectorArray][Key(631), Key(637), Key(639), Key(640), Key(641)]
+Elements: [VectorArray][shake, bag, attorney, billion, society]
+Children: Leaf Node
+Page: 56
+Keys: [VectorArray][Key(829), Key(835), Key(839), Key(841)]
+Elements: [VectorArray][boy, hard, window, respond]
+Children: Leaf Node
+Page: 57 Has Been Deleted and can be located in the free list.
+Page: 58
+Keys: [VectorArray][Key(1006), Key(1015), Key(1033), Key(1044)]
+Elements: [VectorArray][action, prevent, contain, recent]
+Children: [VectorArray][25, 172, 209, 146, 192]
+Page: 59
+Keys: [VectorArray][Key(1125), Key(1127), Key(1128), Key(1133), Key(1135), Key(1136), Key(1137)]
+Elements: [VectorArray][lose, air, particular, east, morning, finish, raise]
+Children: Leaf Node
+Page: 60 Has Been Deleted and can be located in the free list.
+Page: 61
+Keys: [VectorArray][Key(929), Key(931), Key(932), Key(936)]
+Elements: [VectorArray][reach, start, pass, focus]
+Children: Leaf Node
+Page: 62
+Keys: [VectorArray][Key(262), Key(264), Key(269), Key(275)]
+Elements: [VectorArray][my, high, theory, white]
+Children: Leaf Node
+Page: 63
+Keys: [VectorArray][Key(1419), Key(1420), Key(1421), Key(1422), Key(1424)]
+Elements: [VectorArray][imagine, better, laugh, purpose, yeah]
+Children: Leaf Node
+Page: 64
+Keys: [VectorArray][Key(1664), Key(1665), Key(1666), Key(1669), Key(1671)]
+Elements: [VectorArray][price, administration, remember, bag, just]
+Children: Leaf Node
+Page: 65 Has Been Deleted and can be located in the free list.
+Page: 66 Has Been Deleted and can be located in the free list.
+Page: 67 Has Been Deleted and can be located in the free list.
+Page: 68
+Keys: [VectorArray][Key(1589), Key(1590), Key(1591), Key(1596), Key(1597)]
+Elements: [VectorArray][find, where, get, modern, court]
+Children: Leaf Node
+Page: 69
+Keys: [VectorArray][Key(1166), Key(1167), Key(1168), Key(1169), Key(1170), Key(1171)]
+Elements: [VectorArray][movement, century, bit, nothing, white, identify]
+Children: Leaf Node
+Page: 70
+Keys: [VectorArray][Key(289), Key(295), Key(299), Key(301)]
+Elements: [VectorArray][level, two, side, student]
+Children: Leaf Node
+Page: 71 Has Been Deleted and can be located in the free list.
+Page: 72 Has Been Deleted and can be located in the free list.
+Page: 73
+Keys: [VectorArray][Key(95), Key(99), Key(102), Key(110), Key(115), Key(123), Key(124), Key(130)]
+Elements: [VectorArray][public, training, teacher, low, enter, author, company, land]
+Children: Leaf Node
+Page: 74 Has Been Deleted and can be located in the free list.
+Page: 75 Has Been Deleted and can be located in the free list.
+Page: 76 Has Been Deleted and can be located in the free list.
+Page: 77 Has Been Deleted and can be located in the free list.
+Page: 78
+Keys: [VectorArray][Key(997), Key(1545)]
+Elements: [VectorArray][ground, scene]
+Children: [VectorArray][12, 54, 236]
+Page: 79 Has Been Deleted and can be located in the free list.
+Page: 80
+Keys: [VectorArray][Key(1355), Key(1356), Key(1359), Key(1360)]
+Elements: [VectorArray][wide, toward, you, husband]
+Children: Leaf Node
+Page: 81
+Keys: [VectorArray][Key(1493), Key(1494), Key(1497), Key(1500)]
+Elements: [VectorArray][husband, yourself, Democrat, list]
+Children: Leaf Node
+Page: 82 Has Been Deleted and can be located in the free list.
+Page: 83 Has Been Deleted and can be located in the free list.
+Page: 84 Has Been Deleted and can be located in the free list.
+Page: 85 Has Been Deleted and can be located in the free list.
+Page: 86 Has Been Deleted and can be located in the free list.
+Page: 87
+Keys: [VectorArray][Key(645), Key(647), Key(648), Key(650), Key(659), Key(660)]
+Elements: [VectorArray][while, Democrat, year, ahead, water, easy]
+Children: Leaf Node
+Page: 88
+Keys: [VectorArray][Key(438), Key(439), Key(440), Key(444)]
+Elements: [VectorArray][lose, Republican, right, space]
+Children: Leaf Node
+Page: 89
+Keys: [VectorArray][Key(37), Key(38), Key(47), Key(58), Key(63)]
+Elements: [VectorArray][four, someone, order, go, less]
+Children: Leaf Node
+Page: 90
+Keys: [VectorArray][Key(881), Key(883), Key(889), Key(890), Key(891), Key(894), Key(899), Key(902)]
+Elements: [VectorArray][community, material, according, word, business, treatment, notice, apply]
+Children: Leaf Node
+Page: 91 Has Been Deleted and can be located in the free list.
+Page: 92 Has Been Deleted and can be located in the free list.
+Page: 93 Has Been Deleted and can be located in the free list.
+Page: 94
+Keys: [VectorArray][Key(1916), Key(1921), Key(1923), Key(1924)]
+Elements: [VectorArray][business, leg, member, owner]
+Children: Leaf Node
+Page: 95
+Keys: [VectorArray][Key(684), Key(685), Key(694), Key(704)]
+Elements: [VectorArray][join, science, weight, worker]
+Children: Leaf Node
+Page: 96 Has Been Deleted and can be located in the free list.
+Page: 97 Has Been Deleted and can be located in the free list.
+Page: 98
+Keys: [VectorArray][Key(952), Key(954), Key(955), Key(960)]
+Elements: [VectorArray][your, question, red, turn]
+Children: Leaf Node
+Page: 99 Has Been Deleted and can be located in the free list.
+Page: 100
+Keys: [VectorArray][Key(1147), Key(1149), Key(1152), Key(1154), Key(1156)]
+Elements: [VectorArray][free, paper, east, explain, bed]
+Children: Leaf Node
+Page: 101
+Keys: [VectorArray][Key(817), Key(819), Key(822), Key(824)]
+Elements: [VectorArray][performance, so, stock, blood]
+Children: Leaf Node
+Page: 102
+Keys: [VectorArray][Key(135), Key(136), Key(137), Key(138), Key(141)]
+Elements: [VectorArray][to, yes, stop, region, nothing]
+Children: Leaf Node
+Page: 103 Has Been Deleted and can be located in the free list.
+Page: 104 Has Been Deleted and can be located in the free list.
+Page: 105 Has Been Deleted and can be located in the free list.
+Page: 106 Has Been Deleted and can be located in the free list.
+Page: 107 Has Been Deleted and can be located in the free list.
+Page: 108 Has Been Deleted and can be located in the free list.
+Page: 109 Has Been Deleted and can be located in the free list.
+Page: 110
+Keys: [VectorArray][Key(599), Key(608), Key(609), Key(616)]
+Elements: [VectorArray][mention, reflect, down, what]
+Children: Leaf Node
+Page: 111 Has Been Deleted and can be located in the free list.
+Page: 112
+Keys: [VectorArray][Key(155), Key(156), Key(157), Key(159)]
+Elements: [VectorArray][outside, foot, public, soldier]
+Children: Leaf Node
+Page: 113 Has Been Deleted and can be located in the free list.
+Page: 114 Has Been Deleted and can be located in the free list.
+Page: 115 Has Been Deleted and can be located in the free list.
+Page: 116
+Keys: [VectorArray][Key(1391), Key(1392), Key(1394), Key(1397)]
+Elements: [VectorArray][people, chance, hundred, yes]
+Children: Leaf Node
+Page: 117
+Keys: [VectorArray][Key(197), Key(204), Key(206), Key(207)]
+Elements: [VectorArray][near, reveal, serve, treat]
+Children: Leaf Node
+Page: 118
+Keys: [VectorArray][Key(1823), Key(1824), Key(1825), Key(1827)]
+Elements: [VectorArray][product, week, huge, check]
+Children: Leaf Node
+Page: 119 Has Been Deleted and can be located in the free list.
+Page: 120
+Keys: [VectorArray][Key(192), Key(211), Key(232), Key(255)]
+Elements: [VectorArray][general, such, common, better]
+Children: [VectorArray][127, 117, 15, 53, 62]
+Page: 121
+Keys: [VectorArray][Key(776), Key(780), Key(783), Key(790), Key(803), Key(808), Key(811)]
+Elements: [VectorArray][evidence, easy, social, same, news, among, notice]
+Children: Leaf Node
+Page: 122
+Keys: [VectorArray][Key(1611), Key(1612), Key(1613), Key(1617)]
+Elements: [VectorArray][real, effect, game, direction]
+Children: Leaf Node
+Page: 123 Has Been Deleted and can be located in the free list.
+Page: 124 Has Been Deleted and can be located in the free list.
+Page: 125 Has Been Deleted and can be located in the free list.
+Page: 126
+Keys: [VectorArray][Key(1096), Key(1101), Key(1103), Key(1107), Key(1109), Key(1113), Key(1115)]
+Elements: [VectorArray][everything, management, memory, third, oil, difference, possible]
+Children: Leaf Node
+Page: 127
+Keys: [VectorArray][Key(165), Key(167), Key(169), Key(174), Key(176), Key(182)]
+Elements: [VectorArray][small, family, government, physical, act, agreement]
+Children: Leaf Node
+Page: 128 Has Been Deleted and can be located in the free list.
+Page: 129
+Keys: [VectorArray][Key(556), Key(571), Key(598), Key(629)]
+Elements: [VectorArray][remain, machine, relationship, evidence]
+Children: [VectorArray][160, 47, 164, 110, 55]
+Page: 130 Has Been Deleted and can be located in the free list.
+Page: 131
+Keys: [VectorArray][Key(1880), Key(1881), Key(1883), Key(1887)]
+Elements: [VectorArray][recently, house, benefit, term]
+Children: Leaf Node
+Page: 132 Has Been Deleted and can be located in the free list.
+Page: 133 Has Been Deleted and can be located in the free list.
+Page: 134 Has Been Deleted and can be located in the free list.
+Page: 135
+Keys: [VectorArray][Key(725), Key(726), Key(732), Key(736), Key(744)]
+Elements: [VectorArray][hear, success, grow, minute, customer]
+Children: Leaf Node
+Page: 136
+Keys: [VectorArray][Key(406), Key(414), Key(415), Key(420)]
+Elements: [VectorArray][phone, record, option, for]
+Children: Leaf Node
+Page: 137
+Keys: [VectorArray][Key(1741), Key(1743), Key(1747), Key(1748)]
+Elements: [VectorArray][rate, world, herself, soon]
+Children: Leaf Node
+Page: 138
+Keys: [VectorArray][Key(1264), Key(1266), Key(1267), Key(1268), Key(1272), Key(1273), Key(1274)]
+Elements: [VectorArray][cup, back, occur, be, fly, than, others]
+Children: Leaf Node
+Page: 139
+Keys: [VectorArray][Key(1365), Key(1369), Key(1373), Key(1374), Key(1377)]
+Elements: [VectorArray][letter, lead, certain, save, example]
+Children: Leaf Node
+Page: 140
+Keys: [VectorArray][Key(1752), Key(1753), Key(1754), Key(1755), Key(1756)]
+Elements: [VectorArray][more, within, stop, while, education]
+Children: Leaf Node
+Page: 141 Has Been Deleted and can be located in the free list.
+Page: 142
+Keys: [VectorArray][Key(312), Key(313), Key(315), Key(327), Key(330), Key(333)]
+Elements: [VectorArray][least, low, month, all, hundred, win]
+Children: Leaf Node
+Page: 143 Has Been Deleted and can be located in the free list.
+Page: 144
+Keys: [VectorArray][Key(425), Key(426), Key(428), Key(432)]
+Elements: [VectorArray][him, pattern, factor, show]
+Children: Leaf Node
+Page: 145
+Keys: [VectorArray][Key(919), Key(920), Key(923), Key(927)]
+Elements: [VectorArray][such, art, though, apply]
+Children: Leaf Node
+Page: 146
+Keys: [VectorArray][Key(1037), Key(1038), Key(1039), Key(1040), Key(1041), Key(1043)]
+Elements: [VectorArray][movie, right, little, notice, size, white]
+Children: Leaf Node
+Page: 147 Has Been Deleted and can be located in the free list.
+Page: 148 Has Been Deleted and can be located in the free list.
+Page: 149 Has Been Deleted and can be located in the free list.
+Page: 150
+Keys: [VectorArray][Key(447), Key(456), Key(459), Key(461), Key(462), Key(464), Key(467), Key(469)]
+Elements: [VectorArray][individual, style, professional, pretty, value, us, much, such]
+Children: Leaf Node
+Page: 151
+Keys: [VectorArray][Key(423), Key(437), Key(445), Key(474)]
+Elements: [VectorArray][so, PM, best, break]
+Children: [VectorArray][136, 144, 88, 150, 41]
+Page: 152
+Keys: [VectorArray][Key(1864), Key(1866), Key(1868), Key(1869), Key(1870), Key(1871), Key(1872), Key(1874)]
+Elements: [VectorArray][remember, find, now, throughout, somebody, peace, actually, away]
+Children: Leaf Node
+Page: 153
+Keys: [VectorArray][Key(1681), Key(1682), Key(1683), Key(1687), Key(1688)]
+Elements: [VectorArray][life, religious, stand, check, value]
+Children: Leaf Node
+Page: 154
+Keys: [VectorArray][Key(1727), Key(1728), Key(1730), Key(1731), Key(1735), Key(1736), Key(1737), Key(1738)]
+Elements: [VectorArray][other, summer, scientist, just, notice, you, church, believe]
+Children: Leaf Node
+Page: 155
+Keys: [VectorArray][Key(1503), Key(1505), Key(1508), Key(1516), Key(1517)]
+Elements: [VectorArray][road, interview, treatment, little, dark]
+Children: Leaf Node
+Page: 156 Has Been Deleted and can be located in the free list.
+Page: 157
+Keys: [VectorArray][Key(1322), Key(1323), Key(1324), Key(1325), Key(1326)]
+Elements: [VectorArray][rule, couple, receive, nice, season]
+Children: Leaf Node
+Page: 158 Has Been Deleted and can be located in the free list.
+Page: 159
+Keys: [VectorArray][Key(1619), Key(1621), Key(1623), Key(1624)]
+Elements: [VectorArray][police, development, pick, high]
+Children: Leaf Node
+Page: 160
+Keys: [VectorArray][Key(510), Key(517), Key(526), Key(539), Key(553)]
+Elements: [VectorArray][down, serious, sound, me, chair]
+Children: Leaf Node
+Page: 161 Has Been Deleted and can be located in the free list.
+Page: 162 Has Been Deleted and can be located in the free list.
+Page: 163 Has Been Deleted and can be located in the free list.
+Page: 164
+Keys: [VectorArray][Key(575), Key(580), Key(584), Key(586), Key(587), Key(589), Key(596)]
+Elements: [VectorArray][dog, help, ok, newspaper, Republican, now, decide]
+Children: Leaf Node
+Page: 165
+Keys: [VectorArray][Key(1313), Key(1314), Key(1315), Key(1317), Key(1318), Key(1319), Key(1320)]
+Elements: [VectorArray][but, teach, moment, system, skill, glass, mission]
+Children: Leaf Node
+Page: 166 Has Been Deleted and can be located in the free list.
+Page: 167
+Keys: [VectorArray][Key(349), Key(357), Key(363), Key(364)]
+Elements: [VectorArray][surface, court, process, discover]
+Children: Leaf Node
+Page: 168
+Keys: [VectorArray][Key(1966), Key(1969), Key(1972), Key(1975)]
+Elements: [VectorArray][camera, relationship, remember, trouble]
+Children: Leaf Node
+Page: 169
+Keys: [VectorArray][Key(1435), Key(1437), Key(1439), Key(1442)]
+Elements: [VectorArray][get, grow, pattern, provide]
+Children: Leaf Node
+Page: 170
+Keys: [VectorArray][Key(1940), Key(1941), Key(1942), Key(1945), Key(1948)]
+Elements: [VectorArray][real, themselves, national, agree, together]
+Children: Leaf Node
+Page: 171 Has Been Deleted and can be located in the free list.
+Page: 172
+Keys: [VectorArray][Key(1007), Key(1008), Key(1010), Key(1014)]
+Elements: [VectorArray][issue, authority, world, left]
+Children: Leaf Node
+Page: 173 Has Been Deleted and can be located in the free list.
+Page: 174 Has Been Deleted and can be located in the free list.
+Page: 175
+Keys: [VectorArray][Key(1117), Key(1119), Key(1121), Key(1123)]
+Elements: [VectorArray][expect, along, street, level]
+Children: Leaf Node
+Page: 176
+Keys: [VectorArray][Key(1555), Key(1569), Key(1578), Key(1588), Key(1600)]
+Elements: [VectorArray][institution, least, smile, yourself, tree]
+Children: [VectorArray][37, 187, 256, 24, 68, 201]
+Page: 177
+Keys: [VectorArray][Key(1536), Key(1537), Key(1538), Key(1539), Key(1540), Key(1541), Key(1542), Key(1543)]
+Elements: [VectorArray][senior, main, people, catch, turn, ok, stop, country]
+Children: Leaf Node
+Page: 178
+Keys: [VectorArray][Key(1763), Key(1764), Key(1765), Key(1766)]
+Elements: [VectorArray][even, section, someone, professor]
+Children: Leaf Node
+Page: 179
+Keys: [VectorArray][Key(1654), Key(1655), Key(1656), Key(1657), Key(1658)]
+Elements: [VectorArray][seek, I, reason, job, cut]
+Children: Leaf Node
+Page: 180 Has Been Deleted and can be located in the free list.
+Page: 181 Has Been Deleted and can be located in the free list.
+Page: 182 Has Been Deleted and can be located in the free list.
+Page: 183 Has Been Deleted and can be located in the free list.
+Page: 184
+Keys: [VectorArray][Key(1298), Key(1302), Key(1308), Key(1310)]
+Elements: [VectorArray][I, evidence, throw, sense]
+Children: Leaf Node
+Page: 185
+Keys: [VectorArray][Key(1718), Key(1726), Key(1739), Key(1751), Key(1758), Key(1769)]
+Elements: [VectorArray][necessary, member, long, again, fly, total]
+Children: [VectorArray][13, 251, 154, 137, 140, 178, 232]
+Page: 186 Has Been Deleted and can be located in the free list.
+Page: 187
+Keys: [VectorArray][Key(1556), Key(1557), Key(1564), Key(1568)]
+Elements: [VectorArray][go, poor, star, continue]
+Children: Leaf Node
+Page: 188 Has Been Deleted and can be located in the free list.
+Page: 189
+Keys: [VectorArray][Key(1443), Key(1456), Key(1474), Key(1490), Key(1501), Key(1518), Key(1533)]
+Elements: [VectorArray][everything, hand, worry, how, decision, hear, against]
+Children: [VectorArray][169, 225, 220, 35, 81, 155, 40, 177]
+Page: 190 Has Been Deleted and can be located in the free list.
+Page: 191 Has Been Deleted and can be located in the free list.
+Page: 192
+Keys: [VectorArray][Key(1045), Key(1046), Key(1050), Key(1051), Key(1052), Key(1053), Key(1055), Key(1056)]
+Elements: [VectorArray][enough, raise, young, loss, rather, black, mean, south]
+Children: Leaf Node
+Page: 193 Has Been Deleted and can be located in the free list.
+Page: 194
+Keys: [VectorArray][Key(1185), Key(1202), Key(1216), Key(1244), Key(1254)]
+Elements: [VectorArray][road, him, evidence, traditional, do]
+Children: [VectorArray][231, 32, 202, 223, 269, 210]
+Page: 195
+Keys: [VectorArray][Key(1988), Key(1989), Key(1991), Key(1992), Key(1993), Key(1996), Key(1997)]
+Elements: [VectorArray][letter, room, spring, reach, business, benefit, usually]
+Children: Leaf Node
+Page: 196
+Keys: [VectorArray][Key(1646), Key(1650), Key(1651), Key(1652)]
+Elements: [VectorArray][card, pressure, plan, same]
+Children: Leaf Node
+Page: 197 Has Been Deleted and can be located in the free list.
+Page: 198 Has Been Deleted and can be located in the free list.
+Page: 199 Has Been Deleted and can be located in the free list.
+Page: 200
+Keys: [VectorArray][Key(1843), Key(1844), Key(1849), Key(1850)]
+Elements: [VectorArray][loss, exist, something, up]
+Children: Leaf Node
+Page: 201
+Keys: [VectorArray][Key(1603), Key(1604), Key(1606), Key(1608)]
+Elements: [VectorArray][actually, fly, successful, ago]
+Children: Leaf Node
+Page: 202
+Keys: [VectorArray][Key(1203), Key(1204), Key(1209), Key(1213)]
+Elements: [VectorArray][produce, shake, rock, four]
+Children: Leaf Node
+Page: 203 Has Been Deleted and can be located in the free list.
+Page: 204
+Keys: [VectorArray][Key(1075), Key(1076), Key(1077), Key(1078)]
+Elements: [VectorArray][either, establish, mind, process]
+Children: Leaf Node
+Page: 205 Has Been Deleted and can be located in the free list.
+Page: 206 Has Been Deleted and can be located in the free list.
+Page: 207 Has Been Deleted and can be located in the free list.
+Page: 208
+Keys: [VectorArray][Key(1693), Key(1696), Key(1697), Key(1698), Key(1702)]
+Elements: [VectorArray][thought, onto, that, indicate, meet]
+Children: Leaf Node
+Page: 209
+Keys: [VectorArray][Key(1018), Key(1019), Key(1021), Key(1030)]
+Elements: [VectorArray][pick, civil, president, case]
+Children: Leaf Node
+Page: 210
+Keys: [VectorArray][Key(1256), Key(1258), Key(1260), Key(1261)]
+Elements: [VectorArray][situation, will, policy, little]
+Children: Leaf Node
+Page: 211
+Keys: [VectorArray][Key(1953), Key(1956), Key(1958), Key(1961)]
+Elements: [VectorArray][oil, pull, able, five]
+Children: Leaf Node
+Page: 212 Has Been Deleted and can be located in the free list.
+Page: 213 Has Been Deleted and can be located in the free list.
+Page: 214 Has Been Deleted and can be located in the free list.
+Page: 215 Has Been Deleted and can be located in the free list.
+Page: 216
+Keys: [VectorArray][Key(1806), Key(1811), Key(1813), Key(1814), Key(1817), Key(1818), Key(1819), Key(1820)]
+Elements: [VectorArray][wear, industry, fire, among, computer, yet, weight, scientist]
+Children: Leaf Node
+Page: 217
+Keys: [VectorArray][Key(1904), Key(1906), Key(1907), Key(1909)]
+Elements: [VectorArray][raise, although, there, town]
+Children: Leaf Node
+Page: 218 Has Been Deleted and can be located in the free list.
+Page: 219 Has Been Deleted and can be located in the free list.
+Page: 220
+Keys: [VectorArray][Key(1457), Key(1463), Key(1465), Key(1466), Key(1467), Key(1469), Key(1472)]
+Elements: [VectorArray][ok, general, too, tend, edge, enough, time]
+Children: Leaf Node
+Page: 221
+Keys: [VectorArray][Key(1889), Key(1893), Key(1896), Key(1899), Key(1900), Key(1901)]
+Elements: [VectorArray][school, quite, available, through, animal, success]
+Children: Leaf Node
+Page: 222
+Keys: [VectorArray][Key(1879), Key(1888), Key(1903), Key(1913)]
+Elements: [VectorArray][reach, pull, information, able]
+Children: [VectorArray][152, 131, 221, 217, 94]
+Page: 223
+Keys: [VectorArray][Key(1218), Key(1229), Key(1231), Key(1233), Key(1237), Key(1238), Key(1239)]
+Elements: [VectorArray][hair, scene, organization, politics, fight, explain, really]
+Children: Leaf Node
+Page: 224
+Keys: [VectorArray][Key(1852), Key(1853), Key(1855), Key(1858)]
+Elements: [VectorArray][as, else, young, boy]
+Children: Leaf Node
+Page: 225
+Keys: [VectorArray][Key(1445), Key(1448), Key(1452), Key(1454)]
+Elements: [VectorArray][poor, year, each, then]
+Children: Leaf Node
+Page: 226
+Keys: [VectorArray][Key(1343), Key(1345), Key(1347), Key(1349), Key(1350), Key(1351), Key(1352)]
+Elements: [VectorArray][bag, relate, few, story, simple, college, meeting]
+Children: Leaf Node
+Page: 227 Has Been Deleted and can be located in the free list.
+Page: 228
+Keys: [VectorArray][Key(1629), Key(1631), Key(1632), Key(1635)]
+Elements: [VectorArray][maybe, bill, treat, alone]
+Children: Leaf Node
+Page: 229 Has Been Deleted and can be located in the free list.
+Page: 230
+Keys: [VectorArray][Key(1286), Key(1288), Key(1289), Key(1293)]
+Elements: [VectorArray][alone, central, difference, easy]
+Children: Leaf Node
+Page: 231
+Keys: [VectorArray][Key(1174), Key(1175), Key(1179), Key(1184)]
+Elements: [VectorArray][open, especially, skin, require]
+Children: Leaf Node
+Page: 232
+Keys: [VectorArray][Key(1771), Key(1776), Key(1777), Key(1780), Key(1781)]
+Elements: [VectorArray][structure, history, trial, whole, soon]
+Children: Leaf Node
+Page: 233 Has Been Deleted and can be located in the free list.
+Page: 234 Has Been Deleted and can be located in the free list.
+Page: 235 Has Been Deleted and can be located in the free list.
+Page: 236
+Keys: [VectorArray][Key(1609), Key(1704), Key(1784), Key(1861), Key(1926)]
+Elements: [VectorArray][foreign, enough, rest, person, long]
+Children: [VectorArray][176, 252, 185, 23, 222, 36]
+Page: 237
+Keys: [VectorArray][Key(1674), Key(1676), Key(1677), Key(1678)]
+Elements: [VectorArray][dream, structure, short, upon]
+Children: Leaf Node
+Page: 238 Has Been Deleted and can be located in the free list.
+Page: 239
+Keys: [VectorArray][Key(1928), Key(1930), Key(1933), Key(1934)]
+Elements: [VectorArray][make, firm, skin, to]
+Children: Leaf Node
+Page: 240 Has Been Deleted and can be located in the free list.
+Page: 241
+Keys: [VectorArray][Key(1979), Key(1980), Key(1983), Key(1985)]
+Elements: [VectorArray][true, catch, member, well]
+Children: Leaf Node
+Page: 242 Has Been Deleted and can be located in the free list.
+Page: 243
+Keys: [VectorArray][Key(1785), Key(1792), Key(1793), Key(1797)]
+Elements: [VectorArray][building, road, rich, prove]
+Children: Leaf Node
+Page: 244
+Keys: [VectorArray][Key(1278), Key(1285), Key(1295), Key(1312), Key(1321), Key(1330), Key(1342)]
+Elements: [VectorArray][finally, science, seven, together, bad, whatever, store]
+Children: [VectorArray][138, 262, 230, 184, 165, 157, 38, 226]
+Page: 245 Has Been Deleted and can be located in the free list.
+Page: 246 Has Been Deleted and can be located in the free list.
+Page: 247 Has Been Deleted and can be located in the free list.
+Page: 248 Has Been Deleted and can be located in the free list.
+Page: 249
+Keys: [VectorArray][Key(1403), Key(1406), Key(1407), Key(1409), Key(1412), Key(1414)]
+Elements: [VectorArray][continue, meeting, reason, these, billion, look]
+Children: Leaf Node
+Page: 250 Has Been Deleted and can be located in the free list.
+Page: 251
+Keys: [VectorArray][Key(1719), Key(1720), Key(1721), Key(1724)]
+Elements: [VectorArray][find, buy, attention, then]
+Children: Leaf Node
+Page: 252
+Keys: [VectorArray][Key(1618), Key(1626), Key(1636), Key(1644), Key(1653), Key(1662), Key(1672), Key(1679), Key(1690)]
+Elements: [VectorArray][nothing, phone, might, southern, he, bar, turn, tell, on]
+Children: [VectorArray][122, 159, 228, 11, 196, 179, 64, 237, 153, 208]
+Page: 253 Has Been Deleted and can be located in the free list.
+Page: 254 Has Been Deleted and can be located in the free list.
+Page: 255 Has Been Deleted and can be located in the free list.
+Page: 256
+Keys: [VectorArray][Key(1571), Key(1575), Key(1576), Key(1577)]
+Elements: [VectorArray][fact, line, continue, car]
+Children: Leaf Node
+Page: 257 Has Been Deleted and can be located in the free list.
+Page: 258
+Keys: [VectorArray][Key(1829), Key(1830), Key(1831), Key(1837)]
+Elements: [VectorArray][tax, manager, field, claim]
+Children: Leaf Node
+Page: 259 Has Been Deleted and can be located in the free list.
+Page: 260 Has Been Deleted and can be located in the free list.
+Page: 261
+Keys: [VectorArray][Key(1082), Key(1083), Key(1084), Key(1086)]
+Elements: [VectorArray][test, prepare, now, when]
+Children: Leaf Node
+Page: 262
+Keys: [VectorArray][Key(1279), Key(1280), Key(1282), Key(1283), Key(1284)]
+Elements: [VectorArray][believe, dream, scene, will, small]
+Children: Leaf Node
+Page: 263 Has Been Deleted and can be located in the free list.
+Page: 264 Has Been Deleted and can be located in the free list.
+Page: 265
+Keys: [VectorArray][Key(1067), Key(1074), Key(1081), Key(1087), Key(1095), Key(1116), Key(1124), Key(1146), Key(1160)]
+Elements: [VectorArray][one, challenge, either, follow, wear, race, later, up, trial]
+Children: [VectorArray][45, 3, 204, 261, 17, 126, 175, 59, 100, 69]
+Page: 266 Has Been Deleted and can be located in the free list.
+Page: 267 Has Been Deleted and can be located in the free list.
+Page: 268 Has Been Deleted and can be located in the free list.
+Page: 269
+Keys: [VectorArray][Key(1245), Key(1246), Key(1251), Key(1252)]
+Elements: [VectorArray][involve, machine, her, campaign]
+Children: Leaf Node
+Page: 270 Has Been Deleted and can be located in the free list.

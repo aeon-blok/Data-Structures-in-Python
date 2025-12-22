@@ -171,6 +171,12 @@ class VectorArray(SequenceADT[T], CollectionADT[T]):
         """Built in override - adds indexing."""
         self.set(index, value)
 
+    def is_sorted(self):
+        for i in range(1, self.size):
+            if self.array[i - 1] > self.array[i]:
+                return False
+        return True
+
     # ----- Canonical ADT Operations -----
     def get(self, index):
         """Return element at index i"""

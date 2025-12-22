@@ -1277,6 +1277,8 @@ class TreeUtils:
         """node with k keys must have k+1 children"""
         if not node.is_leaf and len(node.children) != node.num_keys + 1:
             raise ValueError("Error: Node Children Must be size: keys + 1") 
+        if node.is_leaf and len(node.children) != 0:
+            raise DsOverflowError(f"Error: Node is a leaf and has children! leaf={node.is_leaf}, children={node.children}")
         
     def node_invariant(self, node):
         """
@@ -1521,35 +1523,61 @@ class TreeUtils:
         """
         node must have >= min keys (deg-1)
         node must have <= max keys (2*deg-1)
-        root can have 0 keys...
+        The root of the tree must have at least 1 key unless it is empty...
         """
         recorded_root_page_id = self.obj.page_manager.root_page_id
-
+        
+        # * Root Case
         if node.page_id == recorded_root_page_id:
-            return
+            if node.num_keys == 0: 
+                if not node.is_leaf and len(node.children) != 1:
+                    raise DsUnderflowError(f"Error: Root Node Must have at least 1 key unless the tree is empty. or the root has exactly 1 child.") 
+            if node.num_keys > self.obj.max_keys:
+                raise DsInputValueError(f"Error: Root Node has too many keys ({node.num_keys}/{self.obj.max_keys}). keys={node.keys}")
+        # * Node Case
         else:
             if not (self.obj.min_keys <= node.num_keys <= self.obj.max_keys):
-                raise DsInputValueError(f"Error: Node Must have min t-1 keys, and max 2t-1 keys!")
+                raise DsInputValueError(f"Error: Node Must have min t-1 keys, and max 2t-1 keys! total={node.num_keys} keys={node.keys}")
         
-    def disk_subtree_order_invariant(self, node):
+    def disk_subtree_order_invariant(self, parent):
         """
         all keys in the children must lie between the keys adjacent to that child. 
-        This rule must recursively apply to all children in the subtree.
+        there are 4 cases, leaf case, leftmost child case, rightmostchild case, middle children case
         """
-        if node.is_leaf:
+
+        # In a B-tree, the position of a child determines its key range.
+        # node.keys     = [K0, K1, K2]
+        # node.children = [C0, C1, C2, C3]
+        # C0 (idx=0)	< K0
+        # C1 (idx=1)	K0 < key < K1
+        # C2 (idx=2)	K1 < key < K2
+        # C3 (idx=3)	> K2
+
+        # * leaf case - no further action
+        if parent.is_leaf:
             return
-    
-        for idx, child_pid in enumerate(node.children):
+
+        # * iterates over each child. 
+        # idx = position in the children array
+        for idx, child_pid in enumerate(parent.children):
+            # loads from disk
             child = self.obj.convert_page_id_to_node(child_pid)
-            if child.num_keys == 0:
-                raise DsInputValueError("Error: Child has zero keys")
-            if idx == 0 and child.keys[child.num_keys-1] >= node.keys[0]:
-                raise DsInputValueError(f"Error: the last Child Key is larger than the first parent key.")
-            elif idx == node.num_keys and child.keys[0] <= node.keys[node.num_keys-1]:
-                raise DsInputValueError(f"Error: First Child Key is Smaller than the last parent key.")
-            elif 0 < idx < node.num_keys:
-                if child.keys[0] <= node.keys[idx-1] or child.keys[child.num_keys-1] >= node.keys[idx]:
-                    raise DsInputValueError("Error: Children are not properly sandwiched between parent keys.")        
+            # * leftmost child case
+            # The maximum key (last key) in the leftmost child must be strictly less than the parent’s first key
+            if idx == 0 and child.keys[child.num_keys-1] >= parent.keys[0]:
+                raise DsInputValueError(f"Error: the last Child Key is larger than the first parent key. child={child.keys}, parent={parent.keys}")
+            # * rightmost child case
+            # The minimum key in the rightmost child must be strictly greater than the parent’s last key
+            elif idx == parent.num_keys and child.keys[0] <= parent.keys[parent.num_keys-1]:
+                raise DsInputValueError(f"Error: First Child Key is Smaller than the last parent key. parent={parent.keys}, child={child.keys}")
+            # * middle children case
+            # ensures the children keys do not exceed the boundaries of the parent neighbours keys.
+            # LEFT(parent.keys[idx-1])  <  child keys  <  RIGHT(parent.keys[idx])
+            elif 0 < idx < parent.num_keys:
+                left_parent_key = parent.keys[idx-1]
+                right_parent_key = parent.keys[idx]
+                if child.keys[0] <= left_parent_key or child.keys[child.num_keys-1] >= right_parent_key:
+                    raise DsInputValueError(f"Error: Children are not properly sandwiched between parent keys. Left_P_key={left_parent_key}, child_keys={child.keys}, Right_P_key={right_parent_key}")        
     
     def disk_btree_height_iterative(self, node_type):
         """returns the max height of the Btree - via BFS traversal"""
@@ -1603,7 +1631,7 @@ class TreeUtils:
         """
 
         # * empty tree case
-        if self.obj.root is None: return
+        if self.obj.root.num_keys == 0: return
 
         tree = ArrayStack(tuple)
         root = self.obj.load_root_from_disk()
@@ -1702,7 +1730,6 @@ class TreeUtils:
         self.disk_node_invariant(node)
         self.disk_subtree_order_invariant(node)
         self.sorted_key_order_invariant(node)
-        self.leaf_invariant(node)
   
     def disk_validate_subtree(self, node):
         """recursively validates every node in the subtree of the specified node."""
@@ -1734,6 +1761,44 @@ class TreeUtils:
 
     def assert_root_pid_in_sync(self):
         assert self.obj.root.page_id == self.obj.page_manager.root_page_id, f"Error: root page id out of sync.... root pid={self.obj.root.page_id} & Page manager root pid={self.obj.page_manager.root_page_id}"
+
+    def disk_validate_freelist(self):
+        """Ensure that no page id in the freelist exists in the current tree."""
+        pass
+
+    def check_if_dirty_page(self):
+        """Checks to see if the page object in memory is equivalent to the page() stored on disk."""
+        pass
+
+    def repair_parent_sep_after_merge_right(self, merged_child, parent_node, idx):
+        """
+        repairs the stale parent seperator reference after a merge right operation
+        used specifically for disk based b-trees
+        """
+        # traverse to rightmost leaf (Leftmost child has no left separator, so nothing to fix.)
+        if idx > 0:
+            current = merged_child
+            while not current.is_leaf:
+                last = current.num_keys
+                current = self.obj.convert_page_id_to_node(current.children[last])
+            # repair and replace parent seperator.
+            parent_node.keys[idx-1] = current.keys[current.num_keys-1]
+            parent_node.elements[idx-1] = current.elements[current.num_keys-1]
+
+    def repair_parent_sep_after_merge_left(self, merged_node, parent_node, idx):
+        """repairs stale parent seperator for merge left op"""
+        # traverse to rightmost leaf in subtree. (yes for merge with left.)
+        current = merged_node
+        while not current.is_leaf:
+            last = current.num_keys
+            current = self.obj.convert_page_id_to_node(current.children[last])
+        # repair parent seperator
+        parent_node.keys[idx-1] = current.keys[current.num_keys-1]
+        parent_node.elements[idx-1] = current.elements[current.num_keys-1]
+
+
+
+
 
 
     # endregion

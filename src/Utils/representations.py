@@ -989,7 +989,7 @@ class BTreeRepr(BaseRepr):
 
         node_structure = "\n".join(hierarchy)
         title = f"🌿 B-Tree:"
-        stats = f"{self.node_capacity}{self.tree_size}{self.total_nodes}{self.tree_height}{self.valid_tree}"
+        stats = f"{self.node_capacity}{self.tree_size}{self.total_nodes}{self.tree_height}"
         return f"\n{title}\n{stats}\n{node_structure}"
 
     def repr_btree(self):

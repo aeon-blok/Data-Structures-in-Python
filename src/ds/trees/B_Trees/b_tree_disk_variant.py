@@ -29,6 +29,7 @@ import pickle
 import os
 import struct
 from pathlib import Path
+from faker import Faker
 
 # endregion
 
@@ -112,7 +113,6 @@ class Page:
     def __repr__(self) -> str:
         return self._desc.repr_page()
 
-
 class PageManager:
     """
     Interface for writing nodes to disk, and reading nodes from disk.
@@ -193,6 +193,26 @@ class PageManager:
         pagefile_size = self.pagefile.stat().st_size
         self._auto_id: PageID = pagefile_size // PAGE_SIZE
 
+    def delete_pagefile(self):
+        """
+        This deletes the pagefile from disk.
+        Before deleting a pagefile we should:
+        flush any temporary buffers.
+        Close the file from any places it may be open. (this is needed to release any locks that prevent it from being deleted.)
+        Delete the file from the disk.
+        """
+        # Existence check
+        if not self.pagefile.exists(): return
+
+        # delete file.
+        self.pagefile.unlink()
+
+        # reset state
+        self._auto_id: PageID = 1    
+        self._root_page_id = None
+        self.free_list_head: Optional[PageID] = None
+        self.free_list_cache.clear()
+
     # Free List Cache
     def _read_page_bypass(self, page_id):
         """bypasses the free list check - its used to build a free list in memory cache for quick retrieval"""
@@ -253,6 +273,8 @@ class PageManager:
         Adds it to the free list so that the next time a page is stored, it will utilize this slot rather than create a new page.
         Updates both the Free list cache and the free list on disk.
         """
+        if page_id in self.free_list_cache:
+            raise NodeDeletedError(f"Error: Page ID: {page_id} has already been freed.")
 
         # Every freed page stores a pointer to the next free page in its first 4 bytes. x00 0 bytes indicates the end of the free list.
         # This is how the freed page “links” to the next free page, forming a persistent on-disk linked list.
@@ -624,27 +646,23 @@ class PageManager:
         root = self.read_node_from_disk(root_page_id)
         return root
 
-
 class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
     """
     Disk Based B Tree: writes nodes to disk.
     Duplicate Keys are forbidden.
     Utilizes Pre-emptive fix Strategy for insert and deletion. (CLRS)
-
-    Nodes have a unique Page ID,
-    children are stored as Page ID references.
-
-    Nodes are written to disk (serialized) via Page objects. 
-
-    The tree is stored in a Pagefile.
-    There is a converted textfile that allows you to inspect the pagefile and its contents
-
-   
+    Nodes have a unique Page ID, children are stored as Page ID references.
+    Nodes are written to disk (serialized) via Page objects.
+    The tree is stored in a Pagefile. There is a converted textfile that allows you to inspect the pagefile and its contents
     All node operations (read/write) happen through a page manager interface.
-
     Only nodes being traversed are loaded into memory (lazy loading).
+    Disk B-tree requires Explicit separator recomputation after every delete recursive operation.
     """
     def __init__(self, pagefile: str, datatype: Optional[type] = None, degree: Optional[int] = None) -> None:
+        # composed objects
+        self._utils = TreeUtils(self)
+        self._validators = DsValidation()
+        self._desc = BTreeRepr(self)
         # this controls a large part of the b-tree
         self.page_manager = PageManager(pagefile, datatype, None, degree)
         # * existing tree found - load from disk.
@@ -667,11 +685,6 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             self._total_nodes: int = 0
             self._total_keys: int = 0
             self.create_tree()
-
-        # composed objects
-        self._utils = TreeUtils(self)
-        self._validators = DsValidation()
-        self._desc = BTreeRepr(self)
 
     @property
     def datatype(self) -> type:
@@ -809,7 +822,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         if not isinstance(node, BTreeNode):
             raise DsTypeError(f"Error: Before writing to disk. the input must be an Actual Node object.")
 
-        if node == self._root:
+        if node.page_id == self.page_manager.root_page_id:
             root_page_id = self.write_root_to_disk()
             return root_page_id
         else:
@@ -858,13 +871,30 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 
     # ----- Meta Collection ADT Operations -----
     def is_empty(self) -> bool:
-        return self._root is None
+        return self._root.num_keys == 0
 
     def clear(self) -> None:
         """iteratively deletes all the nodes and resets counters etc."""
-        self._root = None
-        self._total_keys = 0
-        self._total_nodes = 0
+        # * Clear in-memory state: (reset counters, set root to none, freelist cache and head etc.)
+        self._root: None | BTreeNode =  None
+        self._total_nodes: int = 0
+        self._total_keys: int = 0
+
+        # * delete pagefile. (this deletes the on disk tree.)
+        self.page_manager.delete_pagefile()
+
+        # * reinitialize (recreate pagefile, then recreate root node. (assign to page 1))
+        self.page_manager._initialize_empty_pagefile(self._datatype, self.tree_keytype, self._degree)
+        self.create_tree()
+        pagefile_size = self.page_manager.pagefile.stat().st_size
+        root_pid, freelist_head, deg, total_nodes, total_keys, dtype, ktype = self.page_manager.read_tree_metadata()
+        assert self._root.page_id == 1 and self._root.page_id == root_pid, f"Error: On creation of a new tree - root page id must == 1. root_pid={self._root.page_id}. Also the root page id must match the metadata page id. if they dont match, disk corruption may be present." 
+        assert self.page_manager.pagefile.exists(), f"Error: Pagefile does not exist."
+        assert pagefile_size >= 2 * PAGE_SIZE, f"Error: Page File MUST contain Page 0 and Page 1. Currently it does not."
+        assert self.page_manager.free_list_head is None, f"Error: Free List Head Must be None"
+        assert not self.page_manager.free_list_cache, f"Error: Free list Cache must be empty"
+        assert total_nodes == 1, f"Error: Total Nodes must == 1 (the root exists.)"
+        assert total_keys == 0, f"Error: Total Keys must == 0"
 
     def __contains__(self, key) -> bool:
         return self.search(key) is not None
@@ -957,11 +987,10 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
     def _predecessor(self, node: BTreeNode) -> tuple[BTreeNode, int]:
         """returns the predecessor key - that is the largest key in the left subtree smaller than the specified key."""
         current = self.convert_page_id_to_node(node)
-        last = current.num_keys - 1
         while not current.is_leaf:
             # traverse to the rightmost child.
-            current = self.convert_page_id_to_node(current.children[last])
-        return (current, last)
+            current = self.convert_page_id_to_node(current.children[current.num_keys])
+        return (current, current.num_keys - 1)
 
     def _successor(self, node: BTreeNode) -> tuple[BTreeNode, int]:
         """returns the succesor key  - the smallest key in the right subtree lareger than the specified key."""
@@ -1010,7 +1039,8 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         self._root = self.page_manager.create_node(self._datatype, self._degree, is_leaf=True)
         self._total_nodes +=1
         root_pid = self.write_root_to_disk()
-        self.load_root_from_disk()
+        self._root = self.load_root_from_disk()
+        self._utils.assert_root_pid_in_sync()
 
     def _insert_non_full(self, node, key, value):
         """
@@ -1070,6 +1100,12 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # * validate inputs
 
         key = Key(key)
+
+        result = self.search(key)
+
+        if result is not None:
+            raise KeyInvalidError(f"Error: Cannot have duplicate keys in this B-Tree.")
+
         if self.tree_keytype is None:
             self._utils.disk_set_keytype(key)
         self._utils.check_btree_key_is_same_type(key)
@@ -1106,6 +1142,8 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # * validate input
         key = Key(key)
         self._utils.check_btree_key_is_same_type(key)
+
+        # * load root from disk
         self._root = self.load_root_from_disk()
 
         print(f"\nB-tree delete: {key}")
@@ -1114,8 +1152,9 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             print(f"btree is empty - no further action")
             return
 
+        # * Enter recursive delete.
         self._recursive_delete(self._root, key)
-        self._root = self.load_root_from_disk()
+        self._root = self.load_root_from_disk() # reload root after exiting recursive delete
 
         # * root edge case: root is empty & has exactly 1 child. promote child to root and delete old root.
         if self._root.num_keys == 0:
@@ -1135,28 +1174,34 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 # tree is empty: (root is a leaf with 0 keys)
                 self.write_root_to_disk()
 
-    def _case_1_leaf_node_contains_key(self, parent_node, idx) -> None:
+    def _case_1_leaf_node_contains_key(self, parent_node, idx, key) -> None:
         """
         Case 1A: current has min + 1 keys:
         You don’t need to reload the parent/leaf node in Case 1. no chance of stale references
         """
         print(f"CASE 1: Entering Case 1")
+        assert parent_node.is_leaf, f"Error: Node is not a leaf node."
+        assert key in parent_node.keys, "Error: Delete descended into wrong leaf"
 
         if parent_node.num_keys > self.min_keys:
             print(f"Deleting Key: {parent_node.keys[idx]}")
             parent_node.keys.delete(idx)
             parent_node.elements.delete(idx)
-            self._total_keys -= 1
+            self._total_keys -= 1   # decrement counter
+            # * write node to disk and update pagefile metadata (page 0) to represent the tree
             parent_pid = self.write_node_to_disk(parent_node)
-            self._utils.assert_root_pid_in_sync()
             self.page_manager.write_tree_metadata(self._root.page_id, self._total_nodes, self._total_keys)
-        elif parent_node is self._root:
+            self._utils.assert_root_pid_in_sync()
+            assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
+
+        elif parent_node.page_id == self.page_manager.root_page_id:
             print(f"ROOT CASE: Node is the Root and the only node left: deleting Key: {parent_node.keys[idx]}")
             parent_node.keys.delete(idx)
             parent_node.elements.delete(idx)
-            self._total_keys -= 1
+            self._total_keys -= 1   # decrement counter
             parent_pid = self.write_node_to_disk(parent_node)    # will auto check if its the root
             self.page_manager.write_tree_metadata(parent_pid, self._total_nodes, self._total_keys)
+            assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
         else:
             raise KeyInvalidError(f"Error: Case 1: Key not found. node keys={parent_node.keys}")
 
@@ -1172,10 +1217,13 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 
         if child.num_keys >= self._degree:
             print(f"CASE 2A: Entering Case 2A: child i has the min + 1 required keys")
-            print(f"child pointer={child}")
+            print(f"child pointer={child}, child keys={child.keys}")
 
             # * find predecessor:
             pred, pred_idx = self._predecessor(child)
+            assert pred.is_leaf, f"Error: Pred node must be leaf."
+            assert pred.keys.size > 0, f"Error: pred node must have keys."
+            assert 0 <= pred_idx < pred.keys.size, f"Error: pred key index is incorrect"
             pred_key: iKey = pred.keys[pred_idx]
             pred_element: T = pred.elements[pred_idx]
             print(f"predecessor: {pred_key} and {pred}.")
@@ -1219,6 +1267,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             right_sibling = self.convert_page_id_to_node(parent_node.children[idx+1])
 
             assert right_sibling.num_keys >= self._degree, f"Error: Case 2B: Child doesnt have t keys."
+
             print(f"Case 2B: recursively entering right sibling with succ key")
             self._recursive_delete(right_sibling, succ_key)
             return
@@ -1240,6 +1289,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 print(f"Entering recursive delete on merged child.")
                 self._recursive_delete(merged_child, key)
                 return
+
             # * Last Child Edge Case: merge child into left sibling (affects index order)
             elif left_sibling is not None and left_sibling.num_keys == self.min_keys:
                 left_pid, parent_pid = self.merge_with_left(parent_node, idx)
@@ -1283,6 +1333,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 child = self.convert_page_id_to_node(parent_node.children[idx])
                 print(f"child={child} Entering recursive delete on child")
                 self._recursive_delete(child, key)
+                return
 
             # Case 3A: borrow key from right sibling
             elif right_sibling is not None and right_sibling.num_keys > self.min_keys:
@@ -1291,6 +1342,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 child = self.convert_page_id_to_node(parent_node.children[idx])
                 print(f"child={child} Entering recursive delete on child")
                 self._recursive_delete(child, key)
+                return
 
             # * Case 3B:  Child and siblings have min keys (merge child with sibling)
             elif right_sibling is not None and right_sibling.num_keys == self.min_keys:
@@ -1301,6 +1353,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 assert merged_child.num_keys == self.max_keys, f"Error: Case 3B: Merged Child should have Max number of keys. (CLRS)"
                 print(f"merged child={merged_child} Entering recursive delete on merged child")
                 self._recursive_delete(merged_child, key)
+                return
 
             # merge with left sibling (if it exists.)
             elif left_sibling is not None and left_sibling.num_keys == self.min_keys:
@@ -1312,12 +1365,12 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
                 print(f"Merged Child Keys={merged_node.keys}")
                 print(f"merged child={merged_node} Entering recursive delete on merged child")                
                 self._recursive_delete(merged_node, key)
-
+                return
             # In a properly formed B-tree (degree ≥ 2), this should never trigger, but it catches any logic/invariant violation.
             else:
                 raise NodeExistenceError(f"Error: Case 3B: Invariant violated - Child does not have a sibling.")
         else:
-            print(f"Child didnt have min keys.... Traversing to child and deleting.")
+            print(f"Child has > Min Keys.... Traversing to child and deleting.")
             self._recursive_delete(child, key)
 
     def _recursive_delete(self, node: BTreeNode, key: iKey) -> None:
@@ -1334,7 +1387,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         idx = 0
         parent_node = self.convert_page_id_to_node(node)
 
-        if parent_node == self._root:
+        if parent_node.page_id == self.page_manager.root_page_id:
             print(f"Entering Recursive Delete on Root: ROOT={parent_node} is_leaf: {node.is_leaf}")
         else:
             print(f"Entering Recursive Delete: node={parent_node} is_leaf: {node.is_leaf}")
@@ -1348,7 +1401,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # * Case 1: Leaf Node Contains Key: delete immmediately (only if it has > min keys)
         if parent_node.is_leaf:
             if idx < parent_node.num_keys and key == parent_node.keys[idx]:
-                self._case_1_leaf_node_contains_key(parent_node, idx)
+                self._case_1_leaf_node_contains_key(parent_node, idx, key)
             return
 
         # * Case 2: Internal node contains the key.
@@ -1397,21 +1450,21 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         and return the new root node.
         """
 
-        print(f"Splitting Root: ")
+        # print(f"Splitting Root: ")
         # store old root first
         old_root = self._root
         old_root_page_id = self.write_node_to_disk(old_root)
-        print(f"old root leaf? {old_root.leaf}")
+        # print(f"old root leaf? {old_root.leaf}")
 
         # allocate new root (will allocate page id automatically)
         new_root = self.page_manager.create_node(self._datatype, self._degree, is_leaf=False)
         self._total_nodes += 1
         # make the old root a child of the new node.
         new_root.children.insert(0, old_root_page_id)
-        print(f"new root children = {new_root.children}")
+        # print(f"new root children = {new_root.children}")
         # * new node becomes the new root.
         self._root = new_root
-        print(f"self.root children = {self._root.children}")
+        # print(f"self.root children = {self._root.children}")
         root_page_id = self.write_root_to_disk()
         # Split the first child of new_node, (which is the old root)
         self.split_child(self._root, 0)
@@ -1420,21 +1473,24 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 
     def split_child(self, parent_node: BTreeNode, index: Index) -> None:
         """
-        split the full node into 2 different nodes.
-        We split via the median key
-        all nodes > median go to the new right node,
-        all < median go to the left node.
-        promote the median key up to the parent.
-        remove median key from child
+        split the full node (child) into 2 different nodes. itself and a newly created sibling.
+        We split via the median key of the child
+        all nodes > median go to the new right node, all < median go to the left node.
+        of course after moving half the keys to the sibling, we must delete them from the child.
+        Now we need to link the newly created sibling to its parent and vice versa
+        promote the median key up to the parent & remove median key from child
+        Finally we write the nodes to disk to persist the changes.
+
         indices: 0 … t-2 | t-1 | t … 2t-2      
                 left      median    right
         """
 
-        print(f"Splitting Child: ")
+        # * Load nodes from disk
+        # print(f"Splitting Child: (its full...) Sibling will take half the keys... (the greater half)")
         # child - retains the first half of the keys
         parent_node = self.convert_page_id_to_node(parent_node)
         child_node: BTreeNode = self.convert_page_id_to_node(parent_node.children[index])
-        print(f"parent={parent_node}, child={child_node}")
+        # print(f"parent={parent_node}, child={child_node}")
 
         # * we create a new sibling - it will inherit its leaf status from its other sibling (the child)
         new_sibling: BTreeNode = self.page_manager.create_node(self._datatype, self._degree, is_leaf=child_node.leaf)
@@ -1465,15 +1521,14 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             for _ in range(self._degree):
                 child_node.children.delete(self._degree)
 
-        # * relink parent and new child. (and add promoted key)
+        # * relink parent and new sibling. (and add promoted key)
         # add new sibling page id (not the node) to parent's children list
         new_sibling_page_id = new_sibling.page_id
         parent_node.children.insert(index + 1, new_sibling_page_id)
 
-        # now insert promoted median key. (t-1)
+        # * now insert promoted median key. (t-1)
         parent_node.keys.insert(index, median_key)
         parent_node.elements.insert(index, median_element)
-
         # remove median key from child node.
         child_node.keys.delete(self._degree-1)
         child_node.elements.delete(self._degree-1)
@@ -1516,6 +1571,11 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # remove right sibling Page ID from parent
         parent_node.children.delete(idx + 1)
 
+        assert child.keys.is_sorted(), f"Error: Keys are not in order. {child.keys}"
+        assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
+        assert len(parent_node.children) == parent_node.num_keys + 1
+        if not child.is_leaf: assert len(child.children) == child.num_keys + 1 
+
         child_pid = self.write_node_to_disk(child)
         parent_pid = self.write_node_to_disk(parent_node)
         self.delete_node_from_disk(right_sibling_page_id)
@@ -1554,6 +1614,11 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         # remove child from parent.
         parent_node.children.delete(idx)
 
+        assert left_sibling.keys.is_sorted(), f"Error: Keys are not in order. {left_sibling.keys}"
+        assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
+        assert len(parent_node.children) == parent_node.num_keys + 1
+        if not left_sibling.is_leaf: assert len(left_sibling.children) == left_sibling.num_keys + 1
+
         left_pid = self.write_node_to_disk(left_sibling)
         parent_pid = self.write_node_to_disk(parent_node)
         self.delete_node_from_disk(child_page_id)
@@ -1565,32 +1630,68 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         then moves the corresponding parent key / element down to the RIGHT child
         assumes the nodes involved are internal nodes.
         The key separating the two nodes is at index (idx - 1)
-        Borrow is in essence a rotation, applied to two keys.
+        Borrow is a rotation around the parent separator.
+        The left sibling’s largest key belongs in the parent
+        order invariant: max(left) < parent.key < min(child)
         """
 
+        # * init vars
         child = self.convert_page_id_to_node(parent_node.children[idx])
         left_sibling = self.convert_page_id_to_node(parent_node.children[idx-1])
+        assert left_sibling.keys.is_sorted(), f"Error: Keys are not in order. {left_sibling.keys}"
+        assert child.keys.is_sorted(), f"Error: Keys are not in order. {child.keys}"
+        assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
 
-        # move parent key down into child:
-        child.keys.insert(0, parent_node.keys[idx-1])
-        child.elements.insert(0, parent_node.elements[idx-1])
+        # Bug: Case 2A -> Case 3A: borrow-from-left on an internal node after a predecessor replacement
+        # the bug only exists on a very specific delete path, and your workload rarely hits it.
+        # This requires all of the following at once:
+        # Using predecessor replacement (Case 2A) & Recursing into the predecessor subtree
+        # Hitting Case 3A: Choosing borrow-from-left (not right) & Doing this after earlier structural mutations
+        # Solution:
+        # You rotate keys in the wrong order — you must first pull from the left sibling, then push the updated parent key down into the child.
 
-        # move last key from left sibling up into parent
-        last = left_sibling.num_keys - 1    # is this correct?
-        parent_node.keys[idx-1] = left_sibling.keys[last]
-        parent_node.elements[idx-1] = left_sibling.elements[last]
+        print(f"Swapping Keys:")
+        # * Step 1: Extract max key from left sibling
+        last_idx = left_sibling.num_keys - 1
+        last_child_idx = left_sibling.num_keys
 
-        # move child pointer from left sibling to child children array.
+        borrowed_key = left_sibling.keys[last_idx]
+        borrowed_element = left_sibling.elements[last_idx]
+        print(f"left sibling key={borrowed_key} from {left_sibling.keys}")
+
+        # * delete key from left sibling
+        left_sibling.keys.delete(last_idx)
+        left_sibling.elements.delete(last_idx)
+        print(f"deleting borrowed key: left sib keys = {left_sibling.keys}")
+
+        # * Step 2: Demote Parent Key: move parent key down into child:
+        # The key moved down from the parent must be placed in-order inside the child
+        child.keys.insert(0, parent_node.keys[idx - 1])
+        child.elements.insert(0, parent_node.elements[idx - 1])
+        print(f"Child key after demotion: {child.keys[0]}")
+
+        # * Step 3: Promote Borrowed Key: move borrowed key UP into parent
+        parent_node.keys[idx - 1] = borrowed_key
+        parent_node.elements[idx - 1] = borrowed_element
+        print(f"parent key after promotion: {parent_node.keys[idx - 1]}")
+
+        # * Step 4: move child pointer from left sibling to child children array.
         if not left_sibling.is_leaf:
-            last_left_child_pid: PageID = self.extract_page_id(left_sibling.children[last])
+            last_left_child_pid: PageID = self.extract_page_id(left_sibling.children[last_child_idx])
             child.children.insert(0, last_left_child_pid)
-            left_sibling.children.delete(last)
+            left_sibling.children.delete(last_child_idx)
 
-        # delete key from left sibling
-        left_sibling.keys.delete(last)
-        left_sibling.elements.delete(last)
+        print(f"parent keys={parent_node.keys}")
+        print(f"left sib keys={left_sibling.keys}, child keys={child.keys}")
 
-        # write to disk
+        assert left_sibling.keys.is_sorted(), f"Error: Keys are not in order. {left_sibling.keys}"
+        assert child.keys.is_sorted(), f"Error: Keys are not in order. {child.keys}"
+        assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
+        assert len(parent_node.children) == parent_node.num_keys + 1
+        if not child.is_leaf: assert len(child.children) == child.num_keys + 1 
+        if not left_sibling.is_leaf: assert len(left_sibling.children) == left_sibling.num_keys + 1
+
+        # * write to disk
         left_pid = self.write_node_to_disk(left_sibling)
         child_pid = self.write_node_to_disk(child)
         parent_pid = self.write_node_to_disk(parent_node)
@@ -1602,18 +1703,42 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
         parent key --> child key.
         right_sibling key --> parent key
         Borrow is in essence a rotation, applied to two keys.
+        order invariant: max(child) < parent[idx] < min(right_sibling)
         """
         child = self.convert_page_id_to_node(parent_node.children[idx])
         right_sibling = self.convert_page_id_to_node(parent_node.children[idx+1])
 
+        assert right_sibling.keys.is_sorted(), f"Error: Keys are not in order. {right_sibling.keys}"
+        assert child.keys.is_sorted(), f"Error: Keys are not in order. {child.keys}"
+        assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
+        assert len(parent_node.children) == parent_node.num_keys + 1
+        if not child.is_leaf: assert len(child.children) == child.num_keys + 1 
+        if not right_sibling.is_leaf: assert len(right_sibling.children) == right_sibling.num_keys + 1
+
+        print(f"Swapping Keys:")
+        # * Step 1: Extract borrowed key (min) from right sibling
+        borrowed_key = right_sibling.keys[0]
+        borrowed_element = right_sibling.elements[0]
+        # delete first key from right sibling.
+        right_sibling.keys.delete(0)
+        right_sibling.elements.delete(0)
+        print(f"right sibling key={borrowed_key} from {right_sibling.keys}")
+        print(f"deleting borrowed key: right sib keys = {right_sibling.keys}")
+
+        # * Step 2: Demote Parent Key: move parent key down into child:
         # move key from parent down into child
-        child.keys.append(parent_node.keys[idx])  
+        # The key moved down from the parent must be placed in-order inside the child
+        child.keys.append(parent_node.keys[idx])
         child.elements.append(parent_node.elements[idx])
+        print(f"Child key after demotion: {child.keys[0]}")
 
+        # * Step 3: Promote Borrowed Key: move borrowed key UP into parent
         # move first key from right sibling up into parent
-        parent_node.keys[idx] = right_sibling.keys[0]
-        parent_node.elements[idx] = right_sibling.elements[0]
+        parent_node.keys[idx] = borrowed_key
+        parent_node.elements[idx] = borrowed_element
+        print(f"parent key after promotion: {parent_node.keys[idx]}")
 
+        # * Step 4: move child pointer from right sibling to child children array.
         # move child pointer from right sibling to child children array.
         # ONLY if internal node. (leaves dont have children)
         if not right_sibling.is_leaf:
@@ -1621,9 +1746,15 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
             child.children.append(first_right_child_pid)
             right_sibling.children.delete(0)
 
-        # delete first key from right sibling.
-        right_sibling.keys.delete(0)
-        right_sibling.elements.delete(0)
+        print(f"parent keys={parent_node.keys}")
+        print(f"right sib keys={right_sibling.keys}, child keys={child.keys}")
+
+        assert right_sibling.keys.is_sorted(), f"Error: Keys are not in order. {right_sibling.keys}"
+        assert child.keys.is_sorted(), f"Error: Keys are not in order. {child.keys}"
+        assert parent_node.keys.is_sorted(), f"Error: Keys are not in order. {parent_node.keys}"
+        assert len(parent_node.children) == parent_node.num_keys + 1
+        if not child.is_leaf: assert len(child.children) == child.num_keys + 1 
+        if not right_sibling.is_leaf: assert len(right_sibling.children) == right_sibling.num_keys + 1
 
         right_pid = self.write_node_to_disk(right_sibling)
         child = self.write_node_to_disk(child)
@@ -1633,8 +1764,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 # ------------------------------- Main: Client Facing Code: -------------------------------
 def main():
 
-    # todo fix contains, clear() and is_empty()
-    # todo fix validate b-tree logic etc.
+    # todo solve silent failure for keys not being deleted (the assertion picks it up....)
 
     random_data = [
         "apple",
@@ -1668,8 +1798,43 @@ def main():
         "dragonfruit",
         "kumquat",
     ]
+    person_names = [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Hank",
+        "Ivy",
+        "Jack",
+    ]
+    person_keys = [i for i in range(100, 110)]
 
     keys = [i for i in range(len(random_data))]
+
+    fake = Faker()
+
+    mega_keys = []
+    mega_values = []
+    fake.seed_instance(42)
+
+    batch_2_keys = []
+    batch_2_values = []
+
+    key_batch_size = 1000
+
+    for i in range(key_batch_size):
+        mega_keys.append(i)
+        mega_values.append(fake.word())
+
+    for i in range(key_batch_size, key_batch_size+key_batch_size):
+        batch_2_keys.append(i)
+        batch_2_values.append(fake.word())
+
+    random.shuffle(mega_keys)
+    random.shuffle(batch_2_keys)
 
     # # ------------------------------- Loading an existing B-tree From Disk: -------------------------------
     # pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
@@ -1684,7 +1849,7 @@ def main():
     # print(keys)
     # for key in keys:
     #     btree.delete(key)
-    
+
     # print(btree)
 
     # btree.save_btree_to_disk()
@@ -1692,54 +1857,76 @@ def main():
 
     # -----------------------------------------------------------------------------------------------------
 
-    # print(f"\nTesting Disk Based B Tree")
-    # pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
-    # diskb = BTreeDisk(pagefile_location, str, 5)
-    # print(diskb)
-    # print(repr(diskb))
+    print(f"\nTesting Disk Based B Tree")
+    pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
+    diskb = BTreeDisk(pagefile_location, str, 5)
+    print(diskb)
+    print(repr(diskb))
 
-    # print(f"\nTesting Insert functionality of Btree")
-    # for i, item in zip(keys, random_data):
-    #     diskb.insert(i, item)
-    # print(diskb)
+    print(f"\nTesting Insert functionality of Btree")
+    for i, item in zip(mega_keys, mega_values):
+        diskb.insert(i, item)
+        if not diskb.validate_tree:
+            print(f"Error: Structural violation occured during or before insertion. key={i}, value={item}")
+    print(diskb)
 
-    # print(f"\nTesting Search functionality of Btree: key:0 = {diskb.search(0)}")
-    # print(f"Testing Search on a non existent key: key:200 = {diskb.search(200)}")
-    # print(f"Testing Contains functionality: key:23423425 in disk B tree? {23423425 in diskb}")
-    # print(f"Is Disk B-Tree Empty?: {diskb.is_empty()}")
-    # min_val = diskb.min()
-    # max_val = diskb.max()
-    # print(f"Min element: {min_val}")
-    # print(f"Max element: {max_val}")
-    # print(f"Total keys in tree: {len(diskb)}")
+    print(f"\nTesting Search functionality of Btree: key:0 = {diskb.search(0)}")
+    print(f"Testing Search on a non existent key: key:200000 = {diskb.search(200000)}")
+    print(f"Testing Contains functionality: key:23423425 in disk B tree? {23423425 in diskb}")
+    print(f"Is Disk B-Tree Empty?: {diskb.is_empty()}")
+    min_val = diskb.min()
+    max_val = diskb.max()
+    print(f"Min element: {min_val}")
+    print(f"Max element: {max_val}")
+    print(f"Total keys in tree: {len(diskb)}")
 
-    # print(f"\nTesting Delete functionality of Btree")
-    # print(diskb)
-    # print(repr(diskb))
-    # shuffled_keys = list(range(30))
-    # random.shuffle(shuffled_keys)
-    # shuffled_keys = shuffled_keys[:15]
-    # print(shuffled_keys)
+    print(f"\nTesting Delete functionality of Btree")
+    print(diskb)
+    print(repr(diskb))
+    shuffled_keys = list(range(key_batch_size))
+    random.shuffle(shuffled_keys)
+    shuffled_keys = shuffled_keys[:key_batch_size // 2]
+    print(shuffled_keys)
 
-    # for key in shuffled_keys:
-    #     diskb.delete(key)
+    for key in shuffled_keys:
+        diskb.delete(key)
+        if not diskb.validate_tree:
+            print(f"Error: Structural violation occured during or before Deletion. key={key}")
+        assert key not in diskb, f"Delete silently failed for {key}"
 
-    # print(diskb)
+    print(diskb)
 
-    # print("\nTesting traversal...")
-    # print(diskb.traverse("keys"))
-    # print(diskb.traverse("elements"))
+    print(f"\nTesting Second round of inserts.")
+    for i, item in zip(batch_2_keys, batch_2_values):
+        diskb.insert(i, item)
+        if not diskb.validate_tree: 
+            print(f"Error: Structural violation occured during or before insertion. key={i}, value={item}")
 
-    # diskb.save_btree_to_disk()
-    # diskb.inspect_pagefile("pagefile_final.txt")
+    rand_shuff_keys = diskb.traverse("keys")
+    random.shuffle(rand_shuff_keys)
+    rand_shuff_keys = rand_shuff_keys[:len(rand_shuff_keys) // 2]
 
+    for key in rand_shuff_keys:
+        diskb.delete(key)
+        if not diskb.validate_tree:
+            print(f"Error: Structural violation occured during or before Deletion. key={key}")
+        assert key not in diskb, f"Delete silently failed for {key}"
+
+    print("\nTesting traversal...")
+    print(diskb.traverse("keys"))
+    print(diskb.traverse("elements"))
+
+    print(diskb)
 
     # # ---------- Type Checking ----------
     # print("\nTesting type validation...")
     # try:
-    #     b.insert(6, RandomClass("alyyyllgfdgfd"))  # invalid element type
+    #     diskb.insert(6, RandomClass("alyyyllgfdgfd"))  # invalid element type
     # except Exception as e:
     #     print(f"Caught expected type error: {e}")
+
+    diskb.save_btree_to_disk()
+    diskb.inspect_pagefile("pagefile_final.txt")
 
 
 if __name__ == "__main__":
