@@ -102,7 +102,6 @@ class BTreeADT(ABC, Generic[T]):
         ...
 
     # ----- Mutators -----
-
     @abstractmethod
     def insert(self, key, value: T) -> None:
         """Inserts a key value pair into the B Tree - and maintains the B Tree invariants."""
@@ -115,12 +114,10 @@ class BTreeADT(ABC, Generic[T]):
 
         ...
     # ----- Utility -----
-
     @abstractmethod
     def split_child(self, parent_node, index) -> None:
         """Splits a Full Child node. Promotes the median key to the parent."""
         ...
-
 
     @abstractmethod
     def borrow_left(self, parent_node, idx) -> None:

@@ -995,6 +995,25 @@ class BTreeRepr(BaseRepr):
     def repr_btree(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_size}{self.node_capacity}"
 
+class TrieNodeRepr(BaseRepr):
+    """representation for trie node"""
+
+    def str_trie_node(self):
+        return f""
+
+    def repr_trie_node(self):
+        return f""
+
+
+
+class TrieRepr(BaseRepr):
+    """representation for trie"""
+
+    def str_trie(self):
+        return f""
+
+    def repr_trie(self):
+        return f""
 
 # region Binary Trees
 # Binary Trees

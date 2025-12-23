@@ -30,6 +30,10 @@ import os
 import struct
 from pathlib import Path
 from faker import Faker
+import logging
+import logging.handlers
+import traceback
+import json
 
 # endregion
 
@@ -62,6 +66,67 @@ from user_defined_types.key_types import iKey, Key
 from user_defined_types.tree_types import NodeColor, Traversal, PageID
 
 # endregion
+
+class BTreeLogger:
+    """
+    Logger for Disk Based B-Tree. Useful to spot bugs or file corruption, and retrace the issue.
+    """
+    def __init__(self, filepath: str, log_level = logging.DEBUG, name: str = "default") -> None:
+        self.filepath = Path(filepath)
+        self.log_level = log_level
+        self.log_format = "[Log Entry: %(asctime)s.%(msecs)04d:]%(filename)s: Line %(lineno)d: %(message)s"
+        self.json_format = json.dumps({"Time": "%(asctime)s.%(msecs)04d","File": "%(filename)s","Line": "%(lineno)d","Message": "%(message)s"})
+        self.date_format = f"%H:%M:%S"
+
+        # * init logger & set level
+        self.log = logging.getLogger(name)
+        self.log.setLevel(self.log_level)
+        self.log.propagate = False
+
+        # * add handlers to logger
+
+    def add_console_log_handler(self):
+        """
+        Adds a console log handler and sets the log level (can be user defined)
+        Create a console handler for displaying log messages to the console (StreamHandler())
+        """
+        # existence check
+        if any (isinstance(handler, logging.StreamHandler) for handler in self.log.handlers):
+            return
+        
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(self.log_level)
+        # * Apply format to handlers
+        format = logging.Formatter(self.log_format, self.date_format)
+        console_handler.setFormatter(format)
+        self.log.addHandler(console_handler)
+        return console_handler
+
+    def add_file_log_handler(self, filepath: str | Path | None = None):
+        """
+        adds a log text file handler (the file path can be user defined) and sets the log level (can be user defined)
+        create a file log handler - used for text or json etc.
+        """
+        # existence check
+        if any (isinstance(handler, logging.FileHandler) for handler in self.log.handlers):
+            return
+        
+        # allow custom filepath
+        filepath = filepath if filepath is not None else self.filepath
+        # Add new file handler
+        file_handler = logging.FileHandler(filepath, mode="a", encoding="utf-8", errors="ignore")
+        file_handler.setLevel(self.log_level)  # Sets the log
+        # * Apply format to handlers
+        format = logging.Formatter(self.log_format, self.date_format)
+        file_handler.setFormatter(format)
+        self.log.addHandler(file_handler)
+        return file_handler
+
+    def remove_handlers(self):
+        """loops through and removes all handlers from the logger."""
+        for handler in self.log.handlers[:]:
+            handler.close()
+            self.log.removeHandler(handler)
 
 class Page:
     """
@@ -655,8 +720,7 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
     Nodes are written to disk (serialized) via Page objects.
     The tree is stored in a Pagefile. There is a converted textfile that allows you to inspect the pagefile and its contents
     All node operations (read/write) happen through a page manager interface.
-    Only nodes being traversed are loaded into memory (lazy loading).
-    Disk B-tree requires Explicit separator recomputation after every delete recursive operation.
+    Only nodes currently being traversed are loaded into memory (lazy loading).
     """
     def __init__(self, pagefile: str, datatype: Optional[type] = None, degree: Optional[int] = None) -> None:
         # composed objects
@@ -1764,8 +1828,6 @@ class BTreeDisk(BTreeADT[T], CollectionADT[T], Generic[T]):
 # ------------------------------- Main: Client Facing Code: -------------------------------
 def main():
 
-    # todo solve silent failure for keys not being deleted (the assertion picks it up....)
-
     random_data = [
         "apple",
         "orange",
@@ -1836,25 +1898,6 @@ def main():
     random.shuffle(mega_keys)
     random.shuffle(batch_2_keys)
 
-    # # ------------------------------- Loading an existing B-tree From Disk: -------------------------------
-    # pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
-    # btree = BTreeDisk(pagefile_location)
-    # print(btree)
-    # print(repr(btree))
-    # print(btree.traverse("keys"))
-    # print(btree.traverse("elements"))
-    # keys = list(btree.traverse("keys"))
-    # random.shuffle(keys)
-    # keys = keys[:10]
-    # print(keys)
-    # for key in keys:
-    #     btree.delete(key)
-
-    # print(btree)
-
-    # btree.save_btree_to_disk()
-    # btree.inspect_pagefile(filename=r"diskb_modified_pagefile.txt")
-
     # -----------------------------------------------------------------------------------------------------
 
     print(f"\nTesting Disk Based B Tree")
@@ -1885,8 +1928,6 @@ def main():
     print(repr(diskb))
     shuffled_keys = list(range(key_batch_size))
     random.shuffle(shuffled_keys)
-    shuffled_keys = shuffled_keys[:key_batch_size // 2]
-    print(shuffled_keys)
 
     for key in shuffled_keys:
         diskb.delete(key)
@@ -1918,15 +1959,39 @@ def main():
 
     print(diskb)
 
-    # # ---------- Type Checking ----------
-    # print("\nTesting type validation...")
-    # try:
-    #     diskb.insert(6, RandomClass("alyyyllgfdgfd"))  # invalid element type
-    # except Exception as e:
-    #     print(f"Caught expected type error: {e}")
+    # ---------- Type Checking ----------
+    print("\nTesting type validation...")
+    try:
+        diskb.insert(60000000000000000, RandomClass("alyyyllgfdgfd"))  # invalid element type
+    except Exception as e:
+        print(f"Caught expected type error: {e}")
+    try:
+        diskb.insert("543453", "gfdgdfgdg")  # invalid key type
+    except Exception as e:
+        print(f"Caught expected type error: {e}")
 
     diskb.save_btree_to_disk()
     diskb.inspect_pagefile("pagefile_final.txt")
+
+    # # ------------------------------- Loading an existing B-tree From Disk: -------------------------------
+    # pagefile_location = r"J:\CODE\Python_Data_Structures_2025\src\ds\trees\B_Trees\Save_Dir\diskb.page"
+    # btree = BTreeDisk(pagefile_location)
+    # print(btree)
+    # print(repr(btree))
+    # print(btree.traverse("keys"))
+    # print(btree.traverse("elements"))
+    # keys = list(btree.traverse("keys"))
+    # random.shuffle(keys)
+    # keys = keys[:10]
+    # print(keys)
+    # for key in keys:
+    #     btree.delete(key)
+
+    # print(btree)
+
+    # btree.save_btree_to_disk()
+    # btree.inspect_pagefile(filename=r"diskb_modified_pagefile.txt")
+    # -----------------------------------------------------------------------------------------------------
 
 
 if __name__ == "__main__":

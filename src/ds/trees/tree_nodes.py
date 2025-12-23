@@ -35,7 +35,17 @@ import pickle
 # region custom imports
 from user_defined_types.generic_types import T, K
 from utils.validation_utils import DsValidation
-from utils.representations import TreeNodeRepr, BinaryNodeRepr, BSTNodeRepr, AVLNodeRepr, RedBlackNodeRepr, AncestorNodeRepr, BTreeNodeRepr, PageRepr
+from utils.representations import (
+    TreeNodeRepr,
+    BinaryNodeRepr,
+    BSTNodeRepr,
+    AVLNodeRepr,
+    RedBlackNodeRepr,
+    AncestorNodeRepr,
+    BTreeNodeRepr,
+    PageRepr,
+    TrieNodeRepr,
+)
 from utils.exceptions import *
 from utils.constants import PAGE_SIZE
 
@@ -49,10 +59,10 @@ if TYPE_CHECKING:
     from adts.binary_tree_adt import BinaryTreeADT
     from adts.bst_adt import BinarySearchTreeADT
 
-
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
 from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.trees.tree_utils import TreeNodeUtils
+from ds.maps.hash_table_with_chaining import ChainHashTable
 
 from user_defined_types.generic_types import ValidDatatype, TypeSafeElement, PositiveNumber
 from user_defined_types.key_types import iKey, Key
@@ -660,6 +670,25 @@ class BTreeNode():
     def __repr__(self) -> str:
         return self._desc.repr_btree_node()
 
+class TrieNode(Generic[T]):
+    """Trie Node representation - uses hashmap for children for O(1) access"""
+    def __init__(self, key: Optional[str]) -> None:
+        self.key = key
+        self.children = ChainHashTable(TrieNode)
+        self.is_end: bool = False
+
+        # composed objects
+        self._desc = TrieNodeRepr(self)
+
+    @property
+    def num_children(self) -> int:
+        return len(self.children)
+
+    def __str__(self) -> str:
+        return self._desc.str_trie_node()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_trie_node()
 
 
 # -------------- Testing Node Solo Functionality -----------------
