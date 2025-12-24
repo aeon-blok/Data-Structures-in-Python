@@ -1796,9 +1796,21 @@ class TreeUtils:
         parent_node.keys[idx-1] = current.keys[current.num_keys-1]
         parent_node.elements[idx-1] = current.elements[current.num_keys-1]
 
+    # endregion
 
+    # region Trie
 
+    def check_is_string(self, word):
+        """Ensures that the input word / key is a string"""
+        if not isinstance(word, str):
+            raise DsTypeError(f"Error: Key must be a string! key={type(word)}")
 
-
+    def assert_char_in_validation_set(self, input):
+        """validate every character in the key via the alphabet"""
+        if input not in self.obj._alphabet:
+            raise DsInputValueError(f"Error: Character={input} does not exist in trie validation set: (alphabet)")
+    
 
     # endregion
+
+

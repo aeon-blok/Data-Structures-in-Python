@@ -870,8 +870,6 @@ class GenTreeRepr(BaseRepr):
         the node & its display symbols are appended to a list for the final string output.
         """
 
-        # todo add BFS as a flag option here. choose between dfs and bfs representation.
-
         total_tree_nodes = len(self.obj)
         tree_height = self.obj.height(self.obj.root)
 
@@ -998,22 +996,109 @@ class BTreeRepr(BaseRepr):
 class TrieNodeRepr(BaseRepr):
     """representation for trie node"""
 
+    @property
+    def char(self) -> str:
+        return self.obj.key
+    
+    @property
+    def is_end(self) -> str:
+        if self.obj.is_end:
+            return f"[is_end=True]"
+        else:
+            return f"[is_end=False]"
+        
+    @property
+    def number_of_children(self) -> str:
+        return f"[{self.obj.num_children}]"
+
     def str_trie_node(self):
-        return f""
+        return f"{self.ds_class}{self.char}"
 
     def repr_trie_node(self):
-        return f""
-
-
+        return f"{self.ds_memory_address}{self.char}{self.is_end}{self.number_of_children}"
 
 class TrieRepr(BaseRepr):
     """representation for trie"""
 
+    @property
+    def word_count(self) -> str:
+        return f"[words={self.obj.word_count}]"
+
+    @property
+    def trie_height(self) -> str:
+        return f"[height={self.obj.height()}]"
+
     def str_trie(self):
-        return f""
+        """
+        dfs view of a trie data structure
+        """
+
+        title = self._ansi.color(f"Trie:", Ansi.YELLOW)
+        stats = f"{self.word_count}{self.trie_height}"
+
+        if self.obj.word_count == 0:
+            return f"Trie: []"
+
+        # stores the final console output.
+        lines = []
+        lines.append(title)
+        lines.append(stats)
+
+        def recursive_dfs(node, prefix):
+            """"""
+            children = sorted(node.children.items())  # lexographic sorting for strings.
+            # loop through unpacked char and nodes
+            for i, (char, child) in enumerate(children):
+                is_last = (i == len(children) - 1)
+                label = char + ("◆" if child.is_end else "")
+                connector = "└─" if is_last else "├─"
+                # append to final console output
+                lines.append(prefix + connector + label)
+                child_prefix = prefix + ("  " if is_last else "| ")
+                recursive_dfs(child, child_prefix)
+
+        # def compress_word(start_char, start_node):
+        #     label = start_char
+        #     node = start_node
+        #     if node.is_end:
+        #         label += "◆"
+        #         return label, node
+        #     if node.num_children > 1:
+        #         return label, node
+
+        #     while (node.num_children == 1):
+        #         (next_char, next_node) = next(iter(node.children.items()))
+        #         label += "-" + next_char
+        #         node = next_node
+
+        #         if node.is_end:
+        #             label += "◆"
+        #             break
+
+        #     return label, node
+
+        # def recursive_dfs(node, prefix):
+        #     """"""
+        #     children = sorted(node.children.items())  # lexographic sorting for strings.
+        #     assert len(children) == node.num_children
+        #     # loop through unpacked char and nodes
+        #     for i, (char, child) in enumerate(children):
+        #         is_last = (i == len(children) - 1)
+        #         connector = "└─" if is_last else "├─"
+
+        #         label, end_node = compress_word(char, child)
+
+        #         # append to final console output
+        #         lines.append(prefix + connector + label)
+
+        #         next_prefix = prefix + ("  " if is_last else "| ")
+        #         recursive_dfs(end_node, next_prefix)
+
+        recursive_dfs(self.obj._root, "")
+        return "\n".join(lines)
 
     def repr_trie(self):
-        return f""
+        return f"{self.ds_memory_address}{self.word_count}{self.trie_height}"
 
 # region Binary Trees
 # Binary Trees
