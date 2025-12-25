@@ -1236,6 +1236,17 @@ class BinaryTreeRepr(BaseRepr):
     def repr_binary_tree(self):
         """__repr__ for binary tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}"
+
+class SegmentTreeRepr(BaseRepr):
+    pass
+
+    def str_segment_tree(self):
+        return f""
+    
+    def repr_segment_tree(self):
+        return f""
+
+
 # endregion
 
 # region BST

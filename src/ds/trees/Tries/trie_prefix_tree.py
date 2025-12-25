@@ -315,7 +315,7 @@ class Trie(TrieADT, CollectionADT[T]):
 
 
 # ------------------------------- Main: Client Facing Code: -------------------------------
-# todo could be structural corruption in the trie - chech inorder / bfs etc...
+
 
 def main():
     fake = Faker()
@@ -328,11 +328,11 @@ def main():
     test_word = fake.word()
 
     trie = Trie()
-    # print(trie)
-    # print(repr(trie))
-    # print(f"Is Trie empty?={trie.is_empty()}")
-    # print(f"Does Trie Contain the following word: {test_word}? result: {test_word in trie}")
-    # print(f"Number of Words in the Trie Currently={len(trie)}")
+    print(trie)
+    print(repr(trie))
+    print(f"Is Trie empty?={trie.is_empty()}")
+    print(f"Does Trie Contain the following word: {test_word}? result: {test_word in trie}")
+    print(f"Number of Words in the Trie Currently={len(trie)}")
 
     print(f"Testing Insertion into trie")
     for i in words:

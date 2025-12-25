@@ -43,7 +43,7 @@ from ds.maps.Sets.hash_set import HashSet
 from adts.tree_adt import iTNode
 from adts.binary_tree_adt import iBNode
 
-from user_defined_types.tree_types import NodeColor
+from user_defined_types.tree_types import NodeColor, SegmentOperator
 
 
 
@@ -1812,5 +1812,32 @@ class TreeUtils:
     
 
     # endregion
+
+    # region Segment Tree
+
+    def get_dummy_value(self, operator):
+        """dummy value to populate the array, based on the segment operator type."""
+        if operator in (SegmentOperator.SUM, SegmentOperator.GCD, SegmentOperator.XOR, SegmentOperator.OR):
+            return 0
+        if operator in (SegmentOperator.PRODUCT, SegmentOperator.LCM):
+            return 1
+        if operator == SegmentOperator.MAX:
+            return float('inf')
+        if operator == SegmentOperator.MIN:
+            return float('-inf')
+        if operator == SegmentOperator.AND:
+            return ~0  # all bits set
+        else:
+            raise DsInputValueError(f"Error: Segment Operator Type invalid!")
+        
+
+
+
+
+    # endregion
+
+
+
+
 
 

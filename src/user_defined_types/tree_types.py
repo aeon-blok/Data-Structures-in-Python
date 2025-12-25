@@ -20,6 +20,7 @@ from typing import (
 from abc import ABC, ABCMeta, abstractmethod
 from array import array
 import numpy
+import math
 import ctypes
 from enum import Enum, StrEnum, Flag, auto
 
@@ -47,6 +48,18 @@ class Traversal(StrEnum):
     LEVELORDER = "levelorder"
     INORDER = "inorder"
 
+class SegmentOperator(Enum):
+    """Contains Lambda functions that are used to merge nodes in a segment tree."""
+    SUM = staticmethod(lambda a, b: a + b)
+    PRODUCT = staticmethod(lambda a, b: a * b)
+    MIN = staticmethod(lambda a, b: min(a,b))
+    MAX = staticmethod(lambda a, b: max(a, b))
+    GCD = staticmethod(math.gcd)
+    LCM = staticmethod(lambda a, b: a * b // math.gcd(a, b))
+    # ? these are bitwise operators
+    XOR = staticmethod(lambda a, b: a ^ b)
+    AND = staticmethod(lambda a, b: a & b)
+    OR = staticmethod(lambda a, b: a | b)
 
 class ValidNode:
     """validates nodes and returns the original input."""
