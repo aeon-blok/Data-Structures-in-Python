@@ -1036,16 +1036,17 @@ class TrieRepr(BaseRepr):
         title = self._ansi.color(f"Trie:", Ansi.YELLOW)
         stats = f"{self.word_count}{self.trie_height}"
 
-        if self.obj.word_count == 0:
-            return f"Trie: []"
-
         # stores the final console output.
         lines = []
         lines.append(title)
         lines.append(stats)
 
-        def recursive_dfs(node, prefix):
-            """"""
+        # * empty trie case
+        if self.obj.word_count == 0:
+            return "\n".join(lines)
+
+        def old_recursive_dfs(node, prefix):
+            """returns every character on a new line. deprecated."""
             children = sorted(node.children.items())  # lexographic sorting for strings.
             # loop through unpacked char and nodes
             for i, (char, child) in enumerate(children):
@@ -1057,43 +1058,74 @@ class TrieRepr(BaseRepr):
                 child_prefix = prefix + ("  " if is_last else "| ")
                 recursive_dfs(child, child_prefix)
 
-        # def compress_word(start_char, start_node):
-        #     label = start_char
-        #     node = start_node
-        #     if node.is_end:
-        #         label += "◆"
-        #         return label, node
-        #     if node.num_children > 1:
-        #         return label, node
+        def compress_word(start_char, start_node):
+            """
+            Collapses a linear chain of nodes (like a linked list) into a single label
+            will branch if the node has more than 1 child, or if it is a terminal node for a word.
+            """
+            # label represents the word string that will be printed in the console.
+            label = start_char
+            node = start_node
 
-        #     while (node.num_children == 1):
-        #         (next_char, next_node) = next(iter(node.children.items()))
-        #         label += "-" + next_char
-        #         node = next_node
+            while True:
+                # * exit condition
+                if node.is_end or node.num_children != 1:
+                    break
+                # * retrieves the only item in the children hashmap. and adds it to the label
+                (next_char, next_node) = next(iter(node.children.items()))
+                label += "-" + next_char
+                node = next_node    # traverse to the next node in the chain
 
-        #         if node.is_end:
-        #             label += "◆"
-        #             break
+            return label, node
 
-        #     return label, node
+        def _label_depth(label: str) -> int:
+            """
+            returns the number of characters that a compressed word label has
+            We use this to correctly indent the branching for the trie.
+            """
+            return label.count("-") + 1
 
-        # def recursive_dfs(node, prefix):
-        #     """"""
-        #     children = sorted(node.children.items())  # lexographic sorting for strings.
-        #     assert len(children) == node.num_children
-        #     # loop through unpacked char and nodes
-        #     for i, (char, child) in enumerate(children):
-        #         is_last = (i == len(children) - 1)
-        #         connector = "└─" if is_last else "├─"
+        def continued_prefix(prefix: str, is_last: bool, depth: int):
+            """
+            Extends the prefix to the next line down for console view.
+            Utilizes the label depth to correctly indent the space for the trie branches.
+            """
+            base = "  " if is_last else "|  "
+            indented_spacing = "  " * (depth - 1)
+            return prefix + base + indented_spacing
 
-        #         label, end_node = compress_word(char, child)
+        def recursive_dfs(node, prefix):
+            """
+            DFS Traversal: renders the lines for the console view.
+            """
+            complete_words = []
+            children = sorted(node.children.items())  # lexographic sorting for strings.
 
-        #         # append to final console output
-        #         lines.append(prefix + connector + label)
+            # * word compression
+            for char, child in children:
+                label, end_node = compress_word(char, child)
+                # attach terminal label for word.
+                if end_node.is_end:
+                    label += "◆"
+                # append to temp container
+                complete_words.append((label, end_node))
 
-        #         next_prefix = prefix + ("  " if is_last else "| ")
-        #         recursive_dfs(end_node, next_prefix)
+            # * render the line
+            for i, (label, end_node) in enumerate(complete_words):
+                # determines which connector to use.
+                is_last = (i == (len(complete_words) - 1))
+                connector = "└─" if is_last else "├─"
 
+                # append to final console output
+                lines.append(prefix + connector + label)
+
+                # * Construct the next line 
+                # we must not count the terminal symbol in our depth count for the label.
+                depth = _label_depth(label.replace("◆", ""))
+                next_prefix = continued_prefix(prefix, is_last, depth)
+                recursive_dfs(end_node, next_prefix)    # recursively enter the next node.
+
+        # start from the root
         recursive_dfs(self.obj._root, "")
         return "\n".join(lines)
 

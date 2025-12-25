@@ -319,9 +319,11 @@ class Trie(TrieADT, CollectionADT[T]):
 
 def main():
     fake = Faker()
-    fake.seed_instance(82)
-    words = {fake.word() for word in range(50)}
-    words = list(words)
+    fake.seed_instance(202)
+    word_set = {fake.word() for word in range(500)}
+    words = list(word_set)
+    amount = len(words) - 300
+    words = words[amount:-1]
     print(f"Word Bank: Count: {len(words)}", sorted(words))
     test_word = fake.word()
 
@@ -352,8 +354,6 @@ def main():
         trie.delete(i)
     print(trie)
     print(repr(trie))
-
-
 
 
 if __name__ == "__main__":
