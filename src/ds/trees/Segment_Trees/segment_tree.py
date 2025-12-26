@@ -51,16 +51,8 @@ from utils.representations import SegmentTreeRepr
 from utils.helpers import RandomClass
 from utils.exceptions import *
 
-from adts.collection_adt import CollectionADT
-from adts.trie_adt import TrieADT
-
-from ds.sequences.Stacks.array_stack import ArrayStack
 from ds.primitives.arrays.dynamic_array import VectorArray, VectorView
-from ds.maps.hash_table_with_chaining import ChainHashTable
-from ds.maps.Sets.hash_set import HashSet
-from ds.trees.tree_nodes import TrieNode
 from ds.trees.tree_utils import TreeUtils
-
 from user_defined_types.generic_types import (
     Index,
     ValidDatatype,
@@ -68,8 +60,6 @@ from user_defined_types.generic_types import (
     TypeSafeElement,
     PositiveNumber,
 )
-
-from user_defined_types.key_types import iKey, Key
 from user_defined_types.tree_types import NodeColor, Traversal, PageID, SegmentOperator
 
 # endregion
@@ -79,23 +69,39 @@ class SegmentTree():
     """
     Segment Tree Data Structure: Recursive Array Based Implementation
     """
-    def __init__(self, input_array: Sequence[int], operator = SegmentOperator.SUM) -> None:
+    def __init__(self, input_array: Sequence[int], comparator = SegmentOperator.SUM) -> None:
         # composed objects
         self._utils = TreeUtils(self)
         self._validators = DsValidation()
         self._desc = SegmentTreeRepr(self)
 
-        # dummy value for initializing tree array. we must overwrite these before returning results.
-        self.dummy_value = self._utils.get_dummy_value(operator)
-
         self.array: Sequence = input_array
         self.array_length = len(self.array)
-        self.merge = operator.value.__func__
-        self.tree = VectorArray(4*self.array_length, int)
+        self.comparator = comparator.desc
+        self.merge = comparator.func
+
+        # dummy value for initializing tree array. we must overwrite these before returning results.
+        self.dummy_value = self._utils.get_dummy_value(comparator)
+        if self.comparator == "LCM" or "PRODUCT":
+            self.tree = []
+        else:
+            self.tree = VectorArray(4*self.array_length, int)
         for _ in range(4*self.array_length): self.tree.append(self.dummy_value)
         self.build_segment_tree()
 
     # ----- Utilities -----
+    @property
+    def operator_type(self):
+        return self.comparator
+
+    def __len__(self) -> int:
+        """this provides the size of the original input array."""
+        return self.array_length
+
+    @property
+    def tree_size(self) -> int:
+        """this returns the total number of nodes or elements in the segment tree (array)"""
+        return len(self.tree)
 
     def __str__(self) -> str:
         return self._desc.str_segment_tree()
@@ -106,7 +112,6 @@ class SegmentTree():
     # ----- Canonical ADT Operations -----
 
     # ----- Accessors -----
-
     def _recursive_query(self, index, seg_left, seg_right, query_left, query_right):
         """
         Recursively computes the aggregate value over the intersection of:
@@ -199,9 +204,28 @@ class SegmentTree():
         # * boundary check
         if orig_array_index < 0 or orig_array_index >= self.array_length:
             raise DsInputValueError(f"Error: Index value is out of bounds.")
-        
+
         # * update source array
         self.array[orig_array_index] = element
 
         # * recursively resolve all nodes that the original array node is connected to.
         self._recursive_point_update(0, 0, self.array_length-1, orig_array_index, element)
+
+
+# ------------------------------- Main: Client Facing Code: -------------------------------
+
+def main():
+    test_data = [i for i in range(100)]
+
+    seg_tree = SegmentTree(test_data, SegmentOperator.SUM)
+    print(repr(seg_tree))
+    print(seg_tree)
+    print(f"Query Range Test: {seg_tree.query_range(5,85)}")
+    print(f"Testing Point Update of a single element in the array.")
+    print(test_data)
+    seg_tree.point_update(0, 200)
+    print(seg_tree)
+
+
+if __name__ == "__main__":
+    main()

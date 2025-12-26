@@ -1240,11 +1240,52 @@ class BinaryTreeRepr(BaseRepr):
 class SegmentTreeRepr(BaseRepr):
     pass
 
-    def str_segment_tree(self):
-        return f""
-    
+    @property
+    def tree_size(self) -> str:
+        return f"[nodes={self.obj.tree_size}]"
+
+    @property
+    def operator_type(self) -> str:
+        return f"[operator={self.obj.operator_type}]"
+
+    def str_segment_tree(self, ):
+        """recursive ASCII tree console view for segment tree"""
+
+        def _recursively_create_structure(tree, left, right, index=0, indent="", is_left=True):
+            """recursively creates the tree structure for view in console output."""
+
+            # * exit condition: Stops recursion when traversal would be invalid or meaningless.
+            if left > right or index >= len(tree) or tree[index] is None:
+                return []
+
+            lines = []
+            connector = "├──" if is_left else "└──"
+            # the left and right child nodes and the aggregated value (sum, min, max etc)
+            segment = f"[{left}, {right}] = {tree[index]}" if not left == right else f"{tree[index]}"
+
+            lines.append(indent + connector + segment) if not index == 0 else lines.append("root")
+
+            # * recursive base case - stops at a leaf node.
+            if left == right:
+                return lines
+
+            # * divide & conquer - split the curent segment in half.
+            mid = (left + right) // 2
+            next_indent = indent + ("│  " if is_left and index != 0 else "   ")
+
+            # * recursive aggregration: Uses 0-based heap indexing
+            lines += _recursively_create_structure(tree, left, mid, 2*index+1, next_indent, True)
+            lines += _recursively_create_structure(tree, mid+1, right, 2*index+2, next_indent, False)
+            return lines
+
+        lines = _recursively_create_structure(self.obj.tree, 0, self.obj.array_length-1)
+        complete_structure = f"\n".join(lines)
+        title = self._ansi.color(f"Segment Tree:🌲", Ansi.BLUE)
+        stats = f"{self.ds_class}{self.tree_size}{self.operator_type}"
+        return f"\n{title}\n{stats}\n{complete_structure}"
+
     def repr_segment_tree(self):
-        return f""
+        return f"{self.ds_memory_address}{self.tree_size}{self.operator_type}"
 
 
 # endregion

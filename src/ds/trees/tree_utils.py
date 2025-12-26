@@ -21,6 +21,7 @@ import ctypes
 import random
 import math
 from collections.abc import Sequence
+import sys
 
 # endregion
 
@@ -1822,9 +1823,9 @@ class TreeUtils:
         if operator in (SegmentOperator.PRODUCT, SegmentOperator.LCM):
             return 1
         if operator == SegmentOperator.MAX:
-            return float('inf')
+            return -sys.maxsize
         if operator == SegmentOperator.MIN:
-            return float('-inf')
+            return sys.maxsize
         if operator == SegmentOperator.AND:
             return ~0  # all bits set
         else:
