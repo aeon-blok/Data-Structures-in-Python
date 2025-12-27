@@ -56,10 +56,7 @@ class SegmentOperator(Enum):
     MAX = ('MAX', lambda a, b: max(a, b))
     GCD = ('GCD', math.gcd)
     LCM = ('LCM', lambda a, b: 0 if a==0 or b==0 else abs(a // math.gcd(a,b) * b))
-    # ? these are bitwise operators
-    XOR = ('XOR', lambda a, b: a ^ b)
-    AND = ('AND', lambda a, b: a & b)
-    OR = ('OR', lambda a, b: a | b)
+   
 
     @property
     def func(self):

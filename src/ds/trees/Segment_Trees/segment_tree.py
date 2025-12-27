@@ -135,7 +135,7 @@ class SegmentTree():
         # * Merge child results to form the answer for this segment
         return self.merge(left, right)
 
-    def query_range(self, left, right):
+    def range_query(self, left, right):
         """
         Returns the aggregate (sum / min / max / etc.) over array[l..r].
         """
@@ -220,7 +220,7 @@ def main():
     seg_tree = SegmentTree(test_data, SegmentOperator.SUM)
     print(repr(seg_tree))
     print(seg_tree)
-    print(f"Query Range Test: {seg_tree.query_range(5,85)}")
+    print(f"Query Range Test: {seg_tree.range_query(5,85)}")
     print(f"Testing Point Update of a single element in the array.")
     print(test_data)
     seg_tree.point_update(0, 200)

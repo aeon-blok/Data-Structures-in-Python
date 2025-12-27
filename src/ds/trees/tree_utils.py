@@ -1818,7 +1818,7 @@ class TreeUtils:
 
     def get_dummy_value(self, operator):
         """dummy value to populate the array, based on the segment operator type."""
-        if operator in (SegmentOperator.SUM, SegmentOperator.GCD, SegmentOperator.XOR, SegmentOperator.OR):
+        if operator in (SegmentOperator.SUM, SegmentOperator.GCD):
             return 0
         if operator in (SegmentOperator.PRODUCT, SegmentOperator.LCM):
             return 1
@@ -1826,13 +1826,15 @@ class TreeUtils:
             return -sys.maxsize
         if operator == SegmentOperator.MIN:
             return sys.maxsize
-        if operator == SegmentOperator.AND:
-            return ~0  # all bits set
         else:
             raise DsInputValueError(f"Error: Segment Operator Type invalid!")
-        
-
-
+     
+    def validate_query_range(self, left, right):
+        """ensures that the query range is within the segment tree bounds"""
+        if left > right:
+            raise DsInputValueError(f"Error: Min Query range is higher than Max Query Range -- this is an invalid query.")
+        if left < 0 or right >= self.obj.array_length:
+            raise DsInputValueError(f"Error: query range is out of bounds")
 
 
     # endregion
