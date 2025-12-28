@@ -86,9 +86,8 @@ class SumFenwickTree:
 
     def __repr__(self) -> str:
         return self._desc.repr_fenwick_tree()
-
+    
     # ----- Canonical ADT Operations -----
-
     # ----- Mutators -----
     def build_fenwick_tree(self, input_array: Sequence[int]):
         """
@@ -106,7 +105,7 @@ class SumFenwickTree:
             if parent <= self.array_length:
                 self.tree[parent] += self.tree[i]
 
-    def update(self, index, value):
+    def increment(self, index, delta_value):
         """
         increments the value at the specified index.
         updates all the connected implicit nodes that are related to this index.
@@ -114,7 +113,7 @@ class SumFenwickTree:
         self._utils.validate_fenwick_tree_index(index)
         # walks up the implicit tree.
         while index <= self.array_length:
-            self.tree[index] += value
+            self.tree[index] += delta_value
             # jumps to the next parent node
             index += index & -index  # Isolates the lowest set bit, this Gives the node size
 
@@ -148,7 +147,9 @@ def main():
     fenwick.build_fenwick_tree(test_data)
     print(fenwick)
     print(repr(fenwick))
-
+    print(f"Testing range query: {fenwick.range_query(4, 9)}")
+    print(f"testing update value: {fenwick.increment(4, 2000)}")
+    print(fenwick)
 
 
 if __name__ == "__main__":

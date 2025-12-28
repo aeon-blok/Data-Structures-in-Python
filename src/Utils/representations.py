@@ -1132,6 +1132,40 @@ class TrieRepr(BaseRepr):
     def repr_trie(self):
         return f"{self.ds_memory_address}{self.word_count}{self.trie_height}"
 
+class SuffixTreeRepr(BaseRepr):
+
+    @property
+    def num_suffixes(self) -> str:
+        return f"[total_suffixes={len(self.obj.suffix_array)}]"
+
+    @property
+    def string_length(self) -> str:
+        return f"[string_length={self.obj.str_length}]"
+
+    def str_suffix_tree(self):
+        lines = []
+        title = f"Suffix Array:"
+        stats = f"{self.num_suffixes}, {self.string_length}"
+        lines.append(title)
+        lines.append(stats)
+
+        for idx in self.obj.suffix_array:
+            lines.append(f"{self.obj.str[idx]}")
+
+        return "\n".join(lines)
+
+    def repr_suffix_tree(self):
+        return f"{self.ds_memory_address}{self.num_suffixes}{self.string_length}"
+
+class SuffixArrayRepr(BaseRepr):
+
+
+    def str_suffix_array(self):
+        return f""
+    
+    def repr_suffix_array(self):
+        return f""
+
 # region Binary Trees
 # Binary Trees
 class BinaryNodeRepr(TreeNodeRepr):
@@ -1398,7 +1432,6 @@ class FenwickTreeRepr(BaseRepr):
 
     def repr_fenwick_tree(self):
         return f"{self.ds_memory_address}{self.array_length}"
-
 
 # endregion
 

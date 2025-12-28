@@ -1814,6 +1814,14 @@ class TreeUtils:
 
     # endregion
 
+    # region suffix tree
+
+
+
+
+
+    # endregion
+
     # region Segment Tree
 
     def get_dummy_value(self, operator):
@@ -1838,7 +1846,6 @@ class TreeUtils:
 
 
     # endregion
-
 
     # region Fenwick Tree
  
