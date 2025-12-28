@@ -1238,7 +1238,6 @@ class BinaryTreeRepr(BaseRepr):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}{self.tree_depth}"
 
 class SegmentTreeRepr(BaseRepr):
-    pass
 
     @property
     def tree_size(self) -> str:
@@ -1248,7 +1247,7 @@ class SegmentTreeRepr(BaseRepr):
     def operator_type(self) -> str:
         return f"[operator={self.obj.operator_type}]"
 
-    def str_segment_tree(self, ):
+    def str_segment_tree(self):
         """recursive ASCII tree console view for segment tree"""
 
         def _recursively_create_structure(tree, left, right, index=0, indent="", is_left=True):
@@ -1364,6 +1363,41 @@ class SegmentTreeRepr(BaseRepr):
 
     def repr_segment_tree(self):
         return f"{self.ds_memory_address}{self.tree_size}{self.operator_type}"
+
+class FenwickTreeRepr(BaseRepr):
+
+    @property
+    def array_length(self) -> str:
+        return f"Tree Size: {self.obj.array_length}"
+
+    def str_fenwick_tree(self):
+        array = self.obj.tree
+        divisor = f"-" * 40
+        lines = []
+        title = f"Fenwick Tree Visualization:"
+        stats = f"{self.array_length}"
+        lines.append(title)
+        lines.append(stats)
+        lines.append(divisor)
+
+        # 1 indexed
+        for node in range(1, len(array)):
+            # This value defines: the size of the range this node covers (the jump size in update/query)
+            lowest_set_bit = node & -node
+            left = node - lowest_set_bit + 1
+            right = node
+            index_string = f"{node}:"
+            range_string = f"range=[{left}, {right}]"
+            node_element_string = f"sum={array[node]}"
+            final_string = f"{index_string:<5} {range_string:<15} {node_element_string:<10}"
+            lines.append(final_string)
+
+        lines.append(divisor)
+
+        return f"\n".join(lines)
+
+    def repr_fenwick_tree(self):
+        return f"{self.ds_memory_address}{self.array_length}"
 
 
 # endregion

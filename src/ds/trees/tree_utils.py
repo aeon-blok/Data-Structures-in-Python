@@ -1840,6 +1840,22 @@ class TreeUtils:
     # endregion
 
 
+    # region Fenwick Tree
+ 
+    def validate_fenwick_tree_query_range(self, left, right):
+        """ensures that the query range is within the segment tree bounds"""
+        if left > right:
+            raise DsInputValueError(f"Error: Min Query range is higher than Max Query Range -- this is an invalid query.")
+        if left < 1 or right > self.obj.array_length:
+            raise DsInputValueError(f"Error: query range is out of bounds")
+
+    def validate_fenwick_tree_index(self, index):
+        """ensures index is 1-based and within boundary"""
+        if index <= 0 or index > self.obj.array_length:
+            raise DsInputValueError(f"Error: Index is out of valid boundaries.")
+        
+
+    # endregion
 
 
 
