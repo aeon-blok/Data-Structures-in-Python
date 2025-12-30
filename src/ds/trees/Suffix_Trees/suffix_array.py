@@ -92,7 +92,7 @@ class SuffixArray:
     
     def __repr__(self) -> str:
         return self._desc.repr_suffix_array()
-        
+
     # ---------- build ----------
     def _manber_myers_doubling_algorithm(self) -> None:
         """Used for constructing the suffix array -- O(n log n)"""
@@ -244,14 +244,16 @@ class SuffixArray:
         return combined_string[idx : idx + max_len]
 
 
-# ------------------------------- Main: Client Facing Code: -------------------------------
 
+# ------------------------------- Main: Client Facing Code: -------------------------------
 
 def main():
     suffix = SuffixArray("undercomputative")
+    print(f"{suffix}")
     print(f"Testing LCP: {suffix.find_longest_common_prefix()}")
     print(f"Testing LRS: {suffix.find_longest_repeated_substring()}")
     print(f"Testing LCS: {suffix.find_longest_common_substring('understand')}")
+
 
 if __name__ == "__main__":
     main()

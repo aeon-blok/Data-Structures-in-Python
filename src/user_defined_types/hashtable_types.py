@@ -67,7 +67,6 @@ class HashCodeType(StrEnum):
     SHA256 = "sha256"
     BLAKE2B = "blake2b"
 
-
 class CompressFuncType(StrEnum):
     """Compression Function Types"""
     MAD = "mad"

@@ -102,7 +102,7 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         return self._datatype
 
     @property
-    def keytype(self) -> Optional[type]:
+    def tree_keytype(self) -> Optional[type]:
         return self._tree_keytype
 
     @property
@@ -213,7 +213,7 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         return self._utils.red_black_count_tree_nodes(RedBlackNode)
 
     def __contains__(self, key) -> bool:
-        return self.search(key) is not None
+        return False if self.is_empty() else self.search(key) is not None
 
     def clear(self) -> None:
         self._root = self.NIL
@@ -310,6 +310,25 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
             parent_node = parent_node.parent
         return parent_node  # can be None if node is max key.
 
+    def find_lower_bounds(self, key):
+        """
+        returns the smallest node with a key >= to the specifed key.
+        the input key itself does not have to Exist in the red black tree.
+        can return a Sentinel (self.NIL)
+        """
+
+        current = self._root
+        candidate = self.NIL
+
+        while current is not self.NIL:
+            if key <= current.key:
+                candidate = current
+                current = current.left
+            else:
+                current = current.right
+        
+        return candidate
+
     def height(self) -> Index:
         return self._utils.red_black_tree_height()
 
@@ -368,6 +387,7 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         """
         value = TypeSafeElement(value, self.datatype)
         key = Key(key)
+        self._utils.set_keytype(key)
         self._utils.check_key_is_same_type(key)
         new_node, is_upsert = self.simple_bst_insert(key, value)
         if not is_upsert:
@@ -397,7 +417,7 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         original_color = old_node.color
         node.alive = False
         node.tree_owner = None
-        print(f"\nDeleting: {old_value} [{original_color}]")
+        # print(f"\nDeleting: {old_value} [{original_color}]")
 
         # * 1 Child Case: auto handles 0 child leaf case
         # discover children and replace target node with its child
@@ -444,8 +464,8 @@ class RedBlackTree(BinarySearchTreeADT[T, K], CollectionADT[T], Generic[T, K]):
         # * if deleted node was black - run repair black violation
         if original_color == NodeColor.BLACK:
             self._utils.repair_black_property(replacement)
-            print(f"Physical Nodes: {self._utils.debug_count_real_nodes(RedBlackNode)}")
-            print(f"Total Nodes: {len(self)}\n")
+            # print(f"Physical Nodes: {self._utils.debug_count_real_nodes(RedBlackNode)}")
+            # print(f"Total Nodes: {len(self)}\n")
         # assertions & property violation guards:
         self._utils.check_red_children_are_black(RedBlackNode)
         assert self._root.color == NodeColor.BLACK, f"The root must always be black after deletion"

@@ -84,7 +84,7 @@ class HashSet(SetADT[T], CollectionADT[T], Generic[T]):
     Utilizes Composition for the underlying Hash Table Data structure.
     We use a Sentinel Value for the values() - so that they can be easily identified. (Stored in Hashable_types.py)
     """
-    def __init__(self, datatype: type,) -> None:
+    def __init__(self, datatype: type) -> None:
         self._datatype = ValidDatatype(datatype)
 
         # composed objects:

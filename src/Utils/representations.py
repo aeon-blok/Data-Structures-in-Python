@@ -192,6 +192,10 @@ class LinkedListRepr(BaseRepr):
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}"
 
+class SkipListRepr(BaseRepr):
+    pass
+
+
 # endregion
 
 # region Positional Lists
@@ -779,11 +783,43 @@ class HashSetRepr(BaseRepr):
     def repr_hashset(self):
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_elements}"
 
+class OrderedRBSetRepr(BaseRepr):
+
+    @property
+    def total_elements(self) -> str:
+        return f"[{len(self.obj._tree)}]"
+
+
+    @property
+    def min_element(self) -> str:
+        if self.obj._tree.is_empty():
+            return f"[min=None]"
+        else:
+            return f"[min={self.obj.min()}]"
+
+    @property
+    def max_element(self) -> str:
+        if self.obj._tree.is_empty():
+            return f"[max=None]"
+        else:
+            return f"[max={self.obj.max()}]"
+
+    @property
+    def elements(self) -> str:
+        results = [str(i.element) for i in self.obj._tree.inorder()]
+        items =  f", ".join(results)
+        return f"[{items}]"
+
+    def str_ordered_set(self):
+        return f"{self.ds_class}{self.total_elements}{self.elements}"
+
+    def repr_ordered_set(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_elements}{self.min_element}{self.max_element}"
 
 # endregion
 
 # region Trees
-# Trees
+
 class TreeNodeRepr(BaseRepr):
 
     @property
@@ -1134,6 +1170,14 @@ class TrieRepr(BaseRepr):
 
 class SuffixTreeRepr(BaseRepr):
 
+    def str_suffix_tree(self):
+        return f""
+    
+    def repr_suffix_tree(self):
+        return f""
+
+class SuffixArrayRepr(BaseRepr):
+
     @property
     def num_suffixes(self) -> str:
         return f"[total_suffixes={len(self.obj.suffix_array)}]"
@@ -1142,7 +1186,7 @@ class SuffixTreeRepr(BaseRepr):
     def string_length(self) -> str:
         return f"[string_length={self.obj.str_length}]"
 
-    def str_suffix_tree(self):
+    def str_suffix_array(self):
         lines = []
         title = f"Suffix Array:"
         stats = f"{self.num_suffixes}, {self.string_length}"
@@ -1150,21 +1194,14 @@ class SuffixTreeRepr(BaseRepr):
         lines.append(stats)
 
         for idx in self.obj.suffix_array:
-            lines.append(f"{self.obj.str[idx]}")
+            lines.append(f"{idx}: {self.obj.str[idx:]}")
 
         return "\n".join(lines)
 
-    def repr_suffix_tree(self):
+    def repr_suffix_array(self):
         return f"{self.ds_memory_address}{self.num_suffixes}{self.string_length}"
 
-class SuffixArrayRepr(BaseRepr):
-
-
-    def str_suffix_array(self):
-        return f""
-    
-    def repr_suffix_array(self):
-        return f""
+# endregion
 
 # region Binary Trees
 # Binary Trees
@@ -1614,7 +1651,6 @@ class AVLTreeRepr(BSTRepr):
     def repr_avl(self):
         """ __repr__ for AVL Tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}"
-
 
 class RedBlackNodeRepr(BSTNodeRepr):
 

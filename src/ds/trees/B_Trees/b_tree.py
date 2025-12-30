@@ -63,7 +63,6 @@ from user_defined_types.tree_types import NodeColor, Traversal
 B Tree:
 The reason we store so many keys in a node in a b tree - is due to the differences of RAM Memory and Disk Memory.
 Because disk read & write is so much slower. comparing keys is more efficient than searching disk blocks.
-
 """
 
 
@@ -171,8 +170,6 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
 
     # ----- Canonical ADT Operations -----
     # ----- Accessors -----
-
-    # todo implement binary search
 
     def _recursive_search(self, node: BTreeNode, key) -> Optional[tuple[BTreeNode, int]]:
         """recursively searches the whole tree until a match is found or None is returned."""
@@ -320,6 +317,7 @@ class BTree(BTreeADT[T], CollectionADT[T], Generic[T]):
         """
 
         key = Key(key)
+        self._utils.set_keytype(key)
         self._utils.check_btree_key_is_same_type(key)
         value = TypeSafeElement(value, self._datatype)
 

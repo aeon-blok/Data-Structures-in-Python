@@ -454,7 +454,6 @@ class TreeUtils:
 
     # endregion
 
-
     # region AVL Trees
 
     def avl_tree_max_balance_factor(self, node_type:type):
@@ -994,12 +993,12 @@ class TreeUtils:
         the replacement node is considered doubly black. - this will be removed by recoloring and propagating to the root.
         “The key idea is that in each case, the transformation applied preserves the number of black nodes (including x’s extra black)” ([Cormen et al., 2022, p. 350]
         """
-        print(f"\nStarting Repair Black Property:")
+        # print(f"\nStarting Repair Black Property:")
         while replacement_node != self.obj.root and replacement_node.color == NodeColor.BLACK:
-            print(f"Begininning Repair Loop:")
-            print(f"replacement={replacement_node.element}[{replacement_node.color}], P: {replacement_node.parent.element} L: {replacement_node.left.element} R: {replacement_node.right.element}")
+            # print(f"Begininning Repair Loop:")
+            # print(f"replacement={replacement_node.element}[{replacement_node.color}], P: {replacement_node.parent.element} L: {replacement_node.left.element} R: {replacement_node.right.element}")
             sibling = self.sibling(replacement_node) # as per CLRS -- its important to ensure that sibling is not NIL
-            print(f"Sibling={sibling.element}[{sibling.color}], P: {sibling.parent.element} L: {sibling.left.element} R: {sibling.right.element}")
+            # print(f"Sibling={sibling.element}[{sibling.color}], P: {sibling.parent.element} L: {sibling.left.element} R: {sibling.right.element}")
             
             # * Case 1: sibling is red
             # recolor sibling to Black, recolor parent to Red, then rotate parent. Update sibling after.
@@ -1022,24 +1021,24 @@ class TreeUtils:
                     # update sibling pointer after rotation
                     sibling = self.sibling(replacement_node)
 
-                print(f"Case 1: sibling is red")
-                print(f"replacement={replacement_node.element}[{replacement_node.color}]")
-                print(f"sibling={sibling.element}[{sibling.color}]")
-                print(f"Grandparent Color: {replacement_node.parent.color}")
+                # print(f"Case 1: sibling is red")
+                # print(f"replacement={replacement_node.element}[{replacement_node.color}]")
+                # print(f"sibling={sibling.element}[{sibling.color}]")
+                # print(f"Grandparent Color: {replacement_node.parent.color}")
 
             # * Case 2: Sibling is black and Both Children are Black
             # 
             if sibling == self.obj.NIL or (sibling.is_black and sibling.left.is_black and sibling.right.is_black):
-                print(f"Case 2: Both Siblings Children are Black")
+                # print(f"Case 2: Both Siblings Children are Black")
                 if sibling != self.obj.NIL:
                     sibling.color = NodeColor.RED
                 # propagate upwards...
                 if replacement_node.parent != self.obj.root:
                     replacement_node = replacement_node.parent
                     sibling = self.sibling(replacement_node)
-                    print(f"replacement={replacement_node.element}[{replacement_node.color}]")
-                    print(f"sibling children= L={sibling.left.element}[{sibling.left.color}], R={sibling.right.element}[{sibling.right.color}]")
-                    print(f"Grandparent Color: {replacement_node.parent.color}")
+                    # print(f"replacement={replacement_node.element}[{replacement_node.color}]")
+                    # print(f"sibling children= L={sibling.left.element}[{sibling.left.color}], R={sibling.right.element}[{sibling.right.color}]")
+                    # print(f"Grandparent Color: {replacement_node.parent.color}")
                     continue
                 else:
                     break
@@ -1054,9 +1053,9 @@ class TreeUtils:
                     self.right_rotate(sibling)
                     sibling = self.sibling(replacement_node)
 
-                    print(f"Case 3: left red near child")
-                    print(f"replacement={replacement_node.element}[{replacement_node.color}]")
-                    print(f"sibling={sibling.element}[{sibling.color}]")
+                    # print(f"Case 3: left red near child")
+                    # print(f"replacement={replacement_node.element}[{replacement_node.color}]")
+                    # print(f"sibling={sibling.element}[{sibling.color}]")
 
                 # right child is red (mirrors left)
                 elif sibling != self.obj.NIL and sibling.is_black and sibling.left.is_black and sibling.right.is_red:
@@ -1066,9 +1065,9 @@ class TreeUtils:
                         self.left_rotate(sibling)
                         sibling = self.sibling(replacement_node)
 
-                    print(f"Case 3: right red near child")
-                    print(f"replacement={replacement_node.element}[{replacement_node.color}]")
-                    print(f"sibling={sibling.element}[{sibling.color}]")
+                    # print(f"Case 3: right red near child")
+                    # print(f"replacement={replacement_node.element}[{replacement_node.color}]")
+                    # print(f"sibling={sibling.element}[{sibling.color}]")
                     
             # * Case 4: Sibling is black and has a far red child
             if sibling != self.obj.NIL:
@@ -1081,18 +1080,18 @@ class TreeUtils:
                         sibling.right.color = NodeColor.BLACK
                     self.left_rotate(replacement_node.parent)
 
-                    print(f"Case 4: left red outer child")
-                    print(f"replacement={replacement_node.element}[{replacement_node.color}]")
-                    print(f"sibling={sibling.element}[{sibling.color}]")
+                    # print(f"Case 4: left red outer child")
+                    # print(f"replacement={replacement_node.element}[{replacement_node.color}]")
+                    # print(f"sibling={sibling.element}[{sibling.color}]")
 
                 else:
                     if sibling.left != self.obj.NIL:
                         sibling.left.color = NodeColor.BLACK
                         self.right_rotate(replacement_node.parent)
 
-                    print(f"Case 4: right red outer child")
-                    print(f"replacement={replacement_node.element}[{replacement_node.color}]")
-                    print(f"sibling={sibling.element}[{sibling.color}]")
+                    # print(f"Case 4: right red outer child")
+                    # print(f"replacement={replacement_node.element}[{replacement_node.color}]")
+                    # print(f"sibling={sibling.element}[{sibling.color}]")
 
                 replacement_node = self.obj.root
             
@@ -1106,8 +1105,8 @@ class TreeUtils:
         assert self.obj.root.color == NodeColor.BLACK, "Error: Black Property: root must always be black at end of fixup loop."
         self.check_node_red_property(replacement_node)
         assert self.obj.is_black_property == True, "Error: Black Property: every path in a tree, must have the same number of black nodes"
-        print(f"Exiting Loop:")
-        print(f"replacement={replacement_node.element}[{replacement_node.color}], P: {replacement_node.parent.element} L: {replacement_node.left.element} R: {replacement_node.right.element}")
+        # print(f"Exiting Loop:")
+        # print(f"replacement={replacement_node.element}[{replacement_node.color}], P: {replacement_node.parent.element} L: {replacement_node.left.element} R: {replacement_node.right.element}")
         
     def red_black_descent(self, node, node_type, key):
         """red black search - uses bst descent - but with sentinels rather than None."""
@@ -1264,6 +1263,17 @@ class TreeUtils:
 
     # endregion
 
+    # region Ordered Set
+    
+    def check_key_is_same_type(self, key):
+        """Checks the input key type with the stored tree key type."""
+        if key.datatype != self.obj.tree_keytype:
+            raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj.tree_keytype.__name__}, Got: {key.datatype.__name__}")
+
+    
+
+
+    # endregion
 
 
     # region Disjoint Set
@@ -1501,7 +1511,7 @@ class TreeUtils:
     def set_keytype(self, key):
         """sets the tree keytype on first insertion."""
         if self.obj.tree_keytype is None:
-            self.obj.tree_keytype = key.datatype
+            self.obj._tree_keytype = key.datatype
 
     def check_btree_key_is_same_type(self, key):
         """Checks the input key type with the stored hash table key type."""
