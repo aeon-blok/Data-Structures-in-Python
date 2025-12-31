@@ -69,6 +69,7 @@ class MapADT(ABC, Generic[T, K]):
     def remove(self, key: K) -> Optional[T]:
         """removes a key value pair from the hash table."""
         pass
+    
     # ----- Accessors -----
     @abstractmethod
     def keys(self) -> Optional["VectorArray"]:

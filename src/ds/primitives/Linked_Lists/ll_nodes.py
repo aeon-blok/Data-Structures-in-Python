@@ -22,13 +22,22 @@ from abc import ABC, ABCMeta, abstractmethod
 from utils.helpers import RandomClass
 from user_defined_types.generic_types import T
 from utils.constants import DLL_SEPERATOR
-from utils.representations import DllNodeRepr, SllNodeRepr
+from utils.representations import DllNodeRepr, SllNodeRepr, SkipNodeRepr
 
 if TYPE_CHECKING:
     from adts.linked_list_adt import LinkedListADT
 
 from adts.linked_list_adt import iNode
 
+from user_defined_types.generic_types import (
+    ValidDatatype,
+    TypeSafeElement,
+    Index,
+    PositiveNumber,
+)
+from user_defined_types.key_types import iKey, Key
+
+from ds.primitives.arrays.dynamic_array import VectorArray
 
 # endregion
 
@@ -142,3 +151,59 @@ class Dll_Node(iNode[T]):
 
     def __str__(self) -> str:
         return self._desc.str_ll_node()
+
+class SkipNode(Generic[T]):
+    """
+    Specialized Node to be used in skip lists.
+    We conventionally assume that the above/below operations return None if the position requested does not exist
+    """
+    def __init__(self, datatype: type, key, element: T, height: int) -> None:
+        self._datatype = ValidDatatype(datatype)
+        self._key = Key(key)
+        self._element = TypeSafeElement(element, self._datatype)
+        self.height = height
+        assert self.height > 0, f"Error: Skip Node height level must be greater than 0"
+        self.forward = [None] * self.height
+        self.prev = None # only works for the ground level 0 linked list.
+
+        # composed objects:
+        self._desc = SkipNodeRepr(self)
+
+    @property
+    def datatype(self):
+        return self._datatype
+
+    @property
+    def element(self):
+        return self._element
+    
+    @property
+    def key(self):
+        return self._key
+
+    def __str__(self) -> str:
+        return self._desc.str_skip_node()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_skip_node()
+
+class SkipNodeSentinel(SkipNode):
+    """Sentinel Node for the head and tail of skip lists"""
+    def __init__(self, height: int) -> None:
+        self._datatype = None
+        self._key = None
+        self._element = None
+        self.height = height
+        assert self.height > 0, f"Error: Skip Node height level must be greater than 0"
+        self.forward = [None] * height
+        self.prev = None  # only works for the ground level 0 linked list.
+        # composed objects:
+        self._desc = SkipNodeRepr(self)
+
+    def __str__(self) -> str:
+        return self._desc.str_skip_node()
+
+    def __repr__(self) -> str:
+        return self._desc.repr_skip_node()
+
+

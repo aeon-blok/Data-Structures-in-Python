@@ -110,7 +110,6 @@ class SortedArrayRepr(ArrayRepr):
     def repr_array(self):
         """array __repr__ - for devs"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}"
-
 # endregion
 
 # region linked lists
@@ -192,8 +191,30 @@ class LinkedListRepr(BaseRepr):
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}"
 
+class SkipNodeRepr(BaseRepr):
+    """for Specialized Skip List Nodes"""
+    
+    @property
+    def element(self) -> str:
+        return f"[element={self.obj.element}]"
+    
+    def str_skip_node(self):
+        return f"{self.ds_class}{self.element}"
+    
+    def repr_skip_node(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}"
+
+
+
+
 class SkipListRepr(BaseRepr):
-    pass
+
+
+    def str_skip_list(self):
+        return f""
+    
+    def repr_skip_list(self):
+        return f""
 
 
 # endregion
@@ -283,7 +304,7 @@ class PlistRepr(BaseRepr):
 # endregion
 
 # region Stacks
-# stacks
+
 class LlStackRepr(LinkedListRepr):
     """Stack Representation in the console."""
     def __init__(self, obj) -> None:
@@ -396,10 +417,10 @@ class MinMaxStackRepr(ArrayStackRepr):
     def repr_min_max_avg_stack(self) -> str:
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.min}{self.max}{self.average}{self.key}"
+
 # endregion
 
 # region queues
-# queues
 class llQueueRepr(LinkedListRepr):
     """Linked list queue representation """
 
@@ -512,6 +533,7 @@ class CircArrayQueueRepr(BaseRepr):
     def repr_circ_array_queue(self) -> str:
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.front_element}{self.rear_element}{self.buffer_type}"
+
 # endregion
 
 # region deques
