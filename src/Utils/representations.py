@@ -205,16 +205,36 @@ class SkipNodeRepr(BaseRepr):
         return f"{self.ds_memory_address}{self.ds_datatype}"
 
 
-
-
 class SkipListRepr(BaseRepr):
 
+    @property
+    def total_entries(self) -> str:
+        return f"[{self.obj.size}]"
+    
+    @property
+    def skip_level(self) -> str:
+        return f"[levels={self.obj.level}/{self.obj.max_level}]"
+    
+    @property
+    def probability(self) -> str:
+        return f"[prob={self.obj.probability}]"
+    
+    @property
+    def items(self) -> str:
+        items = []
+        entries = self.obj.entries()
+        for k,v in entries:
+            line = f"{k}: '{v}'"
+            items.append(line)
+        string = ", ".join(items)
+        return f"[{string}]"
 
+    
     def str_skip_list(self):
-        return f""
+        return f"{self.ds_class}{self.total_entries}{self.items}"
     
     def repr_skip_list(self):
-        return f""
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_entries}{self.skip_level}{self.probability}"
 
 
 # endregion

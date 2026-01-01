@@ -89,7 +89,7 @@ class SortedMapADT(MapADT[T, K]):
         ...
 
     @abstractmethod
-    def entries(self) -> Optional[VectorArray[T]]:
+    def entries(self) -> Iterable[T]:
         """returns an array of the entries in the sorted map."""
         ...
 

@@ -308,7 +308,6 @@ class MapUtils:
             print(" | ".join(row_display))
             print(row_seperator)
 
-
     # region Hash Set
     # -------------------------------- Hash Set  --------------------------------
 
@@ -323,6 +322,20 @@ class MapUtils:
         if self.obj.is_empty:
             raise DsUnderflowError(f"Error: Set is Empty...")
 
+    # endregion
+
+    # region Skip List
+    # -------------------------------- Skip List (Sorted Map)  --------------------------------
+
+    def set_skiplist_keytype(self, key):
+        """On first insertion - this will set the keytype of the skip list to be the same type as the inserted key."""
+        if self.obj.keytype is None:
+            self.obj._keytype = key.datatype
+
+    def check_ketype_is_same(self, key):
+        """ensures the keys are comparable"""
+        if key.datatype != self.obj.keytype:
+            raise KeyInvalidError(f"Error: Input Key Type Invalid. Expected: {self.obj.keytype.__name__}, Got: {key.datatype.__name__}")
 
 
     # endregion
