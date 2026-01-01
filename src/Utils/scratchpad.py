@@ -15,6 +15,28 @@ from enum import Flag, auto
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # # The underscores _ are just for readability, they are ignored by Python.
 # a = 0b01010000_01000001_01010100
 # print(a)
@@ -45,7 +67,6 @@ from enum import Flag, auto
 #         print(f"{e}")
 
 # print(testfunc(new_test_type))  # Output: Does not include the critical boat!
-
 
 
 
@@ -91,5 +112,4 @@ from enum import Flag, auto
 # todo trees -- Solve problems: heap sort, k largest elements, lowest common ancestor
 # todo graphs -- Solve: connected components, shortest path, cycle detection
 # todo Implement mini projects like a LRU cache, social network connections, or mini graph algorithms
-# todo need to add recursion guards to the representations to prevent recursive loops with __str__....
 

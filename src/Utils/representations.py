@@ -15,7 +15,6 @@ from utils.constants import SLL_SEPERATOR
 
 
 # where we add console visualizations for the different data structure types - usually use these in __str__ or __repr__ or a utility function.
-
 class BaseRepr:
     """Holds all the common descriptors that are used by every representation."""
     def __init__(self, obj) -> None:
@@ -34,7 +33,6 @@ class BaseRepr:
     def ds_datatype(self):
         return f"[Type: {self.obj.datatype.__name__}]"
 
-
 class UntypedBaseRepr:
     """Holds all the common descriptors that are used by every representation."""
 
@@ -52,7 +50,6 @@ class UntypedBaseRepr:
 
 
 # region arrays
-
 class ArrayRepr(BaseRepr):
     """Representation for arrays and base class for array type structures."""
     @property
@@ -111,6 +108,7 @@ class SortedArrayRepr(ArrayRepr):
         """array __repr__ - for devs"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}"
 # endregion
+
 
 # region linked lists
 class SllNodeRepr(UntypedBaseRepr):
@@ -190,53 +188,6 @@ class LinkedListRepr(BaseRepr):
     def repr_ll(self):
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}"
-
-class SkipNodeRepr(BaseRepr):
-    """for Specialized Skip List Nodes"""
-    
-    @property
-    def element(self) -> str:
-        return f"[element={self.obj.element}]"
-    
-    def str_skip_node(self):
-        return f"{self.ds_class}{self.element}"
-    
-    def repr_skip_node(self):
-        return f"{self.ds_memory_address}{self.ds_datatype}"
-
-
-class SkipListRepr(BaseRepr):
-
-    @property
-    def total_entries(self) -> str:
-        return f"[{self.obj.size}]"
-    
-    @property
-    def skip_level(self) -> str:
-        return f"[levels={self.obj.level}/{self.obj.max_level}]"
-    
-    @property
-    def probability(self) -> str:
-        return f"[prob={self.obj.probability}]"
-    
-    @property
-    def items(self) -> str:
-        items = []
-        entries = self.obj.entries()
-        for k,v in entries:
-            line = f"{k}: '{v}'"
-            items.append(line)
-        string = ", ".join(items)
-        return f"[{string}]"
-
-    
-    def str_skip_list(self):
-        return f"{self.ds_class}{self.total_entries}{self.items}"
-    
-    def repr_skip_list(self):
-        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_entries}{self.skip_level}{self.probability}"
-
-
 # endregion
 
 # region Positional Lists
@@ -320,11 +271,9 @@ class PlistRepr(BaseRepr):
     def repr_positional_list(self):
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.head}{self.tail}"
-
 # endregion
 
 # region Stacks
-
 class LlStackRepr(LinkedListRepr):
     """Stack Representation in the console."""
     def __init__(self, obj) -> None:
@@ -437,7 +386,6 @@ class MinMaxStackRepr(ArrayStackRepr):
     def repr_min_max_avg_stack(self) -> str:
         """Displays the memory address and other useful info"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.min}{self.max}{self.average}{self.key}"
-
 # endregion
 
 # region queues
@@ -557,7 +505,6 @@ class CircArrayQueueRepr(BaseRepr):
 # endregion
 
 # region deques
-# deques
 class CircDequeRepr(BaseRepr):
 
     @property
@@ -675,7 +622,6 @@ class LlDequeRepr(LinkedListRepr):
 # endregion
 
 # region priority queues
-# priority queues
 class PQueueRepr(BaseRepr):
 
     @property
@@ -717,7 +663,6 @@ class PQueueRepr(BaseRepr):
         if self.obj.is_empty():
             return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}"
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.priority_element}{self.keytype}"
-
 
 # heaps
 class BinaryHeapRepr(BaseRepr):
@@ -774,6 +719,16 @@ class BinaryHeapRepr(BaseRepr):
         if self.obj.is_empty():
             return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.heap_type}"
         return f"{self.ds_memory_address}{self.ds_datatype}{self.storage}{self.priority_element}{self.keytype}{self.heap_type}"
+
+class FibonacciHeapRepr(BaseRepr):
+
+    def str_fibonacci_heap(self):
+        return f"{self.ds_class}"
+    
+    def repr_fibonacci_heap(self):
+        return f"{self.ds_memory_address}"
+    
+
 # endregion
 
 # region Maps
@@ -804,6 +759,50 @@ class ChainHashTableRepr(BaseRepr):
         datatype = self.obj.datatype.__name__
         capacity = f"{self.obj.total_elements}/{self.obj.table_capacity}"
         return f"{class_address}, Type: {datatype}, Capacity: {capacity}"
+
+class SkipNodeRepr(BaseRepr):
+    """for Specialized Skip List Nodes"""
+
+    @property
+    def element(self) -> str:
+        return f"[element={self.obj.element}]"
+
+    def str_skip_node(self):
+        return f"{self.ds_class}{self.element}"
+
+    def repr_skip_node(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}"
+
+class SkipListRepr(BaseRepr):
+
+    @property
+    def total_entries(self) -> str:
+        return f"[{self.obj.size}]"
+
+    @property
+    def skip_level(self) -> str:
+        return f"[levels={self.obj.level}/{self.obj.max_level}]"
+
+    @property
+    def probability(self) -> str:
+        return f"[prob={self.obj.probability}]"
+
+    @property
+    def items(self) -> str:
+        items = []
+        entries = self.obj.entries()
+        for k, v in entries:
+            line = f"{k}: '{v}'"
+            items.append(line)
+        string = ", ".join(items)
+        return f"[{string}]"
+
+    def str_skip_list(self):
+        return f"{self.ds_class}{self.total_entries}{self.items}"
+
+    def repr_skip_list(self):
+        return f"{self.ds_memory_address}{self.ds_datatype}{self.total_entries}{self.skip_level}{self.probability}"
+
 
 # endregion
 
@@ -1606,7 +1605,6 @@ class BSTRepr(BaseRepr):
     def repr_bst(self):
         """ __repr__ for binary search tree"""
         return f"{self.ds_memory_address}{self.ds_datatype}{self.total_nodes}{self.tree_height}"
-
 
 class AVLNodeRepr(BSTNodeRepr):
 

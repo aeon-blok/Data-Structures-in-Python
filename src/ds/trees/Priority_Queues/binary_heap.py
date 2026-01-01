@@ -22,7 +22,6 @@ from collections.abc import Sequence
 
 # endregion
 
-
 # region custom imports
 from utils.validation_utils import DsValidation
 from utils.representations import BinaryHeapRepr

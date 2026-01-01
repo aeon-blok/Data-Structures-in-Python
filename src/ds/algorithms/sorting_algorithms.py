@@ -59,7 +59,6 @@ def insertion_sort(input_array):
         input_array[sorted + 1] = key
     return input_array
 
-
 def bubble_sort(input_array):
     """
     Bubble Sort Algorithm: Each pass ensures that the largest unsorted element “bubbles” to its correct position at the end.

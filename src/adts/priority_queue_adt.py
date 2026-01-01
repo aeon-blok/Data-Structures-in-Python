@@ -90,7 +90,6 @@ class MinPriorityQueueADT(ABC, Generic[T, K]):
         """Updates a specific elements - priority value."""
         pass
 
-
 class MaxPriorityQueueADT(ABC, Generic[T, K]):
     """
     Max Priority Queue ADT Interface: Canonical operations
@@ -118,7 +117,6 @@ class MaxPriorityQueueADT(ABC, Generic[T, K]):
     def increase_key(self, element: T, priority: K) -> None:
         """Updates a specific elements - priority value."""
         pass
-
 
 class PriorityQueueADT(ABC, Generic[T, K]):
     """

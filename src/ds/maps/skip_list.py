@@ -303,7 +303,7 @@ class SkipList(SortedMapADT[T, K], CollectionADT[T]):
         return submap
 
     def rank(self, key) -> int:
-        """returns the number of keys smaller than the specified key"""
+        """returns the number of keys smaller than the specified key -- note the key does not have to actually exist in the skip list itself"""
         key = Key(key)
         self._utils.check_ketype_is_same(key)
 
@@ -477,7 +477,8 @@ class SkipList(SortedMapADT[T, K], CollectionADT[T]):
 # Main --------------- Client Facing Code --------------------
 
 # todo test type safety, for key and datatype
-# todo test larger amount of items....
+# todo test larger amount of items (500)....
+# todo stress test public facing methods
 
 def main():
     fake = Faker()
