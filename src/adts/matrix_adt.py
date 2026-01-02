@@ -64,6 +64,7 @@ class MatrixADT(ABC, Generic[T]):
     @abstractmethod
     def is_zero_matrix(self) -> bool:
         """returns true if matrix only has 0 for every element."""
+        ...
 
     @abstractmethod
     def is_identity_matrix(self) -> bool:

@@ -93,18 +93,24 @@ class FibonacciHeap(PriorityQueueADT[T, K], CollectionADT[T], Generic[T, K]):
     # ----- Canonical ADT Operations -----
     # ----- Accessor ADT Operations -----
     def find_extreme(self) -> T:
-        """"""
+        """
+        """
 
     # ----- Mutator ADT Operations -----
 
     def insert(self, element: T, priority: K) -> None:
-        """"""
-    
+        """Create a new singleton tree & Add to root list"""
+
+
     def extract_extreme(self) -> T:
-        """"""
-    
+        """
+        Delete -- meld its children into root list; update min.
+        Consolidate trees so that no two roots have same rank.
+        """
 
     def change_priority(self, element: T, priority: K) -> None:
-        """"""
-    
-
+        """
+        If heap-order is not violated, just decrease the key of x.
+        Otherwise, cut tree rooted at x and meld into root list.
+        To keep trees flat: as soon as a node has its second child cut, cut it off and meld into root list (and unmark it)
+        """
