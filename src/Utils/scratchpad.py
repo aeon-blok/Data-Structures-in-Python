@@ -7,16 +7,20 @@ from sys import getsizeof
 from binascii import hexlify
 import enum
 from enum import Flag, auto
+from pprint import pprint
 
 
 
 
+# creates a 11x11 Zero Matrix
+dp = []
+for i in range(10+1):
+    row = []
+    for j in range(10+1):
+        row.append(0)
+    dp.append(row)
 
-
-
-
-
-
+pprint(dp)
 
 
 
